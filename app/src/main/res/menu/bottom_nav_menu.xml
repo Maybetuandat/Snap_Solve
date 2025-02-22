@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/homeFragment"
+        android:icon="@drawable/ic_home"
+        tools:ignore="MenuTitle" />
+    <item
+        android:id="@+id/searchFragment"
+        android:icon="@drawable/ic_search"
+        tools:ignore="MenuTitle" />
+    <item
+        android:id="@+id/trendFragment"
+        android:icon="@drawable/ic_trend"
+        tools:ignore="MenuTitle" />
+    <item
+        android:id="@+id/personalFragment"
+        android:icon="@drawable/ic_personal"
+        tools:ignore="MenuTitle" />
+</menu>

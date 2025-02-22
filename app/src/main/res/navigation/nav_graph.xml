@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.app_music.presentation.home.HomeFragment"
+        android:label="Home" />
+
+    <fragment
+        android:id="@+id/searchFragment"
+        android:name="com.example.app_music.presentation.search.SearchFragment"
+        android:label="Search" />
+
+    <fragment
+        android:id="@+id/trendFragment"
+        android:name="com.example.app_music.presentation.trend.TrendFragment"
+        android:label="Trend" />
+
+    <fragment
+        android:id="@+id/personalFragment"
+        android:name="com.example.app_music.presentation.personal.PersonalFragment"
+        android:label="Personal" />
+</navigation>
