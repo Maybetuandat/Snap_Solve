@@ -17,11 +17,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Inflate layout trước khi gọi findNavController
+
+
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Lấy NavController đúng cách
+
         val navController = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)?.let {
             it as? NavHostFragment
         }?.navController
