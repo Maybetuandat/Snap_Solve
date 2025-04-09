@@ -8,7 +8,7 @@
 
     android:layout_height="match_parent">
 
-    <!-- Fragment chứa nội dung chính -->
+
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"
@@ -19,6 +19,7 @@
         app:layout_constraintBottom_toTopOf="@id/bottomNavigationView"
         app:layout_constraintEnd_toEndOf="parent"
         app:defaultNavHost="true"
+        android:paddingHorizontal="6dp"
         app:navGraph="@navigation/nav_graph" />
 
 

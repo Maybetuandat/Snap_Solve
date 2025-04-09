@@ -7,6 +7,25 @@
     <!-- Note -->
     <string name="noteTitle">Ghi chú QANDA</string>
     <string name="back">Back</string>
+    <string name="nameOfScreenMenu">Menu</string>
+    <string name="btnEdit">Edit</string>
+    <string name="my_follower">My follower</string>
+    <string name="recommend_product">Recommend Products</string>
+    <string name="premium">Premium</string>
+    <string name="start_for_free">Start for free</string>
+    <string name="numberFollower">125</string>
+    <string name="question_history">Question history</string>
+    <string name="recent_searches">Recent Searches</string>
+    <string name="recent_research">Recent Research</string>
+    <string name="question">Question</string>
+    <string name="search">Search</string>
+    <string name="research">Research</string>
+    <string name="nameOfUser">Tuấn Đạt</string>
+    <string name="tools">Tools</string>
+    <string name="note">Note</string>
+    <string name="support">Support</string>
+    <string name="notice">Notice</string>
+    <string name="help">Help</string>
     <string-array name="spinnerNoteType">
         <item>Ngày</item>
         <item>Tên</item>
