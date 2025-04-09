@@ -9,10 +9,10 @@
 
     <item
         android:id="@+id/trendFragment"
-        android:icon="@drawable/ic_trend"
+        android:icon="@drawable/ic_note"
         android:iconTint="@color/white"
 
-        android:title="Trend" />
+        android:title="Note" />
     <item
         android:id="@+id/searchFragment"
         android:icon="@drawable/ic_search"
