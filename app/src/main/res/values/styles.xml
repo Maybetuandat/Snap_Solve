@@ -3,6 +3,7 @@
 
     <!-- res/values/styles.xml -->
 
+    <style name="SpinnerPopupTheme" parent="ThemeOverlay.AppCompat.Light" />
 
 
 

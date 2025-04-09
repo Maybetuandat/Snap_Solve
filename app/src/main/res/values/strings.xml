@@ -5,12 +5,16 @@
 
 
     <!-- Note -->
-    <string name="noteTitle">Ghi chú QANDA</string>
+    <string name="noteTitle">QANDA Note</string>
     <string name="back">Back</string>
     <string name="menu">Menu</string>
-    <string-array name="spinnerNoteType">
-        <item>Ngày</item>
-        <item>Tên</item>
-        <item>Loại</item>
-    </string-array>
+    <string name="newbutton">New</string>
+    <string name="up_load_file">Up load file</string>
+    <string name="create_new_note">Create new note</string>
+    <string name="create_new_folder">Create new folder</string>
+    <string name="camera">Camera</string>
+    <string name="scan">Scan</string>
+    <string name="day">Day</string>
+    <string name="name">Name</string>
+    <string name="type">Type</string>
 </resources>
