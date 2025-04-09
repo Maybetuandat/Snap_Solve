@@ -3,8 +3,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="iconselected">#FF6156E2</color>
-    <color name="background">#FF0B071E</color>
-
+    <color name="background">#FFFFFF</color>
+    <color name="orange">#FF5722</color>
 
 
 </resources>
