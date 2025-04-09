@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="NoRippleBottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
-        <!-- Không ripple -->
-        <item name="itemRippleColor">@android:color/transparent</item>
-    </style>
+
+    <!-- res/values/styles.xml -->
+
+
+
+
 
 </resources>

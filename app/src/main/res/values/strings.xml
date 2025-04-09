@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">app_music</string>
+    <string name="app_name">Snap_Solve</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
@@ -7,6 +7,7 @@
     <!-- Note -->
     <string name="noteTitle">Ghi chú QANDA</string>
     <string name="back">Back</string>
+    <string name="menu">Menu</string>
     <string-array name="spinnerNoteType">
         <item>Ngày</item>
         <item>Tên</item>
