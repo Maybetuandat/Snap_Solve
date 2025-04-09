@@ -19,6 +19,6 @@
         android:title="Search" />
     <item
         android:id="@+id/personalFragment"
-        android:icon="@drawable/ic_personal"
-        android:title="Personal" />
+        android:icon="@drawable/ic_menu"
+        android:title="Menu" />
 </menu>

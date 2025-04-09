@@ -19,7 +19,7 @@
 
     <fragment
         android:id="@+id/personalFragment"
-        android:name="com.example.app_music.presentation.personal.PersonalFragment"
+        android:name="com.example.app_music.presentation.menu.MenuFragment"
         android:label="Personal" />
 
 

@@ -2,9 +2,10 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="iconselected">#FF6156E2</color>
+    <color name="selectedicon">#C67C4E</color>
     <color name="background">#FFFFFF</color>
     <color name="orange">#FF5722</color>
+    <color name="unselectedicon">#A2A2A2</color>
 
 
 </resources>

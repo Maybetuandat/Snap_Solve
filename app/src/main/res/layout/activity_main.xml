@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:background="@color/background"
+
     android:layout_height="match_parent">
 
     <!-- Fragment chứa nội dung chính -->
@@ -33,8 +34,8 @@
         app:itemTextColor="@color/black"
 
         android:background="@color/background"
-        app:itemTextAppearanceActive="@style/BottomNavTextActive"
-        app:itemTextAppearanceInactive="@style/BottomNavTextInactive"
+
+
         app:labelVisibilityMode="unlabeled"
         app:menu="@menu/bottom_nav_menu" />
 
