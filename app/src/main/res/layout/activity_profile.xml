@@ -91,7 +91,7 @@
         android:layout_marginEnd="24dp"
         android:text="@string/nameOfUser"
         android:textColor="@android:color/black"
-        android:textSize="16sp"/>
+        android:textSize="@dimen/text_medium"/>
 
     <ImageView
         android:layout_width="wrap_content"
@@ -133,7 +133,7 @@
         android:layout_marginEnd="24dp"
         android:text="@string/detail_status_message"
         android:textColor="@android:color/black"
-        android:textSize="16sp"/>
+        android:textSize="@dimen/text_medium"/>
 
     <ImageView
         android:layout_width="wrap_content"
@@ -176,7 +176,7 @@
         android:layout_marginEnd="24dp"
         android:text="@string/detail_student_infomation"
         android:textColor="@android:color/black"
-        android:textSize="16sp"/>
+        android:textSize="@dimen/text_medium"/>
 
     <ImageView
         android:layout_width="wrap_content"
@@ -219,7 +219,7 @@
         android:layout_height="wrap_content"
         android:text="@string/email"
         android:textColor="@android:color/black"
-        android:textSize="16sp"
+        android:textSize="@dimen/text_medium"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/tv_account_info_label"
@@ -230,8 +230,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/mailOfUser"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
+        android:textColor="@color/unselectedicon"
+        android:textSize="@dimen/text_small"
         android:gravity="end"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
@@ -247,7 +247,7 @@
         android:layout_height="wrap_content"
         android:text="@string/snap_solve_uid"
         android:textColor="@android:color/black"
-        android:textSize="16sp"
+        android:textSize="@dimen/text_medium"
         android:layout_marginStart="16dp"
         android:layout_marginTop="20dp"
         app:layout_constraintTop_toBottomOf="@id/tv_email_label"
@@ -258,8 +258,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/user_id"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
+        android:textColor="@color/unselectedicon"
+        android:textSize="@dimen/text_small"
         android:gravity="end"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
@@ -275,7 +275,7 @@
         android:layout_height="wrap_content"
         android:text="@string/linked_accounts"
         android:textColor="@android:color/black"
-        android:textSize="16sp"
+        android:textSize="@dimen/text_medium"
         android:layout_marginStart="16dp"
         android:layout_marginTop="20dp"
         app:layout_constraintTop_toBottomOf="@id/tv_uid_label"
@@ -298,8 +298,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/facebook"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"/>
+        android:textColor="@color/unselectedicon"
+        android:textSize="@dimen/text_small"/>
 
     <TextView
         android:id="@+id/tv_linked_account_username"
@@ -308,6 +308,6 @@
         android:text="@string/nameOfFacebookUser"
         android:layout_marginTop="20dp"
         android:textColor="@android:color/darker_gray"
-        android:textSize="14sp"/>
+        android:textSize="@dimen/text_small"/>
 </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
