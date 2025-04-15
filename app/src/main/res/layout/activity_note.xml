@@ -86,11 +86,10 @@
         />
 
     <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycleViewNote"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="@color/white"
+        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageview_note"
-        app:layout_constraintVertical_bias="0.0"
-        tools:layout_editor_absoluteX="0dp" />
+        app:layout_constraintTop_toBottomOf="@id/imageview_note" />
 </androidx.constraintlayout.widget.ConstraintLayout>

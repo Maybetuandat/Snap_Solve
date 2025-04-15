@@ -17,4 +17,6 @@
     <string name="day">Day</string>
     <string name="name">Name</string>
     <string name="type">Type</string>
+    <string name="folder">Folder</string>
+    <string name="new_text">New</string>
 </resources>
