@@ -13,9 +13,9 @@
         android:name="com.example.app_music.presentation.trend.TrendFragment"
         android:label="Trend" />
     <fragment
-        android:id="@+id/searchFragment"
-        android:name="com.example.app_music.presentation.search.SearchFragment"
-        android:label="Search" />
+        android:id="@+id/communityFragment"
+        android:name="com.example.app_music.presentation.community.CommunityFragment"
+        android:label="Community" />
 
     <fragment
         android:id="@+id/personalFragment"

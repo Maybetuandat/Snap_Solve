@@ -14,9 +14,9 @@
 
         android:title="Note" />
     <item
-        android:id="@+id/searchFragment"
-        android:icon="@drawable/ic_search"
-        android:title="Search" />
+        android:id="@+id/communityFragment"
+        android:icon="@drawable/ic_community"
+        android:title="Community" />
     <item
         android:id="@+id/personalFragment"
         android:icon="@drawable/ic_menu"
