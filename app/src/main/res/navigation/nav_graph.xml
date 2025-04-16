@@ -22,5 +22,4 @@
         android:name="com.example.app_music.presentation.menu.MenuFragment"
         android:label="Personal" />
 
-
 </navigation>
