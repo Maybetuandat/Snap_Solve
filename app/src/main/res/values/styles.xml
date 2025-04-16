@@ -5,4 +5,11 @@
         <item name="itemRippleColor">@android:color/transparent</item>
     </style>
 
+    <style name="TextAppearance.BottomNavigationView.Active" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TextAppearance.BottomNavigationView.Inactive" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textSize">12sp</item>
+    </style>
 </resources>
