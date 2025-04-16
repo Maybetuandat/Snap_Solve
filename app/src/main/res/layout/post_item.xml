@@ -12,10 +12,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:background="@color/colorForPost"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingTop="12dp"
         android:paddingBottom="12dp">
+
 
         <!-- User Info -->
         <LinearLayout
@@ -26,7 +28,7 @@
             android:layout_marginBottom="8dp">
 
             <!-- Thay thế CircleImageView bằng ImageView thường với background tròn -->
-            <ImageView
+            <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/ivUserAvatar"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
@@ -93,7 +95,6 @@
                 android:contentDescription="Post image" />
         </LinearLayout>
 
-        <!-- Tags sử dụng TextView thay vì Chip -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -110,7 +111,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Popular"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/white"
                     android:textSize="12sp"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"

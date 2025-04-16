@@ -7,6 +7,7 @@
     <color name="orange">#FF5722</color>
     <color name="unselectedicon">#A2A2A2</color>
     <color name="colorForDevider">#F9F9F9</color>
+    <color name="colorForPost">#F6EBE4</color>
 
 
 </resources>

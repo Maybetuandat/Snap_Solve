@@ -28,7 +28,7 @@
                 android:layout_marginBottom="16dp"
                 android:text="Community"
                 android:textColor="@android:color/black"
-                android:textSize="18sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -86,7 +86,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Filter Tabs (RadioGroup thay vì ChipGroup) -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -174,7 +173,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:backgroundTint="#FF8C00"
+        android:backgroundTint="@color/selectedicon"
         android:contentDescription="Create post"
         android:src="@drawable/ic_pencil"
         app:tint="@android:color/white" />
