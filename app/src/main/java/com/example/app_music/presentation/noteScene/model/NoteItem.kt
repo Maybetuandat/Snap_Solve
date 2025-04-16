@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 
 class NoteItem(
     val id: String,
-    val title: String,
+    var title: String,
     val date: String,
     val isFolder: Boolean = false,
     var isExpanded: Boolean = false,
@@ -14,7 +14,7 @@ class NoteItem(
 
     // Constructor for image note
     constructor(id: String, title: String, date: String, imagePreview: Bitmap) :
-        this(id, title, date, false, false, imagePreview)
+            this(id, title, date, false, false, imagePreview)
 
     fun getChildNotes(): List<NoteItem> = childNotes
 

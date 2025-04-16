@@ -19,4 +19,6 @@
     <string name="type">Type</string>
     <string name="folder">Folder</string>
     <string name="new_text">New</string>
+    <string name="rename">Rename</string>
+    <string name="delete">Delete</string>
 </resources>
