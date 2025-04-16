@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="170dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="50dp"
+    android:paddingBottom="15dp">
+
+    <LinearLayout
+        android:id="@+id/newFolderButton"
+        android:layout_width="120dp"
+        android:layout_height="160dp"
+        android:orientation="vertical"
+        android:background="@drawable/dashed_border"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+"
+            android:textSize="32sp"
+            android:textColor="#2196F3"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- Text "Mới ▼" -->
+    <TextView
+        android:id="@+id/textNewTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/new_text"
+        android:textSize="16sp"
+        android:textColor="#2196F3"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:drawableEndCompat="@drawable/ic_expand"
+        app:drawableTint="@color/blue" />
+</LinearLayout>

@@ -5,77 +5,18 @@
 
 
     <!-- Note -->
-    <string name="noteTitle">Ghi chú QANDA</string>
+    <string name="noteTitle">QANDA Note</string>
     <string name="back">Back</string>
-    <string name="nameOfScreenMenu">Menu</string>
-    <string name="btnEdit">Edit</string>
-    <string name="my_follower">My follower</string>
-    <string name="recommend_product">Recommend Products</string>
-    <string name="premium">Premium</string>
-    <string name="start_for_free">Start for free</string>
-    <string name="numberFollower">125</string>
-    <string name="question_history">Question history</string>
-    <string name="recent_searches">Recent Searches</string>
-    <string name="recent_research">Recent Research</string>
-    <string name="question">Question</string>
-    <string name="search">Search</string>
-    <string name="research">Research</string>
-    <string name="nameOfUser">Tuấn Đạt</string>
-    <string name="tools">Tools</string>
-    <string name="note">Note</string>
-    <string name="support">Support</string>
-    <string name="notice">Notice</string>
-    <string name="help">Help</string>
-    <string name="help_center">Help Center</string>
-    <string name="language">Language</string>
-    <string name="notifications">Notifications</string>
-    <string name="push_notification_settings">Push notification settings</string>
-    <string name="account">Account</string>
-    <string name="email">Email</string>
-    <string name="version">Version</string>
-    <string name="versionNumber">beta</string>
-    <string name="logout">Logout</string>
-    <string name="note_delete_account">You will lost all of your data and can\'t\nlogin this account</string>
-    <string name="delete_account">Delete Account</string>
-    <string name="my_profile">My profile</string>
-    <string name="change">Change</string>
-    <string name="username">Username</string>
-    <string name="status_message">Status message</string>
-    <string name="detail_status_message">I\'m hungry with my exercise</string>
-    <string name="student_information">Student Information</string>
-    <string name="detail_student_infomation">I\'m learning at grade fifthteen</string>
-    <string name="account_information">Account information</string>
-    <string name="mailOfUser">trinhvinhtuandat@gmail.com</string>
-    <string name="snap_solve_uid">Snap Solve UID</string>
-    <string name="user_id">axQ*skx</string>
-    <string name="linked_accounts">Linked accounts</string>
-    <string name="facebook">Facebook</string>
-    <string name="nameOfFacebookUser">maybetuandat</string>
-    <string name="setting">Setting</string>
-    <string name="save">Save</string>
-    <string name="description_edit_user_name">A username can consit of any combination of letter, number or(._) (20 characters)</string>
-    <string name="status_mesage">Status Mesage</string>
-    <string name="enter_new_mesage">Enter new mesage</string>
-    <string name="title_edit_information_student">Please provide your grade information</string>
-    <string name="content_edit_student_information">We\'ll prepare content tailored to you based on the information</string>
-    <string name="grade_1">Grade 1</string>
-    <string name="grade_2">Grade 2</string>
-    <string name="grade_3">Grade 3</string>
-    <string name="grade_4">Grade 4</string>
-    <string name="grade_5">Grade 5</string>
-    <string name="grade_6">Grade 6</string>
-    <string name="grade_7">Grade 7</string>
-    <string name="grade_8">Grade 8</string>
-    <string name="grade_9">Grade 9</string>
-    <string name="grade_10">Grade 10</string>
-    <string name="grade_11">Grade 11</string>
-    <string name="grade_12">Grade 12</string>
-    <string name="grade_13">Grade 13</string>
-    <string name="out_of_school">I\'m not attending school</string>
-    <string name="btnComplete">Complete</string>
-    <string-array name="spinnerNoteType">
-        <item>Ngày</item>
-        <item>Tên</item>
-        <item>Loại</item>
-    </string-array>
+    <string name="menu">Menu</string>
+    <string name="newbutton">New</string>
+    <string name="up_load_file">Up load file</string>
+    <string name="create_new_note">Create new note</string>
+    <string name="create_new_folder">Create new folder</string>
+    <string name="camera">Camera</string>
+    <string name="scan">Scan</string>
+    <string name="day">Day</string>
+    <string name="name">Name</string>
+    <string name="type">Type</string>
+    <string name="folder">Folder</string>
+    <string name="new_text">New</string>
 </resources>

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="NoRippleBottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
-        <!-- Không ripple -->
-        <item name="itemRippleColor">@android:color/transparent</item>
-    </style>
+
+    <!-- res/values/styles.xml -->
+
+    <style name="SpinnerPopupTheme" parent="ThemeOverlay.AppCompat.Light" />
+
+
+
 
     <style name="TextAppearance.BottomNavigationView.Active" parent="TextAppearance.AppCompat.Small">
         <item name="android:textSize">12sp</item>
