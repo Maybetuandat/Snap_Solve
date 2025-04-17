@@ -1,14 +1,13 @@
 package com.example.app_music.presentation.community
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.example.app_music.R
-import com.example.app_music.presentation.searchPost.SearchPostActivity
 
 class CommunityFragment : Fragment() {
     override fun onCreateView(
@@ -27,12 +26,8 @@ class CommunityFragment : Fragment() {
 
         // Thiết lập sự kiện click cho nút tìm kiếm
         searchButton.setOnClickListener {
-            // Mở SearchActivity
-            val intent = Intent(activity, SearchPostActivity::class.java)
-            startActivity(intent)
-
-            // Thêm hiệu ứng chuyển màn hình
-            activity?.overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            // Chuyển đến SearchPostFragment
+            findNavController().navigate(R.id.action_communityFragment_to_searchPostFragment)
         }
     }
 }

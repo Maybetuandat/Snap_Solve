@@ -15,11 +15,24 @@
     <fragment
         android:id="@+id/communityFragment"
         android:name="com.example.app_music.presentation.community.CommunityFragment"
-        android:label="Community" />
+        android:label="Community">
+        <action
+            android:id="@+id/action_communityFragment_to_searchPostFragment"
+            app:destination="@id/searchPostFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/personalFragment"
         android:name="com.example.app_music.presentation.menu.MenuFragment"
         android:label="Personal" />
+
+    <fragment
+        android:id="@+id/searchPostFragment"
+        android:name="com.example.app_music.presentation.searchPost.SearchPostFragment"
+        android:label="Search" />
 
 </navigation>
