@@ -23,6 +23,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_communityFragment_to_communityProfileFragment"
+            app:destination="@id/communityProfileFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -32,7 +39,11 @@
 
     <fragment
         android:id="@+id/searchPostFragment"
-        android:name="com.example.app_music.presentation.searchPost.SearchPostFragment"
+        android:name="com.example.app_music.presentation.communitySearchPost.SearchPostFragment"
         android:label="Search" />
 
+    <fragment
+        android:id="@+id/communityProfileFragment"
+        android:name="com.example.app_music.presentation.community.CommunityProfileFragment"
+        android:label="Profile" />
 </navigation>

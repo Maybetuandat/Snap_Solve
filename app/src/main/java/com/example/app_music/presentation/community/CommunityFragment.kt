@@ -29,5 +29,14 @@ class CommunityFragment : Fragment() {
             // Chuyển đến SearchPostFragment
             findNavController().navigate(R.id.action_communityFragment_to_searchPostFragment)
         }
+
+        // Tìm nút profile
+        val profileButton = view.findViewById<ImageButton>(R.id.btnProfile)
+
+        // Thiết lập sự kiện click cho nút profile
+        profileButton.setOnClickListener {
+            // Chuyển đến CommunityProfileFragment
+            findNavController().navigate(R.id.action_communityFragment_to_communityProfileFragment)
+        }
     }
 }
