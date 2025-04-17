@@ -8,6 +8,7 @@ import android.widget.ImageButton
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.app_music.R
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class CommunityFragment : Fragment() {
     override fun onCreateView(
@@ -37,6 +38,12 @@ class CommunityFragment : Fragment() {
         profileButton.setOnClickListener {
             // Chuyển đến CommunityProfileFragment
             findNavController().navigate(R.id.action_communityFragment_to_communityProfileFragment)
+        }
+
+        // Set up create post floating action button
+        val fabCreate = view.findViewById<FloatingActionButton>(R.id.fabCreate)
+        fabCreate.setOnClickListener {
+            findNavController().navigate(R.id.action_communityFragment_to_communityPostingFragment)
         }
     }
 }

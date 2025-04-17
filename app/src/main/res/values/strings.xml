@@ -78,4 +78,20 @@
         <item>Tên</item>
         <item>Loại</item>
     </string-array>
+
+
+    <!-- Community Posting -->
+    <string name="posting_title">Posting</string>
+    <string name="posting_choose_topic">Please choose a topic</string>
+    <string name="posting_hint_title">Enter title...</string>
+    <string name="posting_hint_content">Enter content...</string>
+    <string name="posting_add_image">Add Image</string>
+    <string name="posting_post">Post</string>
+    <string name="posting_select">Select</string>
+    <string name="posting_topic_header">Topic</string>
+
+    <!-- Topic Categories -->
+    <string name="topic_general">General Discussion</string>
+    <string name="topic_questions">Questions &amp; Answers</string>
+    <string name="topic_news">News &amp; Updates</string>
 </resources>

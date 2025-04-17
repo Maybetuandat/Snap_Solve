@@ -30,6 +30,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_communityFragment_to_communityPostingFragment"
+            app:destination="@id/communityPostingFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -46,4 +53,9 @@
         android:id="@+id/communityProfileFragment"
         android:name="com.example.app_music.presentation.community.CommunityProfileFragment"
         android:label="Profile" />
+
+    <fragment
+        android:id="@+id/communityPostingFragment"
+        android:name="com.example.app_music.presentation.communityPosting.CommunityPostingFragment"
+        android:label="Posting" />
 </navigation>
