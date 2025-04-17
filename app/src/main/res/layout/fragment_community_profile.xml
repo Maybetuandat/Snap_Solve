@@ -119,14 +119,26 @@
 
     </com.google.android.material.tabs.TabLayout>
 
-    <!-- Post List -->
+    <!-- Your Posts List -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewPosts"
+        android:id="@+id/recyclerViewYourPosts"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/tabLayout"
         app:layout_constraintBottom_toBottomOf="parent"
-        tools:listitem="@layout/post_item" />
+        tools:listitem="@layout/post_item"
+        android:visibility="visible" />
+
+    <!-- Liked Posts List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewLikedPosts"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:listitem="@layout/post_item"
+        android:visibility="gone" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
