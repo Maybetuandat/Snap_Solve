@@ -1,6 +1,7 @@
 package com.example.app_music.presentation.noteScene.noteAdapter
 
 import android.content.Context
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
+import com.example.app_music.presentation.noteScene.NoteDetailActivity
 import com.example.app_music.presentation.noteScene.model.NoteItem
 
 class NotesAdapter(
@@ -100,6 +102,18 @@ class NotesAdapter(
             expandButton.setOnClickListener {
                 onItemOptionsClick(it, note)
             }
+
+            // Handle click on note image or title - open detail screen
+            val clickListener = View.OnClickListener {
+                val intent = Intent(context, NoteDetailActivity::class.java).apply {
+                    putExtra("note_id", note.id)
+                    putExtra("note_title", note.title)
+                }
+                context.startActivity(intent)
+            }
+
+            imagePreview.setOnClickListener(clickListener)
+            textTitle.setOnClickListener(clickListener)
         }
     }
 
@@ -115,6 +129,11 @@ class NotesAdapter(
 
             // Handle folder click
             folderIcon.setOnClickListener {
+                onFolderClick(folder)
+            }
+
+            // Handle title click
+            textTitle.setOnClickListener {
                 onFolderClick(folder)
             }
 
