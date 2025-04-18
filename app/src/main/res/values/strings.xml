@@ -21,4 +21,6 @@
     <string name="new_text">New</string>
     <string name="rename">Rename</string>
     <string name="delete">Delete</string>
+    <string name="get_help">Get Help</string>
+    <string name="see_solve">Get Solve</string>
 </resources>

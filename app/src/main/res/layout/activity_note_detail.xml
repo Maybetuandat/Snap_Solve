@@ -157,36 +157,41 @@
     <LinearLayout
         android:id="@+id/layout_bottom_buttons"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="100dp"
         android:background="@color/white"
         android:elevation="4dp"
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
+        android:weightSum="2"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <Button
             android:id="@+id/button_help_ai"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="80dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:backgroundTint="#1976D2"
+            android:backgroundTint="#80FFFFFF"
             android:drawableStart="@drawable/ic_hand"
-            android:text="Nhận Trợ Giúp"
-            android:textColor="@color/white" />
+            android:text="@string/get_help"
+            android:textSize="18sp"
+            android:drawableTint="#001DFF"
+            android:textColor="#1B1BFF" />
 
         <Button
             android:id="@+id/button_view_explanation"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="80dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:backgroundTint="#F57C00"
+            android:backgroundTint="#80FFFFFF"
             android:drawableStart="@drawable/ic_note"
-            android:text="Xem giải thích"
-            android:textColor="@color/white" />
+            android:text="@string/see_solve"
+            android:textColor="#FF6600"
+            android:textSize="18sp"
+            android:drawableTint="#FF6600"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
