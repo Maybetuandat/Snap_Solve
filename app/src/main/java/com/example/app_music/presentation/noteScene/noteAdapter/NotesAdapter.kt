@@ -1,6 +1,7 @@
 package com.example.app_music.presentation.noteScene.noteAdapter
 
 import android.content.Context
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,50 +10,82 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
+import com.example.app_music.presentation.noteScene.NoteDetailActivity
 import com.example.app_music.presentation.noteScene.model.NoteItem
 
 class NotesAdapter(
     private val context: Context,
-    private val notesList: List<NoteItem>
+    private val notesList: List<NoteItem>,
+    private val onNewItemClick: (View?) -> Unit,
+    private val onItemOptionsClick: (View, NoteItem) -> Unit,
+    private val onFolderClick: (NoteItem) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
-        private const val TYPE_NOTE = 0
-        private const val TYPE_FOLDER = 1
+        private const val TYPE_NEW = 0
+        private const val TYPE_NOTE = 1
+        private const val TYPE_FOLDER = 2
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (notesList[position].isFolder) TYPE_FOLDER else TYPE_NOTE
+        return when {
+            position == 0 -> TYPE_NEW // First item is always the NEW item
+            notesList[position - 1].isFolder -> TYPE_FOLDER // Adjust position (-1) because of NEW item
+            else -> TYPE_NOTE
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == TYPE_FOLDER) {
-            val view = LayoutInflater.from(context).inflate(R.layout.item_folder_recycleview, parent, false)
-            FolderViewHolder(view)
-        } else {
-            val view = LayoutInflater.from(context).inflate(R.layout.item_note_recycleview, parent, false)
-            NoteViewHolder(view)
+        return when (viewType) {
+            TYPE_NEW -> {
+                val view = LayoutInflater.from(context).inflate(R.layout.item_new_recycleview, parent, false)
+                NewItemViewHolder(view)
+            }
+            TYPE_FOLDER -> {
+                val view = LayoutInflater.from(context).inflate(R.layout.item_folder_recycleview, parent, false)
+                FolderViewHolder(view)
+            }
+            else -> {
+                val view = LayoutInflater.from(context).inflate(R.layout.item_note_recycleview, parent, false)
+                NoteViewHolder(view)
+            }
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val item = notesList[position]
-
         when (holder) {
-            is FolderViewHolder -> holder.bind(item)
-            is NoteViewHolder -> holder.bind(item)
+            is NewItemViewHolder -> holder.bind()
+            is FolderViewHolder -> holder.bind(notesList[position - 1]) // Adjust position (-1) because of NEW item
+            is NoteViewHolder -> holder.bind(notesList[position - 1]) // Adjust position (-1) because of NEW item
         }
     }
 
-    override fun getItemCount(): Int = notesList.size
+    override fun getItemCount(): Int = notesList.size + 1 // +1 for the NEW item
+
+    inner class NewItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val newFolderButton: LinearLayout = itemView.findViewById(R.id.newFolderButton)
+        private val textNewTitle: TextView = itemView.findViewById(R.id.textNewTitle)
+
+        fun bind() {
+            // When clicking on the plus box
+            newFolderButton.setOnClickListener {
+                onNewItemClick(it) // Pass this view to show menu at that location
+            }
+
+            // When clicking on the dropdown arrow
+            textNewTitle.setOnClickListener {
+                onNewItemClick(it) // Pass view to position menu
+            }
+        }
+    }
 
     inner class NoteViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val imagePreview: ImageView = itemView.findViewById(R.id.imagePreview)
         private val textTitle: TextView = itemView.findViewById(R.id.textTitleNote)
         private val textDate: TextView = itemView.findViewById(R.id.textDateNote)
+        private val expandButton: Button = itemView.findViewById(R.id.note_expand_button)
 
         fun bind(note: NoteItem) {
             textTitle.text = note.title
@@ -64,6 +97,23 @@ class NotesAdapter(
             } else {
                 imagePreview.visibility = View.GONE
             }
+
+            // Handle click for arrow button
+            expandButton.setOnClickListener {
+                onItemOptionsClick(it, note)
+            }
+
+            // Handle click on note image or title - open detail screen
+            val clickListener = View.OnClickListener {
+                val intent = Intent(context, NoteDetailActivity::class.java).apply {
+                    putExtra("note_id", note.id)
+                    putExtra("note_title", note.title)
+                }
+                context.startActivity(intent)
+            }
+
+            imagePreview.setOnClickListener(clickListener)
+            textTitle.setOnClickListener(clickListener)
         }
     }
 
@@ -72,30 +122,25 @@ class NotesAdapter(
         private val textTitle: TextView = itemView.findViewById(R.id.textTitle)
         private val textDate: TextView = itemView.findViewById(R.id.textDate)
         private val iconExpand: Button = itemView.findViewById(R.id.button_expand_folder)
-//        private val nestedRecyclerView: RecyclerView = itemView.findViewById(R.id.nestedRecyclerView)
-//        private val containerLayout: LinearLayout = itemView.findViewById(R.id.containerLayout)
 
         fun bind(folder: NoteItem) {
             textTitle.text = folder.title
             textDate.text = folder.date
 
-            // Set up nested RecyclerView
-//            nestedRecyclerView.layoutManager = LinearLayoutManager(context)
-//            val nestedAdapter = NotesAdapter(context, folder.getChildNotes())
-//            nestedRecyclerView.adapter = nestedAdapter
-//
-//            // Show/hide based on expanded state
-//            nestedRecyclerView.visibility = if (folder.isExpanded) View.VISIBLE else View.GONE
-//
-//            // Rotate icon based on expanded state
-//            iconExpand.rotation = if (folder.isExpanded) 180f else 0f
-//
-//            // Click listener for expanding/collapsing
-//            containerLayout.setOnClickListener {
-//                folder.isExpanded = !folder.isExpanded
-//                nestedRecyclerView.visibility = if (folder.isExpanded) View.VISIBLE else View.GONE
-//                iconExpand.rotation = if (folder.isExpanded) 180f else 0f
-//            }
+            // Handle folder click
+            folderIcon.setOnClickListener {
+                onFolderClick(folder)
+            }
+
+            // Handle title click
+            textTitle.setOnClickListener {
+                onFolderClick(folder)
+            }
+
+            // Handle arrow button click
+            iconExpand.setOnClickListener {
+                onItemOptionsClick(it, folder)
+            }
         }
     }
 }
