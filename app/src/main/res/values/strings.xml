@@ -23,4 +23,6 @@
     <string name="delete">Delete</string>
     <string name="get_help">Get Help</string>
     <string name="see_solve">Get Solve</string>
+    <string name="gethelp">Get Help</string>
+    <string name="xemgiaithich">See Solve</string>
 </resources>

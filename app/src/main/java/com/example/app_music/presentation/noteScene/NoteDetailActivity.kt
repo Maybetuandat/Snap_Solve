@@ -1,14 +1,23 @@
 package com.example.app_music.presentation.noteScene
 
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
+import android.view.Window
+import android.view.WindowManager
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.app_music.R
 import com.example.app_music.presentation.noteScene.views.DrawingView
+import com.skydoves.colorpickerview.ColorPickerDialog
+import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
 
 class NoteDetailActivity : AppCompatActivity() {
 
@@ -17,15 +26,16 @@ class NoteDetailActivity : AppCompatActivity() {
     private lateinit var noteImageView: ImageView
     private lateinit var drawingView: DrawingView
 
-    // Công cụ vẽ
+    // Drawing tools
     private lateinit var handButton: ImageButton
     private lateinit var penButton: ImageButton
     private lateinit var eraserButton: ImageButton
     private lateinit var colorButton: ImageButton
-    private lateinit var helpButton: ImageButton
+    private lateinit var strokeWidthButton: ImageButton
+    private lateinit var undoButton: ImageButton
+    private lateinit var redoButton: ImageButton
 
-    // Các biến cho việc vẽ
-    private var currentTool = Tool.HAND
+    // Drawing variables
     private var currentColor = Color.BLACK
     private var currentWidth = 5f
 
@@ -33,21 +43,31 @@ class NoteDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_note_detail)
 
-        // Lấy dữ liệu từ intent
+        // Get data from intent
         val noteId = intent.getStringExtra("note_id") ?: ""
         val noteName = intent.getStringExtra("note_title") ?: "Unknown Note"
 
-        // Khởi tạo các view
+        // Initialize views
         initViews()
 
-        // Hiển thị thông tin note
+        // Set note info
         noteTitle.text = noteName
 
-        // Khởi tạo các sự kiện
+        // Set up drawing view listener for undo/redo button updates
+        drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
+            override fun onDrawCompleted() {
+                updateUndoRedoButtons()
+            }
+        })
+
+        // Set up event listeners
         setupListeners()
 
-        // Mặc định chọn công cụ Hand (di chuyển)
-        selectTool(Tool.HAND)
+        // Set default mode to PAN (hand tool)
+        selectMode(DrawingView.DrawMode.PAN)
+
+        // Update undo/redo button states
+        updateUndoRedoButtons()
     }
 
     private fun initViews() {
@@ -56,98 +76,271 @@ class NoteDetailActivity : AppCompatActivity() {
         noteImageView = findViewById(R.id.image_note)
         drawingView = findViewById(R.id.drawing_view)
 
-        // Công cụ vẽ
+        // Drawing tools
         handButton = findViewById(R.id.button_hand)
         penButton = findViewById(R.id.button_pen)
         eraserButton = findViewById(R.id.button_eraser)
         colorButton = findViewById(R.id.button_color)
-        helpButton = findViewById(R.id.button_help)
+        strokeWidthButton = findViewById(R.id.button_stroke_width)
+        undoButton = findViewById(R.id.button_undo)
+        redoButton = findViewById(R.id.button_redo)
+
+        // Set up help buttons at bottom
+        val helpAiButton = findViewById<Button>(R.id.button_help_ai)
+        val explanationButton = findViewById<Button>(R.id.button_view_explanation)
+
+        helpAiButton.setOnClickListener {
+            Toast.makeText(this, "Đang phát triển tính năng trợ giúp", Toast.LENGTH_SHORT).show()
+        }
+
+        explanationButton.setOnClickListener {
+            Toast.makeText(this, "Đang phát triển tính năng giải thích", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupListeners() {
-        // Nút Back
+        // Back button
         backButton.setOnClickListener {
             onBackPressed()
         }
 
-        // Công cụ Hand
+        // Hand tool (pan/move document)
         handButton.setOnClickListener {
-            selectTool(Tool.HAND)
+            selectMode(DrawingView.DrawMode.PAN)
         }
 
-        // Công cụ Pen
+        // Pen tool
         penButton.setOnClickListener {
-            selectTool(Tool.PEN)
+            selectMode(DrawingView.DrawMode.DRAW)
         }
 
-        // Công cụ Eraser
+        // Eraser tool
         eraserButton.setOnClickListener {
-            selectTool(Tool.ERASER)
+            selectMode(DrawingView.DrawMode.ERASE)
         }
 
-        // Nút chọn màu
+        // Color picker
         colorButton.setOnClickListener {
             showColorPicker()
         }
 
-        // Nút help
-        helpButton.setOnClickListener {
-            showHelpOptions()
+        // Stroke width
+        strokeWidthButton.setOnClickListener {
+            showStrokeWidthDialog()
+        }
+
+        // Undo button
+        undoButton.setOnClickListener {
+            if (drawingView.undo()) {
+                updateUndoRedoButtons()
+            } else {
+                Toast.makeText(this, "Không có thao tác để hoàn tác", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Redo button
+        redoButton.setOnClickListener {
+            if (drawingView.redo()) {
+                updateUndoRedoButtons()
+            } else {
+                Toast.makeText(this, "Không có thao tác để làm lại", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    private fun selectTool(tool: Tool) {
-        // Đặt công cụ hiện tại
-        currentTool = tool
+    private fun selectMode(mode: DrawingView.DrawMode) {
+        // Set the drawing mode
+        drawingView.setMode(mode)
 
-        // Cập nhật giao diện các nút
-        handButton.setBackgroundResource(if (tool == Tool.HAND) R.drawable.tool_selected_bg else android.R.color.transparent)
-        penButton.setBackgroundResource(if (tool == Tool.PEN) R.drawable.tool_selected_bg else android.R.color.transparent)
-        eraserButton.setBackgroundResource(if (tool == Tool.ERASER) R.drawable.tool_selected_bg else android.R.color.transparent)
+        // Update UI to highlight selected tool
+        handButton.setBackgroundResource(if (mode == DrawingView.DrawMode.PAN) R.drawable.tool_selected_bg else android.R.color.transparent)
+        penButton.setBackgroundResource(if (mode == DrawingView.DrawMode.DRAW) R.drawable.tool_selected_bg else android.R.color.transparent)
+        eraserButton.setBackgroundResource(if (mode == DrawingView.DrawMode.ERASE) R.drawable.tool_selected_bg else android.R.color.transparent)
 
-        // Cập nhật chế độ của DrawingView
-        when (tool) {
-            Tool.HAND -> {
-                drawingView.isEnabled = false
-                drawingView.visibility = View.INVISIBLE
-            }
-            Tool.PEN -> {
+        // Configure drawing view based on mode
+        when (mode) {
+            DrawingView.DrawMode.DRAW -> {
                 drawingView.isEnabled = true
                 drawingView.visibility = View.VISIBLE
                 drawingView.setColor(currentColor)
                 drawingView.setStrokeWidth(currentWidth)
-                drawingView.enableEraser(false)
             }
-            Tool.ERASER -> {
+            DrawingView.DrawMode.ERASE -> {
                 drawingView.isEnabled = true
                 drawingView.visibility = View.VISIBLE
-                drawingView.enableEraser(true)
-                drawingView.setStrokeWidth(currentWidth * 2) // Eraser lớn hơn bút
+                drawingView.setStrokeWidth(currentWidth * 2) // Eraser is thicker than pen
+            }
+            DrawingView.DrawMode.PAN -> {
+                drawingView.isEnabled = true
+                drawingView.visibility = View.VISIBLE
             }
         }
     }
 
     private fun showColorPicker() {
-        val colorPickerDialog = ColorPickerDialog(this)
-        colorPickerDialog.setOnColorSelectedListener { color ->
-            currentColor = color
-            if (currentTool == Tool.PEN) {
-                drawingView.setColor(color)
+        ColorPickerDialog.Builder(this)
+            .setTitle("Chọn màu sắc")
+            .setPreferenceName("NoteColorPickerDialog")
+            .setPositiveButton("Chọn", ColorEnvelopeListener { envelope, _ ->
+                currentColor = envelope.color
+                if (drawingView.getMode() == DrawingView.DrawMode.DRAW) {
+                    drawingView.setColor(currentColor)
+                }
+
+                // Update color button tint
+                colorButton.setColorFilter(currentColor)
+            })
+            .setNegativeButton("Hủy") { dialogInterface, _ ->
+                dialogInterface.dismiss()
+            }
+            .attachAlphaSlideBar(true)
+            .attachBrightnessSlideBar(true)
+            .setBottomSpace(12)
+            .show()
+    }
+
+    private fun showStrokeWidthDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_stroke_width, null)
+
+        // Lấy tham chiếu đến các view
+        val seekBar = dialogView.findViewById<SeekBar>(R.id.stroke_width_seekbar)
+        val previewView = dialogView.findViewById<View>(R.id.stroke_preview)
+        val widthValueText = dialogView.findViewById<TextView>(R.id.width_value_text)
+
+        // Các nút preset
+        val btnThin = dialogView.findViewById<TextView>(R.id.btn_thin)
+        val btnMedium = dialogView.findViewById<TextView>(R.id.btn_medium)
+        val btnThick = dialogView.findViewById<TextView>(R.id.btn_thick)
+
+        // Các nút hành động
+        val btnCancel = dialogView.findViewById<TextView>(R.id.btn_cancel)
+        val btnApply = dialogView.findViewById<TextView>(R.id.btn_apply)
+
+        // Khởi tạo giá trị
+        seekBar.progress = currentWidth.toInt()
+        updateStrokePreview(previewView, currentWidth, currentColor)
+        widthValueText.text = "Độ dày: ${currentWidth.toInt()}"
+
+        // Tạo dialog
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        // Thiết lập không có title mặc định
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        // Thiết lập listener cho SeekBar
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val width = progress.coerceAtLeast(1).toFloat()
+                widthValueText.text = "Độ dày: ${width.toInt()}"
+                updateStrokePreview(previewView, width, currentColor)
             }
 
-            // Cập nhật icon của nút màu
-            colorButton.setColorFilter(color)
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Thiết lập listener cho các nút preset
+        btnThin.setOnClickListener {
+            val thinWidth = 2f
+            seekBar.progress = thinWidth.toInt()
+            widthValueText.text = "Độ dày: ${thinWidth.toInt()}"
+            updateStrokePreview(previewView, thinWidth, currentColor)
+
+            // Cập nhật trạng thái các nút
+            updatePresetButtonsState(btnThin, btnMedium, btnThick)
         }
-        colorPickerDialog.show()
+
+        btnMedium.setOnClickListener {
+            val mediumWidth = 8f
+            seekBar.progress = mediumWidth.toInt()
+            widthValueText.text = "Độ dày: ${mediumWidth.toInt()}"
+            updateStrokePreview(previewView, mediumWidth, currentColor)
+
+            // Cập nhật trạng thái các nút
+            updatePresetButtonsState(btnMedium, btnThin, btnThick)
+        }
+
+        btnThick.setOnClickListener {
+            val thickWidth = 15f
+            seekBar.progress = thickWidth.toInt()
+            widthValueText.text = "Độ dày: ${thickWidth.toInt()}"
+            updateStrokePreview(previewView, thickWidth, currentColor)
+
+            // Cập nhật trạng thái các nút
+            updatePresetButtonsState(btnThick, btnThin, btnMedium)
+        }
+
+        // Thiết lập listener cho các nút hành động
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnApply.setOnClickListener {
+            currentWidth = seekBar.progress.coerceAtLeast(1).toFloat()
+
+            // Cập nhật độ dày nét vẽ
+            if (drawingView.getMode() == DrawingView.DrawMode.DRAW) {
+                drawingView.setStrokeWidth(currentWidth)
+            } else if (drawingView.getMode() == DrawingView.DrawMode.ERASE) {
+                drawingView.setStrokeWidth(currentWidth * 2)
+            }
+
+            dialog.dismiss()
+        }
+
+        // Thiết lập dialog window để có bo góc
+        dialog.window?.let { window ->
+            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+            // Thiết lập kích thước
+            val params = window.attributes
+            params.width = WindowManager.LayoutParams.MATCH_PARENT
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT
+            window.attributes = params
+        }
+
+        // Hiển thị dialog
+        dialog.show()
     }
 
-    private fun showHelpOptions() {
-        // Hiển thị các tùy chọn hỗ trợ
-        // Có thể là một dialog hoặc menu popup
+    // Cập nhật trạng thái hiển thị của các nút preset
+    private fun updatePresetButtonsState(selectedButton: TextView, vararg otherButtons: TextView) {
+        // Cập nhật nút được chọn
+        selectedButton.setBackgroundResource(R.drawable.button_blue)
+        selectedButton.setTextColor(Color.WHITE)
+
+        // Cập nhật các nút khác
+        for (button in otherButtons) {
+            button.setBackgroundResource(R.drawable.button_rounded_white)
+            button.setTextColor(Color.parseColor("#333333"))
+        }
     }
 
-    // Enum cho các công cụ
-    enum class Tool {
-        HAND, PEN, ERASER
+    private fun updateStrokePreview(view: View, width: Float, color: Int) {
+        // Cập nhật chiều cao của view để thể hiện độ dày nét vẽ
+        val params = view.layoutParams
+        params.height = width.toInt()
+        view.layoutParams = params
+
+        // Cập nhật màu sắc
+        view.setBackgroundColor(color)
+    }
+
+    private fun updateUndoRedoButtons() {
+        // Update undo/redo button states
+        undoButton.isEnabled = drawingView.canUndo()
+        undoButton.alpha = if (drawingView.canUndo()) 1.0f else 0.5f
+
+        redoButton.isEnabled = drawingView.canRedo()
+        redoButton.alpha = if (drawingView.canRedo()) 1.0f else 0.5f
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUndoRedoButtons()
     }
 }
