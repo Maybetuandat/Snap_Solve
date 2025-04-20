@@ -46,12 +46,6 @@ class DrawingView @JvmOverloads constructor(
     // Current drawing mode
     private var mCurrentMode = DrawMode.PAN
 
-    // Document boundaries
-    private var mDocumentBounds = RectF()
-    private var mDocumentWidth = 0f
-    private var mDocumentHeight = 0f
-    private var mDocumentRatio = 0.7f  // Document takes 70% of view by default
-
     // Variables for panning and zooming
     private var mPosX = 0f
     private var mPosY = 0f
@@ -65,6 +59,10 @@ class DrawingView @JvmOverloads constructor(
     private val mRedoActions = mutableListOf<UndoRedoAction>()
     private var mCurrentDrawAction: DrawAction? = null
     private var mTempEraserPath: Path? = null
+
+    // Background image to use as canvas
+    private var mBackgroundBitmap: Bitmap? = null
+    private val mBackgroundPaint = Paint()
 
     // Flag to track if drawing started outside document bounds
     private var mStartedOutsideBounds = false
@@ -84,6 +82,7 @@ class DrawingView @JvmOverloads constructor(
         mDrawCompletedListener?.onDrawCompleted()
     }
 
+
     init {
         // Initialize the paint with default values
         mPaint.apply {
@@ -96,6 +95,10 @@ class DrawingView @JvmOverloads constructor(
             strokeWidth = 5f
         }
 
+        mBackgroundPaint.apply {
+            isFilterBitmap = true
+        }
+
         // Initialize scale detector
         mScaleDetector = ScaleGestureDetector(context, ScaleListener())
 
@@ -106,45 +109,18 @@ class DrawingView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        // Calculate document bounds for aspect ratio
-        val docWidth = w * mDocumentRatio
-        val docHeight = h * mDocumentRatio
-
-        // Center the document
-        val left = (w - docWidth) / 2
-        val top = (h - docHeight) / 2
-
-        mDocumentBounds.set(left, top, left + docWidth, top + docHeight)
-        mDocumentWidth = docWidth
-        mDocumentHeight = docHeight
-
-        // Position view to center of document
-        mPosX = left
-        mPosY = top
-
         // Create a new bitmap and canvas when the view size changes
         mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         mCanvas = Canvas(mBitmap)
 
-        // Draw document background
-        drawDocumentBackground()
+        // Center the view position
+        mPosX = 0f
+        mPosY = 0f
     }
 
-    private fun drawDocumentBackground() {
-        // Draw document background
-        val bgPaint = Paint().apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
-        mCanvas.drawRect(mDocumentBounds, bgPaint)
-
-        // Draw document border
-        val borderPaint = Paint().apply {
-            color = Color.LTGRAY
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-        }
-        mCanvas.drawRect(mDocumentBounds, borderPaint)
+    fun setBackgroundImage(bitmap: Bitmap) {
+        mBackgroundBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -157,10 +133,18 @@ class DrawingView @JvmOverloads constructor(
         canvas.translate(mPosX, mPosY)
         canvas.scale(mScaleFactor, mScaleFactor)
 
-        // Draw the bitmap
+        // Draw background image if exists
+        mBackgroundBitmap?.let {
+            // Calculate centered position
+            val left = (width - it.width) / 2f
+            val top = (height - it.height) / 2f
+            canvas.drawBitmap(it, left, top, mBackgroundPaint)
+        }
+
+        // Draw the bitmap with all previous paths
         canvas.drawBitmap(mBitmap, 0f, 0f, null)
 
-        // Draw the current path if in drawing mode and not erasing
+        // Draw the current path if in drawing mode
         if (mCurrentMode == DrawMode.DRAW) {
             canvas.drawPath(mPath, mPaint)
         } else if (mCurrentMode == DrawMode.ERASE && mTempEraserPath != null) {
@@ -179,11 +163,18 @@ class DrawingView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Always let the ScaleGestureDetector inspect the event first
+        mScaleDetector.onTouchEvent(event)
+
+        // If multitouch (zooming), prioritize that over other actions
+        if (event.pointerCount > 1) {
+            return true
+        }
+
         // Handle touch based on current mode
         when (mCurrentMode) {
             DrawMode.PAN -> {
-                // Let the gesture detectors handle panning and zooming
-                mScaleDetector.onTouchEvent(event)
+                // Let the gesture detector handle panning
                 mGestureDetector.onTouchEvent(event)
                 invalidate()
                 return true
@@ -204,16 +195,7 @@ class DrawingView @JvmOverloads constructor(
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // Kiểm tra nếu điểm chạm đầu tiên nằm ngoài ranh giới tài liệu
-                if (!mDocumentBounds.contains(rawX, rawY)) {
-                    // Đánh dấu rằng nét vẽ bắt đầu từ ngoài ranh giới
-                    mStartedOutsideBounds = true
-                    return
-                }
-
-                mStartedOutsideBounds = false
-
-                // Điểm chạm hợp lệ, bắt đầu nét vẽ mới
+                // Start a new stroke
                 mPath.reset()
                 mPath.moveTo(rawX, rawY)
                 mX = rawX
@@ -229,50 +211,32 @@ class DrawingView @JvmOverloads constructor(
                     mCurrentDrawAction?.path?.moveTo(rawX, rawY)
                 }
             }
+
             MotionEvent.ACTION_MOVE -> {
-                // Nếu nét vẽ đã bắt đầu từ ngoài, bỏ qua tất cả sự kiện di chuyển
-                if (mStartedOutsideBounds) {
-                    return
-                }
-
-                // Nếu cả điểm hiện tại và điểm trước đều nằm ngoài ranh giới, bỏ qua
-                if (!mDocumentBounds.contains(rawX, rawY) && !mDocumentBounds.contains(mX, mY)) {
-                    return
-                }
-
-                // Giới hạn tọa độ vào trong ranh giới tài liệu
-                val x = rawX.coerceIn(mDocumentBounds.left, mDocumentBounds.right)
-                val y = rawY.coerceIn(mDocumentBounds.top, mDocumentBounds.bottom)
-
                 // Calculate the distance moved
-                val dx = Math.abs(x - mX)
-                val dy = Math.abs(y - mY)
+                val dx = Math.abs(rawX - mX)
+                val dy = Math.abs(rawY - mY)
 
                 // If the distance is significant enough
                 if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
                     // Create a bezier curve from the previous point to the current point
-                    mPath.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2)
+                    mPath.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
 
                     if (mCurrentMode == DrawMode.ERASE) {
                         // Update temporary eraser path
-                        mTempEraserPath?.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2)
+                        mTempEraserPath?.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
                     } else {
                         // Update the drawing path
-                        mCurrentDrawAction?.path?.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2)
+                        mCurrentDrawAction?.path?.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
                     }
 
                     // Update the last point
-                    mX = x
-                    mY = y
+                    mX = rawX
+                    mY = rawY
                 }
             }
+            // Trong phần xử lý ACTION_UP trong handleDrawingTouch
             MotionEvent.ACTION_UP -> {
-                // Nếu nét vẽ đã bắt đầu từ ngoài, đặt lại cờ và bỏ qua sự kiện
-                if (mStartedOutsideBounds) {
-                    mStartedOutsideBounds = false
-                    return
-                }
-
                 // Complete the path
                 mPath.lineTo(mX, mY)
 
@@ -286,6 +250,7 @@ class DrawingView @JvmOverloads constructor(
                         mUndoActions.add(EraseAction(ArrayList(pathsRemoved)))
                         mRedoActions.clear()
                         Log.d("DrawingView", "Added erase action with ${pathsRemoved.size} paths")
+                        // Thông báo hoàn thành vẽ để lưu ngay lập tức
                         notifyDrawCompleted()
                     }
                     // Clear temporary eraser path
@@ -300,6 +265,7 @@ class DrawingView @JvmOverloads constructor(
                             mUndoActions.add(DrawPathAction(it))
                             mRedoActions.clear()
                             Log.d("DrawingView", "Added draw action")
+                            // Thông báo hoàn thành vẽ để lưu ngay lập tức
                             notifyDrawCompleted()
                         }
                     }
@@ -310,7 +276,10 @@ class DrawingView @JvmOverloads constructor(
                 mPath.reset()
 
                 // Log undo/redo status
-                Log.d("DrawingView", "Undo actions: ${mUndoActions.size}, Redo actions: ${mRedoActions.size}")
+                Log.d(
+                    "DrawingView",
+                    "Undo actions: ${mUndoActions.size}, Redo actions: ${mRedoActions.size}"
+                )
             }
         }
     }
@@ -414,9 +383,6 @@ class DrawingView @JvmOverloads constructor(
         // Clear the canvas
         mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
         mDrawnPaths.clear()
-
-        // Redraw document background
-        drawDocumentBackground()
         invalidate()
     }
 
@@ -507,9 +473,6 @@ class DrawingView @JvmOverloads constructor(
         // Clear the canvas
         mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
-        // Redraw document background
-        drawDocumentBackground()
-
         // Redraw all paths
         for (path in mDrawnPaths) {
             try {
@@ -527,9 +490,35 @@ class DrawingView @JvmOverloads constructor(
      * Get the current drawing as a bitmap
      */
     fun getDrawingBitmap(): Bitmap {
-        return mBitmap.config?.let { config ->
-            mBitmap.copy(config, true)
-        } ?: mBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        // Create a bitmap for just the drawing (without the background)
+        val resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(resultBitmap)
+
+        // Draw only the paths
+        canvas.drawBitmap(mBitmap, 0f, 0f, null)
+
+        return resultBitmap
+    }
+
+    /**
+     * Get a combined bitmap with background image and drawing
+     */
+    fun getCombinedBitmap(): Bitmap {
+        // Create a bitmap that includes both background and drawing
+        val resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(resultBitmap)
+
+        // Draw background if exists
+        mBackgroundBitmap?.let {
+            val left = (width - it.width) / 2f
+            val top = (height - it.height) / 2f
+            canvas.drawBitmap(it, left, top, mBackgroundPaint)
+        }
+
+        // Draw the paths
+        canvas.drawBitmap(mBitmap, 0f, 0f, null)
+
+        return resultBitmap
     }
 
     /**
