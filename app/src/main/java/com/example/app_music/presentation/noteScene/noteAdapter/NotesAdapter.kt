@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
 import com.example.app_music.presentation.noteScene.NoteDetailActivity
 import com.example.app_music.presentation.noteScene.model.NoteItem
+import com.example.app_music.presentation.utils.StorageManager
 
 class NotesAdapter(
     private val context: Context,
@@ -91,11 +92,20 @@ class NotesAdapter(
             textTitle.text = note.title
             textDate.text = note.date
 
-            if (note.hasImage()) {
-                imagePreview.visibility = View.VISIBLE
+            // Hiển thị hình ảnh mặc định hoặc thumbnail
+            if (note.hasImage() && note.imagePreview != null) {
                 imagePreview.setImageBitmap(note.imagePreview)
             } else {
-                imagePreview.visibility = View.GONE
+                // Tải thumbnail từ bộ nhớ nếu có
+                val storageManager = StorageManager(context)
+                val thumbnail = storageManager.loadThumbnail(note.id)
+
+                if (thumbnail != null) {
+                    imagePreview.setImageBitmap(thumbnail)
+                } else {
+                    // Nếu không có thumbnail, hiển thị hình ảnh mặc định
+                    imagePreview.setImageResource(R.drawable.ic_note)
+                }
             }
 
             // Handle click for arrow button
@@ -103,7 +113,7 @@ class NotesAdapter(
                 onItemOptionsClick(it, note)
             }
 
-            // Handle click on note image or title - open detail screen
+            // Xử lý click vào note
             val clickListener = View.OnClickListener {
                 val intent = Intent(context, NoteDetailActivity::class.java).apply {
                     putExtra("note_id", note.id)
