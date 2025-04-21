@@ -54,5 +54,4 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation ("com.google.android.material:material:1.9.0")
 
-
 }

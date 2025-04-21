@@ -3,6 +3,19 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
+    <!-- Home Screen -->
+    <string name="ask_snapsolve">Ask SnapSolve anything</string>
+    <string name="type_question">Type your question</string>
+    <string name="utilities">Utilities</string>
+    <string name="dictionary">Từ điển</string>
+    <string name="calculator">Máy tính</string>
+    <string name="entertainment">Giải trí</string>
+    <string name="today_missions">Today missions</string>
+    <string name="watch_ad">Xem quảng cáo</string>
+    <string name="ask_question">Đặt một câu hỏi</string>
+    <string name="points">+ 10</string>
+    <string name="open_missions">Open missions board</string>
+    <string name="tiktok">Tiktok</string>
 
     <!-- Note -->
     <string name="noteTitle">Ghi chú QANDA</string>
