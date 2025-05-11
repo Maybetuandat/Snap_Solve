@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".presentation.profile.ProfileActivity">
+    tools:context=".presentation.feature.profile.ProfileActivity">
 
 
     <ImageView

@@ -14,16 +14,16 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name=".presentation.profile.ProfileActivity"
+            android:name=".presentation.feature.profile.ProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.setting.SettingActivity"
+            android:name=".presentation.feature.setting.SettingActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.noteScene.NoteActivity"
+            android:name=".presentation.feature.noteScene.NoteActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.main.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

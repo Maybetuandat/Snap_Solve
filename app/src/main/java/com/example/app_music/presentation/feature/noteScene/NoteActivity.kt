@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.noteScene
+package com.example.app_music.presentation.feature.noteScene
 
 import android.os.Bundle
 import android.widget.ArrayAdapter
