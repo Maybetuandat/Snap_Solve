@@ -52,6 +52,27 @@
     <string name="facebook">Facebook</string>
     <string name="nameOfFacebookUser">maybetuandat</string>
     <string name="setting">Setting</string>
+    <string name="save">Save</string>
+    <string name="description_edit_user_name">A username can consit of any combination of letter, number or(._) (20 characters)</string>
+    <string name="status_mesage">Status Mesage</string>
+    <string name="enter_new_mesage">Enter new mesage</string>
+    <string name="title_edit_information_student">Please provide your grade information</string>
+    <string name="content_edit_student_information">We\'ll prepare content tailored to you based on the information</string>
+    <string name="grade_1">Grade 1</string>
+    <string name="grade_2">Grade 2</string>
+    <string name="grade_3">Grade 3</string>
+    <string name="grade_4">Grade 4</string>
+    <string name="grade_5">Grade 5</string>
+    <string name="grade_6">Grade 6</string>
+    <string name="grade_7">Grade 7</string>
+    <string name="grade_8">Grade 8</string>
+    <string name="grade_9">Grade 9</string>
+    <string name="grade_10">Grade 10</string>
+    <string name="grade_11">Grade 11</string>
+    <string name="grade_12">Grade 12</string>
+    <string name="grade_13">Grade 13</string>
+    <string name="out_of_school">I\'m not attending school</string>
+    <string name="btnComplete">Complete</string>
     <string-array name="spinnerNoteType">
         <item>Ngày</item>
         <item>Tên</item>

@@ -104,7 +104,7 @@
                 android:id="@+id/btnEditProfile"
 
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="50dp"
                 android:layout_marginEnd="16dp"
                 android:text="@string/btnEdit"
                 android:textAllCaps="false"
