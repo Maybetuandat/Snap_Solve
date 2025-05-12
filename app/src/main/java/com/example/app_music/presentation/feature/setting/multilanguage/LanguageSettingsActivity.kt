@@ -1,9 +1,11 @@
 package com.example.app_music.presentation.feature.setting.multilanguage
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -63,21 +65,38 @@ class LanguageSettingsActivity : BaseActivity() {
         }
 
         binding.radioGroupLanguages.setOnCheckedChangeListener { group, checkedId ->
-            val radioButton = findViewById<RadioButton>(checkedId)
-            val newLanguageCode = radioButton.tag as String
-            val currentLanguageCode = MultiLanguage.getSelectedLanguage(this)
+            try {
+                val radioButton = findViewById<RadioButton>(checkedId)
+                val newLanguageCode = radioButton.tag as String
+                val currentLanguageCode = MultiLanguage.getSelectedLanguage(this)
+
+                if (newLanguageCode != currentLanguageCode) {
+
+                    MultiLanguage.setSelectedLanguage(this, newLanguageCode)
 
 
-            if (newLanguageCode != currentLanguageCode) {
-
-                MultiLanguage.setSelectedLanguage(this, newLanguageCode)
-
-
-                val context = MultiLanguage.applyLanguage(this, newLanguageCode)
-                resources.updateConfiguration(context.resources.configuration, context.resources.displayMetrics)
+                    val context = MultiLanguage.applyLanguage(this, newLanguageCode)
+                    resources.updateConfiguration(
+                        context.resources.configuration,
+                        context.resources.displayMetrics
+                    )
 
 
-                RestartAppDialog(this).show()
+                    try {
+                        val dialog = RestartAppDialog(this)
+                        dialog.show()
+                    } catch (e: Exception) {
+
+                        Log.e("LanguageSetting", "Error showing dialog: ${e.message}")
+                        Toast.makeText(
+                            this,
+                            "Vui lòng khởi động lại ứng dụng để áp dụng thay đổi ngôn ngữ",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("LanguageSetting", "Error in radio change: ${e.message}")
             }
         }
     }

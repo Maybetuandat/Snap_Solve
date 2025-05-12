@@ -25,7 +25,6 @@ object MultiLanguage {
         val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val currentLanguage = getSelectedLanguage(context)
 
-
         if (currentLanguage != languageCode) {
             preferences.edit()
                 .putString(SELECTED_LANGUAGE, languageCode)

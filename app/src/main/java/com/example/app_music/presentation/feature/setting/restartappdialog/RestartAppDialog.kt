@@ -8,6 +8,8 @@ import android.widget.*
 import com.example.app_music.R
 import com.example.app_music.domain.utils.MultiLanguage
 
+
+
 class RestartAppDialog(context: Context) : Dialog(context) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,13 +17,30 @@ class RestartAppDialog(context: Context) : Dialog(context) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.dialog_restart_app)
 
-        val tvMessage = findViewById<TextView>(R.id.tvRestartMessage)
+        // Đảm bảo cửa sổ dialog không bị lỗi
+        window?.let {
+            val layoutParams = WindowManager.LayoutParams()
+            layoutParams.copyFrom(it.attributes)
+            layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT
+            layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
+            it.attributes = layoutParams
+            it.setBackgroundDrawableResource(android.R.color.transparent)
+        }
+
         val btnRestart = findViewById<Button>(R.id.btnRestartNow)
         val btnLater = findViewById<Button>(R.id.btnRestartLater)
 
         btnRestart.setOnClickListener {
             dismiss()
-            MultiLanguage.restartApp(context)
+            try {
+                MultiLanguage.restartApp(context)
+            } catch (e: Exception) {
+                Toast.makeText(
+                    context,
+                    "Không thể khởi động lại ứng dụng. Vui lòng khởi động lại thủ công.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
 
         btnLater.setOnClickListener {
