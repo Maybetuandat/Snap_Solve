@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <?xml version="1.0" encoding="utf-8"?>
-    <resources>
+
+
         <string name="noteTitle"> Ghi chú QANDA</string>
         <string name="back">Quay lại</string>
         <string name="nameOfScreenMenu">Menu</string>
@@ -76,5 +76,10 @@
             <item>Tên</item>
             <item>Loại</item>
         </string-array>
-    </resources>
+
+
+    <string name="restart_required">Yêu cầu khởi động lại</string>
+    <string name="language_change_restart_message">Ngôn ngữ đã được thay đổi. Để áp dụng thay đổi hoàn toàn, ứng dụng cần được khởi động lại.</string>
+    <string name="restart_now">Khởi động lại ngay</string>
+    <string name="restart_later">Để sau</string>
 </resources>

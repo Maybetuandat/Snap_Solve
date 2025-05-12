@@ -2,8 +2,6 @@
     <string name="app_name" translatable="false">Snap_Solve</string>
 
 
-
-
     <!-- Note -->
     <string name="noteTitle"> QANDA Notes</string>
     <string name="back">Back</string>
@@ -78,4 +76,9 @@
         <item>Name</item>
         <item>Type</item>
     </string-array>
+
+    <string name="restart_required">Restart Required</string>
+    <string name="language_change_restart_message">The language has been changed. To apply the changes fully, the app needs to be restarted.</string>
+    <string name="restart_now">Restart Now</string>
+    <string name="restart_later">Later</string>
 </resources>
