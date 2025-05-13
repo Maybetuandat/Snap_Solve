@@ -6,6 +6,8 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.lifecycle.ViewModelProvider
 import com.example.app_music.databinding.FragmentMenuBinding
 import com.example.app_music.presentation.feature.profile.ProfileActivity
 import com.example.app_music.presentation.feature.setting.SettingActivity
@@ -15,10 +17,13 @@ class MenuFragment : Fragment() {
    private var _binding : FragmentMenuBinding ?= null
     private val binding get()= _binding!!
 
+    private lateinit var  viewModel: MenuViewModel
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(this)[MenuViewModel::class.java]
+
 
     }
 
@@ -33,19 +38,46 @@ class MenuFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupClickListeners()
+        setUpObserver()
+        viewModel.fetchUserData(1L)
+
+    }
+
+
+
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+
+    private fun setupClickListeners() {
         binding.btnSetting.setOnClickListener {
             val intent = Intent(requireContext(), SettingActivity::class.java)
             startActivity(intent)
         }
+
         binding.btnEditProfile.setOnClickListener {
             val intent = Intent(requireContext(), ProfileActivity::class.java)
             startActivity(intent)
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun setUpObserver()
+    {
+        viewModel.user.observe(viewLifecycleOwner) {user ->
+            binding.textViewUserName.text = user.username ?: "User"
+        }
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility= if(isLoading) View.VISIBLE else View.GONE
+        }
+        viewModel.error.observe(viewLifecycleOwner) { errorMsg ->
+            if (!errorMsg.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
 }
