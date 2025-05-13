@@ -75,11 +75,7 @@ class LanguageSettingsActivity : BaseActivity() {
                     MultiLanguage.setSelectedLanguage(this, newLanguageCode)
 
 
-                    val context = MultiLanguage.applyLanguage(this, newLanguageCode)
-                    resources.updateConfiguration(
-                        context.resources.configuration,
-                        context.resources.displayMetrics
-                    )
+
 
 
                     try {

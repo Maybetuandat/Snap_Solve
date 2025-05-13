@@ -15,11 +15,6 @@ import com.example.app_music.presentation.feature.setting.restartappdialog.Resta
 class MainActivity : BaseActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    override fun attachBaseContext(newBase: Context) {
-        val languageCode = MultiLanguage.getSelectedLanguage(newBase)
-        val context = MultiLanguage.applyLanguage(newBase, languageCode)
-        super.attachBaseContext(context)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

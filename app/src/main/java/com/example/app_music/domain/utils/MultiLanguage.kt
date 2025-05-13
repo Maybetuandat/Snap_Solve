@@ -4,8 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
+import android.util.Log
 import java.util.Locale
 
 
@@ -16,8 +15,8 @@ object MultiLanguage {
 
     fun getSelectedLanguage(context: Context): String {
         val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-
-        return preferences.getString(SELECTED_LANGUAGE, "en") ?: "en"
+        Log.i("multilanguage", preferences.getString(SELECTED_LANGUAGE, "en").toString())
+        return preferences.getString(SELECTED_LANGUAGE, "en") ?: "en"  // tra ve gia tri mac dinh la en
     }
 
 
@@ -27,20 +26,13 @@ object MultiLanguage {
 
         if (currentLanguage != languageCode) {
             preferences.edit()
-                .putString(SELECTED_LANGUAGE, languageCode)
+                .putString(SELECTED_LANGUAGE, languageCode)  // update lai ngon ngu cho file sharepreference
                 .putBoolean(LANGUAGE_CHANGED, true)
                 .apply()
         }
     }
 
-    fun isLanguageChanged(context: Context): Boolean {
-        val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        return preferences.getBoolean(LANGUAGE_CHANGED, false)
-    }
-    fun resetLanguageChanged(context: Context) {
-        val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        preferences.edit().putBoolean(LANGUAGE_CHANGED, false).apply()
-    }
+
     fun getSupportedLanguages(): List<Language> {
         return listOf(
             Language("en", "English"),
@@ -63,18 +55,7 @@ object MultiLanguage {
             return context
         }
     }
-    fun applyLanguageToActivity(activity: AppCompatActivity) {
-        val languageCode = getSelectedLanguage(activity)
-        val context = applyLanguage(activity, languageCode)
 
-
-        val resources = context.resources
-        activity.resources.displayMetrics.setTo(resources.displayMetrics)
-        activity.resources.configuration.setTo(resources.configuration)
-
-
-        ActivityCompat.recreate(activity)
-    }
     fun restartApp(context: Context) {
         val packageManager = context.packageManager
         val intent = packageManager.getLaunchIntentForPackage(context.packageName)
