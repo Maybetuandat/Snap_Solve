@@ -9,9 +9,30 @@ data class Post(
     val image: String?,
     val createDate: LocalDate,
     val user: User,
-    val reactCount: Int = 0,
-    val commentCount: Int = 0,
+    val react: List<React> = emptyList(),
+    val comment: List<Comment> = emptyList(),
     val topics: List<Topic> = emptyList()
+) {
+    val reactCount: Int
+        get() = react.size
+
+    val commentCount: Int
+        get() = comment.size
+}
+
+data class React(
+    val id: Long,
+    val type: String,
+    val createDate: LocalDate,
+    val user: User
+)
+
+data class Comment(
+    val id: Long,
+    val content: String,
+    val image: String?,
+    val createDate: LocalDate,
+    val user: User
 )
 
 data class Topic(
