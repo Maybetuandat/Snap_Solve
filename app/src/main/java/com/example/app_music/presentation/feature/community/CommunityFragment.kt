@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.community
+package com.example.app_music.presentation.feature.community
 
 import android.os.Bundle
 import android.view.LayoutInflater

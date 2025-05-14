@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.communitySearchPost
+package com.example.app_music.presentation.feature.community.communitySearchPost
 
 import android.content.Context
 import android.os.Bundle

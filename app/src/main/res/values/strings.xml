@@ -81,4 +81,20 @@
     <string name="language_change_restart_message">The language has been changed. To apply the changes fully, the app needs to be restarted.</string>
     <string name="restart_now">Restart Now</string>
     <string name="restart_later">Later</string>
+
+
+    <!-- Community Posting -->
+    <string name="posting_title">Posting</string>
+    <string name="posting_choose_topic">Please choose a topic</string>
+    <string name="posting_hint_title">Enter title...</string>
+    <string name="posting_hint_content">Enter content...</string>
+    <string name="posting_add_image">Add Image</string>
+    <string name="posting_post">Post</string>
+    <string name="posting_select">Select</string>
+    <string name="posting_topic_header">Topic</string>
+
+    <!-- Topic Categories -->
+    <string name="topic_general">General Discussion</string>
+    <string name="topic_questions">Questions &amp; Answers</string>
+    <string name="topic_news">News &amp; Updates</string>
 </resources>

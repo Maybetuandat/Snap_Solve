@@ -14,7 +14,7 @@
         android:label="Trend" />
     <fragment
         android:id="@+id/communityFragment"
-        android:name="com.example.app_music.presentation.community.CommunityFragment"
+        android:name="com.example.app_music.presentation.feature.community.CommunityFragment"
         android:label="Community">
         <action
             android:id="@+id/action_communityFragment_to_searchPostFragment"
@@ -46,7 +46,7 @@
 
     <fragment
         android:id="@+id/searchPostFragment"
-        android:name="com.example.app_music.presentation.communitySearchPost.SearchPostFragment"
+        android:name="com.example.app_music.presentation.feature.community.communitySearchPost.SearchPostFragment"
         android:label="Search" />
 
     <fragment
@@ -56,6 +56,6 @@
 
     <fragment
         android:id="@+id/communityPostingFragment"
-        android:name="com.example.app_music.presentation.communityPosting.CommunityPostingFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityPosting.CommunityPostingFragment"
         android:label="Posting" />
 </navigation>

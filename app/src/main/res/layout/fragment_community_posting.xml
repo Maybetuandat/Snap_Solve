@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".presentation.communityPosting.CommunityPostingFragment">
+    tools:context=".presentation.feature.community.communityPosting.CommunityPostingFragment">
 
     <!-- Top Bar -->
     <androidx.constraintlayout.widget.ConstraintLayout

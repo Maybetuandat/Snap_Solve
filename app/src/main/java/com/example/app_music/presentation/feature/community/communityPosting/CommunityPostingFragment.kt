@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.communityPosting
+package com.example.app_music.presentation.feature.community.communityPosting
 
 import android.os.Bundle
 import android.text.Editable
@@ -143,7 +143,8 @@ class CommunityPostingFragment : Fragment() {
         val topicBottomSheet = TopicSelectionBottomSheet.newInstance()
 
         // Set up the listener to receive the selected topic
-        topicBottomSheet.setTopicSelectionListener(object : TopicSelectionBottomSheet.TopicSelectionListener {
+        topicBottomSheet.setTopicSelectionListener(object :
+            TopicSelectionBottomSheet.TopicSelectionListener {
             override fun onTopicSelected(topic: String) {
                 selectedTopic = topic
                 tvTopicLabel.text = selectedTopic
