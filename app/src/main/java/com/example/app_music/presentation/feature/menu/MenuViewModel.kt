@@ -5,8 +5,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.app_music.data.model.User
 import com.example.app_music.data.repository.UserRepository
+import com.example.app_music.domain.model.User
 import kotlinx.coroutines.launch
 import retrofit2.Response
 

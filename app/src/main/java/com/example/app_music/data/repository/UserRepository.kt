@@ -1,8 +1,7 @@
 package com.example.app_music.data.repository
 
-import com.example.app_music.data.model.User
+import com.example.app_music.domain.model.User
 import com.example.app_music.domain.repository.UserRepository
-import com.example.app_music.domain.utils.RetrofitInstance
 import retrofit2.Response
 
 class UserRepository : UserRepository {
