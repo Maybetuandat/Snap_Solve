@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".presentation.feature.menu.editstatusmessage.EditStatusMessageActivity">
+    tools:context=".presentation.feature.setting.multilanguage.LanguageSettingsActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/custom_toolbar_container"
@@ -19,7 +19,7 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
-            android:id="@+id/iv_back_arrow"
+            android:id="@+id/btnBack"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:src="@drawable/ic_arrow_back_left"
@@ -27,7 +27,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
@@ -36,7 +35,7 @@
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/status_mesage"
+            android:text="@string/language"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@android:color/black"
@@ -44,43 +43,19 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
-        <TextView
-            android:id="@+id/tv_save"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:text="@string/save"
-            android:textSize="16sp"
-            android:textColor="@android:color/black"
-            android:gravity="center_vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <EditText
-        android:id="@+id/et_status_message"
+    <RadioGroup
+        android:id="@+id/radioGroupLanguages"
         android:layout_width="0dp"
-        android:layout_height="150dp"
-        android:background="@drawable/bg_profile_field_border"
-        android:padding="12dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:inputType="textMultiLine"
-        android:gravity="top|start"
-        android:hint="@string/enter_new_mesage"
-        android:textColorHint="@android:color/darker_gray"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
         app:layout_constraintTop_toBottomOf="@id/custom_toolbar_container"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+        <!-- RadioButtons sẽ được thêm vào lúc chạy -->
+    </RadioGroup>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

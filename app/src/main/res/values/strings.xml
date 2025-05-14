@@ -1,11 +1,9 @@
 <resources>
-    <string name="app_name">Snap_Solve</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="app_name" translatable="false">Snap_Solve</string>
 
 
     <!-- Note -->
-    <string name="noteTitle">Ghi chú QANDA</string>
+    <string name="noteTitle"> QANDA Notes</string>
     <string name="back">Back</string>
     <string name="nameOfScreenMenu">Menu</string>
     <string name="btnEdit">Edit</string>
@@ -74,24 +72,13 @@
     <string name="out_of_school">I\'m not attending school</string>
     <string name="btnComplete">Complete</string>
     <string-array name="spinnerNoteType">
-        <item>Ngày</item>
-        <item>Tên</item>
-        <item>Loại</item>
+        <item>Date</item>
+        <item>Name</item>
+        <item>Type</item>
     </string-array>
 
-
-    <!-- Community Posting -->
-    <string name="posting_title">Posting</string>
-    <string name="posting_choose_topic">Please choose a topic</string>
-    <string name="posting_hint_title">Enter title...</string>
-    <string name="posting_hint_content">Enter content...</string>
-    <string name="posting_add_image">Add Image</string>
-    <string name="posting_post">Post</string>
-    <string name="posting_select">Select</string>
-    <string name="posting_topic_header">Topic</string>
-
-    <!-- Topic Categories -->
-    <string name="topic_general">General Discussion</string>
-    <string name="topic_questions">Questions &amp; Answers</string>
-    <string name="topic_news">News &amp; Updates</string>
+    <string name="restart_required">Restart Required</string>
+    <string name="language_change_restart_message">The language has been changed. To apply the changes fully, the app needs to be restarted.</string>
+    <string name="restart_now">Restart Now</string>
+    <string name="restart_later">Later</string>
 </resources>

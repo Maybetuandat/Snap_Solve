@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+
+        <string name="noteTitle"> Ghi chú QANDA</string>
+        <string name="back">Quay lại</string>
+        <string name="nameOfScreenMenu">Menu</string>
+        <string name="btnEdit">Chỉnh sửa</string>
+        <string name="my_follower">Người theo dõi tôi</string>
+        <string name="recommend_product">Sản phẩm đề xuất</string>
+        <string name="premium">Gói cao cấp</string>
+        <string name="start_for_free">Bắt đầu miễn phí</string>
+        <string name="numberFollower">125</string>
+        <string name="question_history">Lịch sử câu hỏi</string>
+        <string name="recent_searches">Tìm kiếm gần đây</string>
+        <string name="recent_research">Nghiên cứu gần đây</string>
+        <string name="question">Câu hỏi</string>
+        <string name="search">Tìm kiếm</string>
+        <string name="research">Nghiên cứu</string>
+        <string name="nameOfUser">Tuấn Đạt</string>
+        <string name="tools">Công cụ</string>
+        <string name="note">Ghi chú</string>
+        <string name="support">Hỗ trợ</string>
+        <string name="notice">Thông báo</string>
+        <string name="help">Trợ giúp</string>
+        <string name="help_center">Trung tâm trợ giúp</string>
+        <string name="language">Ngôn ngữ</string>
+        <string name="notifications">Thông báo</string>
+        <string name="push_notification_settings">Cài đặt thông báo đẩy</string>
+        <string name="account">Tài khoản</string>
+        <string name="email">Email</string>
+        <string name="version">Phiên bản</string>
+        <string name="versionNumber">beta</string>
+        <string name="logout">Đăng xuất</string>
+        <string name="note_delete_account">Bạn sẽ mất tất cả dữ liệu và không thể\nđăng nhập lại tài khoản này</string>
+        <string name="delete_account">Xóa tài khoản</string>
+        <string name="my_profile">Hồ sơ của tôi</string>
+        <string name="change">Thay đổi</string>
+        <string name="username">Tên người dùng</string>
+        <string name="status_message">Thông điệp trạng thái</string>
+        <string name="detail_status_message">Tôi đói sau khi tập thể dục</string>
+        <string name="student_information">Thông tin học sinh</string>
+        <string name="detail_student_infomation">Tôi đang học lớp mười lăm</string>
+        <string name="account_information">Thông tin tài khoản</string>
+        <string name="mailOfUser">trinhvinhtuandat@gmail.com</string>
+        <string name="snap_solve_uid">UID Snap Solve</string>
+        <string name="user_id">axQ*skx</string>
+        <string name="linked_accounts">Tài khoản liên kết</string>
+        <string name="facebook">Facebook</string>
+        <string name="nameOfFacebookUser">maybetuandat</string>
+        <string name="setting">Cài đặt</string>
+        <string name="save">Lưu</string>
+        <string name="description_edit_user_name">Tên người dùng có thể bao gồm bất kỳ sự kết hợp nào của chữ cái, số hoặc (._) (tối đa 20 ký tự)</string>
+        <string name="status_mesage">Thông điệp trạng thái</string>
+        <string name="enter_new_mesage">Nhập thông điệp mới</string>
+        <string name="title_edit_information_student">Vui lòng cung cấp thông tin lớp của bạn</string>
+        <string name="content_edit_student_information">Chúng tôi sẽ chuẩn bị nội dung phù hợp với bạn dựa trên thông tin này</string>
+        <string name="grade_1">Lớp 1</string>
+        <string name="grade_2">Lớp 2</string>
+        <string name="grade_3">Lớp 3</string>
+        <string name="grade_4">Lớp 4</string>
+        <string name="grade_5">Lớp 5</string>
+        <string name="grade_6">Lớp 6</string>
+        <string name="grade_7">Lớp 7</string>
+        <string name="grade_8">Lớp 8</string>
+        <string name="grade_9">Lớp 9</string>
+        <string name="grade_10">Lớp 10</string>
+        <string name="grade_11">Lớp 11</string>
+        <string name="grade_12">Lớp 12</string>
+        <string name="grade_13">Lớp 13</string>
+        <string name="out_of_school">Tôi không đi học</string>
+        <string name="btnComplete">Hoàn thành</string>
+        <string-array name="spinnerNoteType">
+            <item>Ngày</item>
+            <item>Tên</item>
+            <item>Loại</item>
+        </string-array>
+
+
+    <string name="restart_required">Yêu cầu khởi động lại</string>
+    <string name="language_change_restart_message">Ngôn ngữ đã được thay đổi. Để áp dụng thay đổi hoàn toàn, ứng dụng cần được khởi động lại.</string>
+    <string name="restart_now">Khởi động lại ngay</string>
+    <string name="restart_later">Để sau</string>
+</resources>

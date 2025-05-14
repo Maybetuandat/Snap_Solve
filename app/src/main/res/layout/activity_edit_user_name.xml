@@ -8,7 +8,7 @@
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
 
-    tools:context=".presentation.editUserNameScreen.EditUserNameActivity">
+    tools:context=".presentation.feature.menu.editusernamescreen.EditUserNameActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/custom_toolbar_container"
