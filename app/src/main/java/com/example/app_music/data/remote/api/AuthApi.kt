@@ -1,7 +1,8 @@
 package com.example.app_music.data.remote.api
 
-import com.example.app_music.data.model.AuthResponseDto
-import com.example.app_music.data.model.UserDto
+
+import com.example.app_music.domain.model.AuthResponse
+import com.example.app_music.domain.model.User
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -12,8 +13,8 @@ interface AuthApi {
     suspend fun login(
         @Query("username") username: String,
         @Query("password") password: String
-    ): Response<AuthResponseDto>
+    ): Response<AuthResponse>
 
     @POST("/api/auth/register")
-    suspend fun register(@Body userCreateDto: UserDto): Response<UserDto>
+    suspend fun register(@Body userCreate: User): Response<User>
 }

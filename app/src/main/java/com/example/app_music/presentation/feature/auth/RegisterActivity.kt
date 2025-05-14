@@ -11,7 +11,7 @@ import com.example.app_music.presentation.feature.common.BaseActivity
 
 class RegisterActivity : BaseActivity() {
     private lateinit var binding: ActivityRegisterBinding
-//    private lateinit var viewModel: AuthViewModel
+    private lateinit var viewModel: AuthViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,10 +19,10 @@ class RegisterActivity : BaseActivity() {
         binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-//        viewModel = ViewModelProvider(this)[AuthViewModel::class.java]
+        viewModel = ViewModelProvider(this)[AuthViewModel::class.java]
 
         setupListeners()
-    //    observeViewModel()
+        observeViewModel()
     }
 
     private fun setupListeners() {
@@ -37,7 +37,7 @@ class RegisterActivity : BaseActivity() {
                 val phoneNumber = binding.etPhone.text.toString().trim()
                 val password = binding.etPassword.text.toString().trim()
 
-//                viewModel.register(username, email, phoneNumber, password)
+                viewModel.register(username, email, phoneNumber, password)
             }
         }
 
@@ -46,27 +46,27 @@ class RegisterActivity : BaseActivity() {
         }
     }
 
-//    private fun observeViewModel() {
-//        viewModel.registerResult.observe(this) { result ->
-//            binding.progressBar.visibility = View.GONE
-//
-//            if (result.isSuccess) {
-//                // Save the newly registered user
-//                viewModel.setRegisteredUser(result.user)
-//
-//                // Navigate to profile completion activity
-//                val intent = Intent(this, ProfileCompletionActivity::class.java)
-//                startActivity(intent)
-//            } else {
-//                Toast.makeText(this, result.errorMessage, Toast.LENGTH_LONG).show()
-//            }
-//        }
-//
-//        viewModel.isLoading.observe(this) { isLoading ->
-//            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-//            binding.btnRegister.isEnabled = !isLoading
-//        }
-//    }
+    private fun observeViewModel() {
+        viewModel.registerResult.observe(this) { result ->
+            binding.progressBar.visibility = View.GONE
+
+            if (result.isSuccess) {
+                // Save the newly registered user
+                viewModel.setRegisteredUser(result.user)
+
+                // Navigate to profile completion activity
+                val intent = Intent(this, LoginActivity::class.java)
+                startActivity(intent)
+            } else {
+                Toast.makeText(this, result.errorMessage, Toast.LENGTH_LONG).show()
+            }
+        }
+
+        viewModel.isLoading.observe(this) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            binding.btnRegister.isEnabled = !isLoading
+        }
+    }
 
     private fun validateInputs(): Boolean {
         var isValid = true

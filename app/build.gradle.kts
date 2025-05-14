@@ -60,6 +60,9 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
+    // https://mvnrepository.com/artifact/io.github.nefilim.kjwt/kjwt-core
+
+
 
 
 }
