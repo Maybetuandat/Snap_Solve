@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ProgressBar
+import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -14,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.app_music.R
+import com.example.app_music.data.model.Topic
 import com.example.app_music.presentation.feature.community.adapter.PostAdapter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
@@ -25,6 +27,9 @@ class CommunityFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var radioGroup: RadioGroup
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+
+    // Map to store topic IDs by radio button IDs
+    private val topicIdMap = mutableMapOf<Int, Long>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,9 +47,9 @@ class CommunityFragment : Fragment() {
 
         // Tìm các view
         recyclerView = view.findViewById(R.id.recyclerView)
-        progressBar = view.findViewById(R.id.progressBar) // Thêm ProgressBar vào layout
+        progressBar = view.findViewById(R.id.progressBar)
         radioGroup = view.findViewById(R.id.radioGroup)
-        swipeRefreshLayout = view.findViewById(R.id.swipeRefresh) // Thêm SwipeRefreshLayout vào layout
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefresh)
 
         // Thiết lập adapter
         postAdapter = PostAdapter()
@@ -79,13 +84,15 @@ class CommunityFragment : Fragment() {
             findNavController().navigate(R.id.action_communityFragment_to_communityPostingFragment)
         }
 
-        // Xử lý sự kiện khi chọn tab
+        // Xử lý sự kiện khi chọn tab - sẽ được cập nhật sau khi có topics
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                R.id.rbAll -> viewModel.loadLatestPosts()
-                R.id.rbPopular1 -> viewModel.loadPostsByTopic(1) // Thay ID chủ đề thích hợp
-                R.id.rbPopular2 -> viewModel.loadPostsByTopic(2) // Thay ID chủ đề thích hợp
-                R.id.rbPopular3 -> viewModel.loadPostsByTopic(3) // Thay ID chủ đề thích hợp
+            if (checkedId == R.id.rbAll) {
+                viewModel.loadLatestPosts()
+            } else {
+                // Lấy topic ID từ map và tải bài viết theo topic đó
+                topicIdMap[checkedId]?.let { topicId ->
+                    viewModel.loadPostsByTopic(topicId)
+                }
             }
         }
 
@@ -96,6 +103,13 @@ class CommunityFragment : Fragment() {
     }
 
     private fun observeViewModel() {
+        // Quan sát danh sách chủ đề
+        viewModel.topics.observe(viewLifecycleOwner) { topics ->
+            if (topics.isNotEmpty()) {
+                setupTopicRadioButtons(topics)
+            }
+        }
+
         // Quan sát danh sách bài post
         viewModel.posts.observe(viewLifecycleOwner) { posts ->
             postAdapter.submitList(posts)
@@ -119,6 +133,47 @@ class CommunityFragment : Fragment() {
             if (errorMessage.isNotEmpty()) {
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    private fun setupTopicRadioButtons(topics: List<Topic>) {
+        // Clear existing radio buttons except "All"
+        val allButton = radioGroup.findViewById<RadioButton>(R.id.rbAll)
+        radioGroup.removeAllViews()
+
+        // Re-add the "All" button first
+        radioGroup.addView(allButton)
+
+        // Create and add radio buttons for each topic
+        topics.forEachIndexed { index, topic ->
+            val radioButton = RadioButton(requireContext()).apply {
+                id = View.generateViewId()
+                text = topic.name
+                layoutParams = RadioGroup.LayoutParams(
+                    RadioGroup.LayoutParams.WRAP_CONTENT,
+                    resources.getDimensionPixelSize(R.dimen.radio_button_height)
+                )
+                setBackgroundResource(R.drawable.tab_selector)
+                buttonDrawable = null // Remove the default radio button
+                setPadding(
+                    resources.getDimensionPixelSize(R.dimen.radio_button_padding_horizontal),
+                    0,
+                    resources.getDimensionPixelSize(R.dimen.radio_button_padding_horizontal),
+                    0
+                )
+                setTextColor(resources.getColorStateList(R.color.tab_text_selector, null))
+                gravity = android.view.Gravity.CENTER
+
+                // Set margin between radio buttons
+                (layoutParams as RadioGroup.LayoutParams).marginEnd =
+                    resources.getDimensionPixelSize(R.dimen.radio_button_margin)
+            }
+
+            // Add to radio group
+            radioGroup.addView(radioButton)
+
+            // Store topic ID for this radio button
+            topicIdMap[radioButton.id] = topic.id
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.app_music.data.remote.api
 
 import com.example.app_music.data.model.Post
+import com.example.app_music.data.model.Topic
 import com.example.app_music.data.model.User
 import retrofit2.Response
 import retrofit2.http.GET
@@ -24,5 +25,7 @@ interface ApiInterface {
     @GET("/api/post/search")
     suspend fun searchPosts(@Query("keyword") keyword: String): Response<List<Post>>
 
+    @GET("/api/topic")
+    suspend fun getAllTopics(): Response<List<Topic>>
 
 }

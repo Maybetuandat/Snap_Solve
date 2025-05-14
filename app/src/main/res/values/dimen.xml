@@ -3,4 +3,10 @@
     <dimen name="text_large">24sp</dimen>
     <dimen name="text_medium">18sp</dimen>
     <dimen name="text_small">14sp</dimen>
+
+
+    <!-- Community fragment radio buttons -->
+    <dimen name="radio_button_height">32dp</dimen>
+    <dimen name="radio_button_padding_horizontal">16dp</dimen>
+    <dimen name="radio_button_margin">8dp</dimen>
 </resources>

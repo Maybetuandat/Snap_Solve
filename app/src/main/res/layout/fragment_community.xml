@@ -120,44 +120,6 @@
                             android:layout_marginEnd="8dp"
                             android:textColor="@color/tab_text_selector"
                             android:gravity="center" />
-
-                        <RadioButton
-                            android:id="@+id/rbPopular1"
-                            android:layout_width="wrap_content"
-                            android:layout_height="32dp"
-                            android:text="Popular"
-                            android:background="@drawable/tab_selector"
-                            android:button="@null"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:layout_marginEnd="8dp"
-                            android:textColor="@color/tab_text_selector"
-                            android:gravity="center" />
-
-                        <RadioButton
-                            android:id="@+id/rbPopular2"
-                            android:layout_width="wrap_content"
-                            android:layout_height="32dp"
-                            android:text="Popular"
-                            android:background="@drawable/tab_selector"
-                            android:button="@null"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:layout_marginEnd="8dp"
-                            android:textColor="@color/tab_text_selector"
-                            android:gravity="center" />
-
-                        <RadioButton
-                            android:id="@+id/rbPopular3"
-                            android:layout_width="wrap_content"
-                            android:layout_height="32dp"
-                            android:text="Popular"
-                            android:background="@drawable/tab_selector"
-                            android:button="@null"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:textColor="@color/tab_text_selector"
-                            android:gravity="center" />
                     </RadioGroup>
                 </HorizontalScrollView>
 
