@@ -11,6 +11,6 @@ data class User(
     val phoneNumber: String? = null,
     val dob: LocalDate? = null,
     val firstName: String? = null,
-    val lastName: String? = null
-
+    val lastName: String? = null,
+    val avatarUrl: String? = null
 )

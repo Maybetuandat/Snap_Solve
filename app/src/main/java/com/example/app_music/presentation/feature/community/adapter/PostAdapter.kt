@@ -1,0 +1,117 @@
+package com.example.app_music.presentation.feature.community.adapter
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.example.app_music.R
+import com.example.app_music.data.model.Post
+import java.time.LocalDate
+import java.time.Period
+
+class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
+
+    private var posts = listOf<Post>()
+
+    fun submitList(newPosts: List<Post>) {
+        posts = newPosts
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.post_item, parent, false)
+        return PostViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
+        holder.bind(posts[position])
+    }
+
+    override fun getItemCount(): Int = posts.size
+
+    inner class PostViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val ivUserAvatar: ImageView = itemView.findViewById(R.id.ivUserAvatar)
+        private val tvUserName: TextView = itemView.findViewById(R.id.tvUserName)
+        private val tvTimeAgo: TextView = itemView.findViewById(R.id.tvTimeAgo)
+        private val tvPostTitle: TextView = itemView.findViewById(R.id.tvPostTitle)
+        private val tvPostContent: TextView = itemView.findViewById(R.id.tvPostContent)
+        private val ivPostImage: ImageView = itemView.findViewById(R.id.ivPostImage)
+        private val tvTag1: TextView = itemView.findViewById(R.id.tvTag1)
+        private val tvTag2: TextView = itemView.findViewById(R.id.tvTag2)
+        private val tvLikeCount: TextView = itemView.findViewById(R.id.tvLikeCount)
+        private val tvCommentCount: TextView = itemView.findViewById(R.id.tvCommentCount)
+        private val btnLike: LinearLayout = itemView.findViewById(R.id.btnLike)
+        private val btnComment: LinearLayout = itemView.findViewById(R.id.btnComment)
+
+        fun bind(post: Post) {
+            tvUserName.text = post.user.username
+            tvTimeAgo.text = getTimeAgoString(post.createDate)
+            tvPostTitle.text = post.title
+            tvPostContent.text = post.content
+
+            // Hiển thị ảnh người dùng nếu có
+            if (!post.user.avatarUrl.isNullOrEmpty()) {
+                Glide.with(itemView.context)
+                    .load(post.user.avatarUrl)
+                    .placeholder(R.drawable.avatar)
+                    .into(ivUserAvatar)
+            }
+
+            // Hiển thị ảnh bài viết nếu có
+            if (!post.image.isNullOrEmpty()) {
+                ivPostImage.visibility = View.VISIBLE
+                Glide.with(itemView.context)
+                    .load(post.image)
+                    .placeholder(R.drawable.lorem)
+                    .into(ivPostImage)
+            } else {
+                ivPostImage.visibility = View.GONE
+            }
+
+            // Hiển thị các chủ đề
+            if (post.topics.isNotEmpty()) {
+                tvTag1.visibility = View.VISIBLE
+                tvTag1.text = post.topics[0].name
+
+                if (post.topics.size > 1) {
+                    tvTag2.visibility = View.VISIBLE
+                    tvTag2.text = post.topics[1].name
+                } else {
+                    tvTag2.visibility = View.GONE
+                }
+            } else {
+                tvTag1.visibility = View.GONE
+                tvTag2.visibility = View.GONE
+            }
+
+            // Hiển thị số lượng like và comment
+            tvLikeCount.text = post.reactCount.toString()
+            tvCommentCount.text = post.commentCount.toString()
+
+            // Xử lý sự kiện click
+            btnLike.setOnClickListener {
+                // TODO: Xử lý khi người dùng nhấn like
+            }
+
+            btnComment.setOnClickListener {
+                // TODO: Xử lý khi người dùng nhấn comment
+            }
+        }
+
+        private fun getTimeAgoString(date: LocalDate): String {
+            val now = LocalDate.now()
+            val period = Period.between(date, now)
+
+            return when {
+                period.years > 0 -> "${period.years} năm trước"
+                period.months > 0 -> "${period.months} tháng trước"
+                period.days > 0 -> "${period.days} ngày trước"
+                else -> "Hôm nay"
+            }
+        }
+    }
+}

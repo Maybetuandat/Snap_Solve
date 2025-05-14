@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app_music"
-        minSdk = 24
+        minSdk = 31
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -62,5 +62,10 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
     implementation ("de.hdodenhof:circleimageview:3.1.0")
 
+    // Thêm thư viện Glide
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
 
+    // Thêm thư viện SwipeRefreshLayout
+    implementation ("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 }
