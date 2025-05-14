@@ -11,23 +11,57 @@ import java.util.Locale
 object MultiLanguage {
     private const val PREF_NAME="language_preference"
     private const val SELECTED_LANGUAGE = "selected_language"
-    private const val LANGUAGE_CHANGED = "language_changed"
+    private const val IS_SELECTED_SYSTEM_LANGUAGE = "is_system_language"
 
+
+
+
+    fun isUsingSystemLanguage(context: Context): Boolean{
+
+        val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        return preferences.getBoolean(IS_SELECTED_SYSTEM_LANGUAGE, true)
+    }
+    fun getSystemLanguage(): String {
+        Log.e("maybetuandat", Locale.getDefault().language.toString())
+        return Locale.getDefault().language
+    }
+
+// selected_language : en or vi
+    //is_system_language true or false
+    // if true return getSystemLanguage()
+    //else getLanguage from sharepreferences
     fun getSelectedLanguage(context: Context): String {
         val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        Log.i("multilanguage", preferences.getString(SELECTED_LANGUAGE, "en").toString())
-        return preferences.getString(SELECTED_LANGUAGE, "en") ?: "en"  // tra ve gia tri mac dinh la en
+
+        val isSystemLanguage = preferences.getBoolean(IS_SELECTED_SYSTEM_LANGUAGE, true)
+
+        if(isSystemLanguage)
+        {
+            return getSystemLanguage()
+        }
+
+
+        val savedLanguage = preferences.getString(SELECTED_LANGUAGE, null)
+
+        if (savedLanguage != null) {
+            Log.d("multilanguage", savedLanguage.toString())
+            return savedLanguage
+        }
+        return getSystemLanguage()
     }
 
 
     fun setSelectedLanguage(context: Context, languageCode: String) {
         val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        val currentLanguage = getSelectedLanguage(context)
 
-        if (currentLanguage != languageCode) {
+        if (languageCode == "system") {
             preferences.edit()
-                .putString(SELECTED_LANGUAGE, languageCode)  // update lai ngon ngu cho file sharepreference
-                .putBoolean(LANGUAGE_CHANGED, true)
+                .putBoolean(IS_SELECTED_SYSTEM_LANGUAGE, true)
+                .apply()
+        } else {
+            preferences.edit()
+                .putString(SELECTED_LANGUAGE, languageCode)
+                .putBoolean(IS_SELECTED_SYSTEM_LANGUAGE, false)
                 .apply()
         }
     }
@@ -35,6 +69,7 @@ object MultiLanguage {
 
     fun getSupportedLanguages(): List<Language> {
         return listOf(
+            Language("system", "System"),
             Language("en", "English"),
             Language("vi", "Tiếng Việt")
         )

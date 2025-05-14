@@ -1,14 +1,14 @@
-package com.example.app_music.presentation.feature.setting.restartappdialog
+package com.example.app_music.presentation.feature.setting.multilanguage
 
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
-import android.view.*
-import android.widget.*
+import android.view.Window
+import android.view.WindowManager
+import android.widget.Button
+import android.widget.Toast
 import com.example.app_music.R
 import com.example.app_music.domain.utils.MultiLanguage
-
-
 
 class RestartAppDialog(context: Context) : Dialog(context) {
 
@@ -17,7 +17,7 @@ class RestartAppDialog(context: Context) : Dialog(context) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.dialog_restart_app)
 
-        // Đảm bảo cửa sổ dialog không bị lỗi
+
         window?.let {
             val layoutParams = WindowManager.LayoutParams()
             layoutParams.copyFrom(it.attributes)

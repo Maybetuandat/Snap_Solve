@@ -1,6 +1,7 @@
 package com.example.app_music.presentation.feature.common
 
 import android.content.Context
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.example.app_music.domain.utils.MultiLanguage
 
@@ -9,8 +10,8 @@ import com.example.app_music.domain.utils.MultiLanguage
 
 open class BaseActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {
-
         val languageCode = MultiLanguage.getSelectedLanguage(newBase)
+        Log.d("baseactivity", languageCode.toString())
         val context = MultiLanguage.applyLanguage(newBase, languageCode)
         super.attachBaseContext(context)
     }

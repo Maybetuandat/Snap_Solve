@@ -9,7 +9,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.app_music.databinding.ActivityMainBinding
 import com.example.app_music.domain.utils.MultiLanguage
 import com.example.app_music.presentation.feature.common.BaseActivity
-import com.example.app_music.presentation.feature.setting.restartappdialog.RestartAppDialog
+import com.example.app_music.presentation.feature.setting.multilanguage.RestartAppDialog
 
 
 class MainActivity : BaseActivity() {

@@ -81,4 +81,10 @@
     <string name="language_change_restart_message">The language has been changed. To apply the changes fully, the app needs to be restarted.</string>
     <string name="restart_now">Restart Now</string>
     <string name="restart_later">Later</string>
+    <string name="system_language">Use System Language</string>
+
+    <string name="change_language_title">Change Language</string>
+    <string name="change_language_message">Are you sure you want to change the language? The app will restart to apply changes.</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
 </resources>
