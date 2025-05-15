@@ -9,7 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.app_music.R
 import com.example.app_music.databinding.FragmentHomeBinding
-import com.example.app_music.presentation.noteScene.NoteActivity
+import com.example.app_music.presentation.feature.noteScene.NoteActivity
 
 class HomeFragment : Fragment() {
 

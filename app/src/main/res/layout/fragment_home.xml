@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    tools:context=".presentation.home.HomeFragment">
+    tools:context=".presentation.feature.home.HomeFragment">
 
     <!-- Top bar with profile, stars and notification -->
     <androidx.constraintlayout.widget.ConstraintLayout
