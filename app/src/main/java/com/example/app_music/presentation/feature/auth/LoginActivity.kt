@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
 import com.example.app_music.MainActivity
+import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.databinding.ActivityLoginBinding
 import com.example.app_music.domain.utils.MultiLanguage
 import com.example.app_music.presentation.feature.common.BaseActivity
@@ -155,6 +156,9 @@ class LoginActivity : BaseActivity() {
 
             if (result.isSuccess) {
                 // Chuyển đến MainActivity
+                UserPreference.saveUserId(this, result.user?.id!!)
+                Log.d("loginactivity", UserPreference.getUserId(this).toString() + " " + result.user.toString())
+
                 val intent = Intent(this, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
