@@ -39,7 +39,7 @@ class LoginActivity : BaseActivity() {
 
     private fun setupLanguageSpinner() {
         try {
-            // Get supported languages
+
             val languages = MultiLanguage.getSupportedLanguages()
             Log.d(TAG, "Available languages: ${languages.map { it.code }}")
 
