@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
+        android:name=".SnapSolveApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -14,25 +17,13 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name=".presentation.editStudentInformation.EditStudentInformation"
+            android:name=".presentation.feature.auth.UpdateProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.editStatusMessage.EditStatusMessageActivity"
+            android:name=".presentation.feature.auth.RegisterActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.editUserNameScreen.EditUserNameActivity"
-            android:exported="false" />
-        <activity
-            android:name=".presentation.profile.ProfileActivity"
-            android:exported="false" />
-        <activity
-            android:name=".presentation.setting.SettingActivity"
-            android:exported="false" />
-        <activity
-            android:name=".presentation.noteScene.NoteActivity"
-            android:exported="false" />
-        <activity
-            android:name=".presentation.main.MainActivity"
+            android:name=".presentation.feature.auth.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -40,6 +31,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".presentation.feature.setting.multilanguage.LanguageSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.menu.editstudentInformation.EditStudentInformation"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.menu.editstatusmessage.EditStatusMessageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.menu.editusernamescreen.EditUserNameActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.profile.ProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.setting.SettingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.noteScene.NoteActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

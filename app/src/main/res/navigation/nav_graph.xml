@@ -5,7 +5,7 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.app_music.presentation.home.HomeFragment"
+        android:name="com.example.app_music.presentation.feature.home.HomeFragment"
         android:label="Home" />
 
     <fragment
@@ -19,7 +19,7 @@
 
     <fragment
         android:id="@+id/personalFragment"
-        android:name="com.example.app_music.presentation.menu.MenuFragment"
+        android:name="com.example.app_music.presentation.feature.menu.MenuFragment"
         android:label="Personal" />
 
 

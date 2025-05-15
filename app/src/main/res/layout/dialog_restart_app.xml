@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvRestartTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/restart_required"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvRestartMessage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/language_change_restart_message"
+        android:textSize="14sp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/tvRestartTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <Button
+        android:id="@+id/btnRestartNow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/restart_now"
+        android:backgroundTint="@color/selectedicon"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tvRestartMessage"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnRestartLater"/>
+
+    <Button
+        android:id="@+id/btnRestartLater"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/restart_later"
+        android:backgroundTint="@android:color/darker_gray"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="8dp"
+        app:layout_constraintTop_toTopOf="@id/btnRestartNow"
+        app:layout_constraintStart_toEndOf="@id/btnRestartNow"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

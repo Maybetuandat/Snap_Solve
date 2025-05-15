@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".presentation.editStatusMessage.EditStatusMessageActivity">
+    tools:context=".presentation.feature.menu.editstatusmessage.EditStatusMessageActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/custom_toolbar_container"
