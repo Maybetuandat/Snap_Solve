@@ -8,20 +8,6 @@
     android:fitsSystemWindows="true"
     tools:context=".presentation.feature.auth.LoginActivity">
 
-    <Spinner
-        android:id="@+id/spinner_language"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:minWidth="140dp"
-        android:background="@drawable/spinner_bg"
-        android:padding="8dp"
-        android:layout_margin="16dp"
-        android:spinnerMode="dropdown"
-        android:popupBackground="@android:color/white"
-        android:dropDownWidth="200dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
     <!-- Form container -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/form_container"
@@ -31,7 +17,22 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/spinner_language">
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Spinner language - đã được di chuyển vào trong form container -->
+        <Spinner
+            android:id="@+id/spinner_language"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="140dp"
+            android:background="@drawable/spinner_bg"
+            android:padding="8dp"
+            android:layout_margin="16dp"
+            android:spinnerMode="dropdown"
+            android:popupBackground="@android:color/white"
+            android:dropDownWidth="200dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <TextView
             android:id="@+id/tv_title"
@@ -44,7 +45,8 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/spinner_language" /> <!-- Thay đổi constraint từ top_toTopOf="parent" thành top_toBottomOf="@id/spinner_language" -->
+
         <TextView
             android:id="@+id/tv_registration_message"
             android:layout_width="0dp"
@@ -59,6 +61,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5" />
+
         <EditText
             android:id="@+id/et_username"
             android:layout_width="0dp"
@@ -75,6 +78,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_registration_message" />
+
         <EditText
             android:id="@+id/et_password"
             android:layout_width="0dp"
@@ -165,43 +169,6 @@
             app:layout_constraintStart_toEndOf="@id/tv_or"
             app:layout_constraintTop_toTopOf="@id/tv_or" />
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cv_google_login"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="24dp"
-            app:cardCornerRadius="4dp"
-            app:cardElevation="2dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_or">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="12dp">
-
-                <ImageView
-                    android:id="@+id/iv_google_icon"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_google" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/sign_in_with_google"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
         <TextView
             android:id="@+id/tv_no_account"
             android:layout_width="wrap_content"
@@ -212,7 +179,7 @@
             app:layout_constraintEnd_toStartOf="@id/tv_register"
             app:layout_constraintHorizontal_chainStyle="packed"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/cv_google_login" />
+            app:layout_constraintTop_toBottomOf="@id/divider_left" />
 
         <TextView
             android:id="@+id/tv_register"

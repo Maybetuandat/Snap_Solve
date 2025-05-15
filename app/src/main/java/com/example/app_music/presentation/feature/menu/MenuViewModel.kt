@@ -5,53 +5,46 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.app_music.data.repository.UserRepository
 import com.example.app_music.domain.model.User
+import com.example.app_music.domain.usecase.GetUserUseCase
 import kotlinx.coroutines.launch
-import retrofit2.Response
 
-class MenuViewModel(): ViewModel() {
-    private val repository = UserRepository()
+class MenuViewModel : ViewModel() {
+    private val getUserUseCase = GetUserUseCase()
+
     private val _user = MutableLiveData<User>()
-    val user : LiveData<User> = _user
+    val user: LiveData<User> = _user
 
-
-    private val _idLoading = MutableLiveData<Boolean>()
-    val isLoading : LiveData<Boolean> = _idLoading
-
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
 
     private val _error = MutableLiveData<String>()
-    val error : LiveData<String> = _error
+    val error: LiveData<String> = _error
 
-    fun fetchUserData(userId : Long)
-    {
-        _idLoading.value = true
+    fun fetchUserData(userId: Long) {
+        _isLoading.value = true
         viewModelScope.launch {
             try {
-                val response = repository.getUserById(userId)
+                val response = getUserUseCase(userId)
                 handleUserResponse(response)
-            }
-            catch (e : Exception)
-            {
-                Log.e("menuviewmodel", e.toString())
-                _error.value = "error with fetching user data " + e.toString()
-            }
-            finally {
-                _idLoading.value = false
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", e.toString())
+                _error.value = "Error fetching user data: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
-    private fun handleUserResponse(response: Response<User>) {
 
-        if(response.isSuccessful)
-        {
+    private fun handleUserResponse(response: retrofit2.Response<User>) {
+        if (response.isSuccessful) {
+            Log.d("menuviewmodel", response.body().toString())
             response.body()?.let {
                 _user.value = it
             } ?: run {
-                _error.value= "User data is empty"
+                _error.value = "User data is empty"
             }
-        }
-        else{
+        } else {
             _error.value = "Error: ${response.code()} - ${response.message()}"
         }
     }

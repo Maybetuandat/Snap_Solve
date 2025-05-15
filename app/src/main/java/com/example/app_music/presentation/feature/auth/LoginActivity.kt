@@ -170,9 +170,9 @@ class LoginActivity : BaseActivity() {
             Toast.makeText(this, "Chức năng quên mật khẩu sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
         }
 
-        binding.cvGoogleLogin.setOnClickListener {
-            Toast.makeText(this, "Đăng nhập bằng Google sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
-        }
+//        binding.cvGoogleLogin.setOnClickListener {
+//            Toast.makeText(this, "Đăng nhập bằng Google sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
+//        }
     }
 
     private fun observeViewModel() {
