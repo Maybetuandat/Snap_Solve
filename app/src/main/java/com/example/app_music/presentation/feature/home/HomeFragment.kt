@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.app_music.R
 import com.example.app_music.databinding.FragmentHomeBinding
+import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
 
 class HomeFragment : Fragment() {
@@ -50,9 +51,9 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // Camera button (next to search)
-        view?.findViewById<View>(R.id.camera_button)?.setOnClickListener {
-            showMessage("Camera feature clicked")
+        // Camera button (next to search) - UPDATED to start CameraActivity
+        binding.cameraButton.setOnClickListener {
+            startCameraActivity()
         }
 
         // Utilities section - Find the proper views using parent layout
@@ -104,6 +105,11 @@ class HomeFragment : Fragment() {
             navigateToNoteActivity()
             true
         }
+    }
+
+    private fun startCameraActivity() {
+        val intent = Intent(requireContext(), CameraActivity::class.java)
+        startActivity(intent)
     }
 
     private fun navigateToNoteActivity() {
