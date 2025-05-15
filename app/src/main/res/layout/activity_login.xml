@@ -8,22 +8,33 @@
     android:fitsSystemWindows="true"
     tools:context=".presentation.feature.auth.LoginActivity">
 
-    <!-- Thêm container bao bọc toàn bộ form đăng nhập -->
+    <!-- Language Spinner in the top right corner -->
+    <Spinner
+        android:id="@+id/spinner_language"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="120dp"
+        android:background="@drawable/spinner_border_round"
+        android:layout_margin="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Form container -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/form_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/spinner_language">
 
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
+            android:layout_marginTop="40dp"
             android:text="@string/login"
             android:textColor="@android:color/black"
             android:textSize="24sp"
@@ -205,7 +216,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- ProgressBar đặt ngoài container để luôn hiển thị khi cần -->
+    <!-- ProgressBar -->
     <ProgressBar
         android:id="@+id/progress_bar"
         android:layout_width="wrap_content"
