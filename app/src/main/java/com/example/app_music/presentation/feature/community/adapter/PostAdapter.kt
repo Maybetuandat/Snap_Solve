@@ -16,10 +16,25 @@ import java.time.Period
 class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
     private var posts = listOf<Post>()
+    private var onPostClickListener: ((Post) -> Unit)? = null
+    private var onLikeClickListener: ((Post) -> Unit)? = null
+    private var onCommentClickListener: ((Post) -> Unit)? = null
 
     fun submitList(newPosts: List<Post>) {
         posts = newPosts
         notifyDataSetChanged()
+    }
+
+    fun setOnPostClickListener(listener: (Post) -> Unit) {
+        onPostClickListener = listener
+    }
+
+    fun setOnLikeClickListener(listener: (Post) -> Unit) {
+        onLikeClickListener = listener
+    }
+
+    fun setOnCommentClickListener(listener: (Post) -> Unit) {
+        onCommentClickListener = listener
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
@@ -49,7 +64,7 @@ class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
         fun bind(post: Post) {
             tvUserName.text = post.user.username
-            tvTimeAgo.text = getTimeAgoString(post.createDate)
+            tvTimeAgo.text = getTimeAgo(post.createDate)
             tvPostTitle.text = post.title
             tvPostContent.text = post.content
 
@@ -92,17 +107,21 @@ class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
             tvLikeCount.text = post.reactCount.toString()
             tvCommentCount.text = post.commentCount.toString()
 
-            // Xử lý sự kiện click
+            // Set up click listeners
+            itemView.setOnClickListener {
+                onPostClickListener?.invoke(post)
+            }
+
             btnLike.setOnClickListener {
-                // TODO: Xử lý khi người dùng nhấn like
+                onLikeClickListener?.invoke(post)
             }
 
             btnComment.setOnClickListener {
-                // TODO: Xử lý khi người dùng nhấn comment
+                onCommentClickListener?.invoke(post)
             }
         }
 
-        private fun getTimeAgoString(date: LocalDate): String {
+        private fun getTimeAgo(date: LocalDate): String {
             val now = LocalDate.now()
             val period = Period.between(date, now)
 

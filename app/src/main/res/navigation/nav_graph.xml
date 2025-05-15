@@ -37,6 +37,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_communityFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -58,4 +65,13 @@
         android:id="@+id/communityPostingFragment"
         android:name="com.example.app_music.presentation.feature.community.communityPosting.CommunityPostingFragment"
         android:label="Posting" />
+
+    <fragment
+        android:id="@+id/postDetailFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityPostDetail.PostDetailFragment"
+        android:label="Post Details">
+        <argument
+            android:name="postId"
+            app:argType="long" />
+    </fragment>
 </navigation>

@@ -15,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.app_music.R
+import com.example.app_music.data.model.Post
 import com.example.app_music.data.model.Topic
 import com.example.app_music.presentation.feature.community.adapter.PostAdapter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -28,7 +29,7 @@ class CommunityFragment : Fragment() {
     private lateinit var radioGroup: RadioGroup
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
-    // Map to store topic IDs by radio button IDs
+    // Map lưu trữ ID topic theo ID radio button
     private val topicIdMap = mutableMapOf<Int, Long>()
 
     override fun onCreateView(
@@ -55,14 +56,44 @@ class CommunityFragment : Fragment() {
         postAdapter = PostAdapter()
         recyclerView.adapter = postAdapter
 
-        // Thiết lập sự kiện
+        // Thiết lập sự kiện click cho các bài đăng
+        setupPostClickListeners()
+
+        // Thiết lập sự kiện cho các thành phần khác
         setupListeners(view)
 
-        // Observe ViewModel
+        // Quan sát ViewModel
         observeViewModel()
 
         // Tải dữ liệu
         viewModel.loadLatestPosts()
+    }
+
+    private fun setupPostClickListeners() {
+        // Xử lý khi người dùng nhấp vào bài đăng
+        postAdapter.setOnPostClickListener { post ->
+            navigateToPostDetail(post)
+        }
+
+        // Xử lý khi người dùng nhấn nút like
+        postAdapter.setOnLikeClickListener { post ->
+            // Trong ứng dụng thực, bạn sẽ gọi phương thức để like bài đăng
+            Toast.makeText(requireContext(), "Đã thích bài viết: ${post.id}", Toast.LENGTH_SHORT).show()
+        }
+
+        // Xử lý khi người dùng nhấn nút comment
+        postAdapter.setOnCommentClickListener { post ->
+            navigateToPostDetail(post)
+        }
+    }
+
+    private fun navigateToPostDetail(post: Post) {
+        // Sử dụng Bundle để truyền ID bài đăng
+        val bundle = Bundle().apply {
+            putLong("postId", post.id)
+        }
+        // Sử dụng ID của action trong nav_graph thay vì sử dụng lớp Directions
+        findNavController().navigate(R.id.action_communityFragment_to_postDetailFragment, bundle)
     }
 
     private fun setupListeners(view: View) {
@@ -84,7 +115,7 @@ class CommunityFragment : Fragment() {
             findNavController().navigate(R.id.action_communityFragment_to_communityPostingFragment)
         }
 
-        // Xử lý sự kiện khi chọn tab - sẽ được cập nhật sau khi có topics
+        // Xử lý sự kiện khi chọn tab
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
             if (checkedId == R.id.rbAll) {
                 viewModel.loadLatestPosts()
@@ -137,14 +168,14 @@ class CommunityFragment : Fragment() {
     }
 
     private fun setupTopicRadioButtons(topics: List<Topic>) {
-        // Clear existing radio buttons except "All"
+        // Xóa tất cả các nút radio hiện có trừ nút "All"
         val allButton = radioGroup.findViewById<RadioButton>(R.id.rbAll)
         radioGroup.removeAllViews()
 
-        // Re-add the "All" button first
+        // Thêm lại nút "All" đầu tiên
         radioGroup.addView(allButton)
 
-        // Create and add radio buttons for each topic
+        // Tạo và thêm các nút radio cho từng chủ đề
         topics.forEachIndexed { index, topic ->
             val radioButton = RadioButton(requireContext()).apply {
                 id = View.generateViewId()
@@ -154,7 +185,7 @@ class CommunityFragment : Fragment() {
                     resources.getDimensionPixelSize(R.dimen.radio_button_height)
                 )
                 setBackgroundResource(R.drawable.tab_selector)
-                buttonDrawable = null // Remove the default radio button
+                buttonDrawable = null // Xóa nút radio mặc định
                 setPadding(
                     resources.getDimensionPixelSize(R.dimen.radio_button_padding_horizontal),
                     0,
@@ -164,15 +195,15 @@ class CommunityFragment : Fragment() {
                 setTextColor(resources.getColorStateList(R.color.tab_text_selector, null))
                 gravity = android.view.Gravity.CENTER
 
-                // Set margin between radio buttons
+                // Đặt margin giữa các nút radio
                 (layoutParams as RadioGroup.LayoutParams).marginEnd =
                     resources.getDimensionPixelSize(R.dimen.radio_button_margin)
             }
 
-            // Add to radio group
+            // Thêm vào radio group
             radioGroup.addView(radioButton)
 
-            // Store topic ID for this radio button
+            // Lưu topic ID cho nút radio này
             topicIdMap[radioButton.id] = topic.id
         }
     }
