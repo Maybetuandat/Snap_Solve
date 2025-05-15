@@ -56,7 +56,9 @@ class RegisterActivity : BaseActivity() {
 
                 // Navigate to profile completion activity
                 val intent = Intent(this, LoginActivity::class.java)
+                intent.putExtra(LoginActivity.EXTRA_REGISTRATION_SUCCESS, true)
                 startActivity(intent)
+                finish()
             } else {
                 Toast.makeText(this, result.errorMessage, Toast.LENGTH_LONG).show()
             }
