@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.app_music.data.repository.AuthRepository
 import com.example.app_music.domain.model.User
-import com.example.app_music.domain.utils.RetrofitClient
+import com.example.app_music.domain.utils.RetrofitFactory
 
 
 import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
-    private final val repository = AuthRepository(RetrofitClient.authApi)
+    private final val repository = AuthRepository(RetrofitFactory.authApi)
 
     // For login
     private val _loginResult = MutableLiveData<LoginResult>()

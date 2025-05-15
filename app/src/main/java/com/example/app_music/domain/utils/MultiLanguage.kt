@@ -5,21 +5,18 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
+import com.example.app_music.data.local.preferences.MultiLanguagePreferences
 import java.util.Locale
 
 
 object MultiLanguage {
-    private const val PREF_NAME="language_preference"
-    private const val SELECTED_LANGUAGE = "selected_language"
-    private const val IS_SELECTED_SYSTEM_LANGUAGE = "is_system_language"
 
 
 
 
     fun isUsingSystemLanguage(context: Context): Boolean{
 
-        val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        return preferences.getBoolean(IS_SELECTED_SYSTEM_LANGUAGE, true)
+         return MultiLanguagePreferences.isUsingSystemLanguage(context)
     }
     fun getSystemLanguage(): String {
         Log.e("maybetuandat", Locale.getDefault().language.toString())
@@ -31,9 +28,9 @@ object MultiLanguage {
     // if true return getSystemLanguage()
     //else getLanguage from sharepreferences
     fun getSelectedLanguage(context: Context): String {
-        val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
-        val isSystemLanguage = preferences.getBoolean(IS_SELECTED_SYSTEM_LANGUAGE, true)
+
+        val isSystemLanguage = isUsingSystemLanguage(context)
 
         if(isSystemLanguage)
         {
@@ -41,7 +38,7 @@ object MultiLanguage {
         }
 
 
-        val savedLanguage = preferences.getString(SELECTED_LANGUAGE, null)
+        val savedLanguage = MultiLanguagePreferences.getSaveLanguage(context)
 
         if (savedLanguage != null) {
             Log.d("multilanguage", savedLanguage.toString())
@@ -52,18 +49,8 @@ object MultiLanguage {
 
 
     fun setSelectedLanguage(context: Context, languageCode: String) {
-        val preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+       val kt = MultiLanguagePreferences.saveLanguageCode(context, languageCode)
 
-        if (languageCode == "system") {
-            preferences.edit()
-                .putBoolean(IS_SELECTED_SYSTEM_LANGUAGE, true)
-                .apply()
-        } else {
-            preferences.edit()
-                .putString(SELECTED_LANGUAGE, languageCode)
-                .putBoolean(IS_SELECTED_SYSTEM_LANGUAGE, false)
-                .apply()
-        }
     }
 
 
