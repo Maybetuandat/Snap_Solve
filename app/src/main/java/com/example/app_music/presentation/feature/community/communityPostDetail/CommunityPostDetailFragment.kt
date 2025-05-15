@@ -10,12 +10,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.app_music.R
+import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.data.model.Post
 import com.example.app_music.presentation.feature.community.adapter.CommentAdapter
 import com.google.android.material.snackbar.Snackbar
@@ -25,6 +27,7 @@ class PostDetailFragment : Fragment() {
 
     private lateinit var viewModel: PostDetailViewModel
     private lateinit var commentAdapter: CommentAdapter
+    private var currentUserId: Long = 0
 
     // Các thành phần UI
     private lateinit var tvPostTitle: TextView
@@ -42,7 +45,11 @@ class PostDetailFragment : Fragment() {
     private lateinit var topicTagsContainer: LinearLayout
     private lateinit var btnBack: ImageButton
     private lateinit var btnLike: LinearLayout
+    private lateinit var ivLike: ImageView // Thêm biến này để tham chiếu đến biểu tượng trái tim
     private lateinit var progressBar: ProgressBar
+
+    // Biến theo dõi trạng thái thích cục bộ
+    private var isLikedLocally = false
 
     // Chọn ảnh từ thư viện
     private val getContent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -68,6 +75,9 @@ class PostDetailFragment : Fragment() {
 
         // Khởi tạo ViewModel
         viewModel = ViewModelProvider(this)[PostDetailViewModel::class.java]
+
+        // Lấy ID người dùng hiện tại từ UserPreference
+        currentUserId = UserPreference.getUserId(requireContext())
 
         // Tìm các view
         findViews(view)
@@ -101,6 +111,7 @@ class PostDetailFragment : Fragment() {
         topicTagsContainer = view.findViewById(R.id.topicTagsContainer)
         btnBack = view.findViewById(R.id.btnBack)
         btnLike = view.findViewById(R.id.btnLike)
+        ivLike = view.findViewById(R.id.ivLike) // Lấy tham chiếu đến ImageView trong btnLike
 
         // Thêm progress bar nếu chưa có
         progressBar = ProgressBar(requireContext(), null, android.R.attr.progressBarStyleLarge)
@@ -136,7 +147,14 @@ class PostDetailFragment : Fragment() {
 
         // Nút thích
         btnLike.setOnClickListener {
-            viewModel.likePost()
+            // Đảo ngược trạng thái thích cục bộ
+            isLikedLocally = !isLikedLocally
+
+            // Cập nhật UI ngay lập tức
+            updateLikeUI(isLikedLocally)
+
+            // Gọi viewModel để xử lý thao tác thích/bỏ thích trên server
+            viewModel.toggleLikePost(currentUserId)
         }
 
         // Thêm ảnh vào comment
@@ -155,7 +173,10 @@ class PostDetailFragment : Fragment() {
     private fun observeViewModel() {
         // Quan sát dữ liệu bài viết
         viewModel.post.observe(viewLifecycleOwner) { post ->
-            updateUI(post)
+            // Kiểm tra null trước khi sử dụng
+            post?.let {
+                updateUI(it)
+            }
         }
 
         // Quan sát danh sách comments
@@ -203,6 +224,13 @@ class PostDetailFragment : Fragment() {
         tvTimeAgo.text = tinhThoiGianTruocDay(post.createDate)
         tvLikesCount.text = "${post.react.size} lượt thích"
 
+        // Kiểm tra xem người dùng hiện tại đã thích bài viết này chưa
+        val hasUserLiked = post.react.any { it.user.id == currentUserId }
+
+        // Cập nhật trạng thái thích cục bộ và UI
+        isLikedLocally = hasUserLiked
+        updateLikeUI(isLikedLocally)
+
         // Tải avatar người dùng
         if (!post.user.avatarUrl.isNullOrEmpty()) {
             Glide.with(requireContext())
@@ -226,6 +254,18 @@ class PostDetailFragment : Fragment() {
 
         // Hiển thị các tag chủ đề
         setupTopicTags(post)
+    }
+
+    // Thêm phương thức này để cập nhật UI trái tim thích
+    private fun updateLikeUI(isLiked: Boolean) {
+        if (isLiked) {
+            // Đã thích - trái tim đỏ
+            ivLike.setImageResource(R.drawable.ic_liked_red)
+
+        } else {
+            // Chưa thích - trái tim mặc định
+            ivLike.setImageResource(R.drawable.ic_liked)
+        }
     }
 
     private fun setupTopicTags(post: Post) {

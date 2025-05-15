@@ -19,6 +19,12 @@ class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
     private var onPostClickListener: ((Post) -> Unit)? = null
     private var onLikeClickListener: ((Post) -> Unit)? = null
     private var onCommentClickListener: ((Post) -> Unit)? = null
+    private var currentUserId: Long = 0
+
+    fun setCurrentUserId(userId: Long) {
+        currentUserId = userId
+        notifyDataSetChanged() // Làm mới các view để cập nhật biểu tượng thích
+    }
 
     fun submitList(newPosts: List<Post>) {
         posts = newPosts
@@ -61,12 +67,27 @@ class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
         private val tvCommentCount: TextView = itemView.findViewById(R.id.tvCommentCount)
         private val btnLike: LinearLayout = itemView.findViewById(R.id.btnLike)
         private val btnComment: LinearLayout = itemView.findViewById(R.id.btnComment)
+        private val ivLike: ImageView = itemView.findViewById(R.id.ivLike)
+
+        // Thêm biến để theo dõi trạng thái thích cục bộ
+        private var isLikedLocally = false
 
         fun bind(post: Post) {
             tvUserName.text = post.user.username
             tvTimeAgo.text = getTimeAgo(post.createDate)
             tvPostTitle.text = post.title
             tvPostContent.text = post.content
+
+            // Kiểm tra xem người dùng hiện tại đã thích bài viết này chưa
+            val hasUserLiked = post.react.any { it.user.id == currentUserId }
+
+            // Khởi tạo trạng thái thích cục bộ với giá trị từ server
+            isLikedLocally = hasUserLiked
+
+            // Cập nhật UI dựa trên trạng thái thích cục bộ
+            updateLikeUI(isLikedLocally)
+
+
 
             // Hiển thị ảnh người dùng nếu có
             if (!post.user.avatarUrl.isNullOrEmpty()) {
@@ -113,11 +134,27 @@ class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
             }
 
             btnLike.setOnClickListener {
+                // Đảo ngược trạng thái thích cục bộ
+                isLikedLocally = !isLikedLocally
+
+                // Cập nhật UI
+                updateLikeUI(isLikedLocally)
+
+                // Gọi listener để xử lý thao tác thích/bỏ thích thực tế trên máy chủ
                 onLikeClickListener?.invoke(post)
             }
 
             btnComment.setOnClickListener {
                 onCommentClickListener?.invoke(post)
+            }
+        }
+        // Thêm phương thức này để cập nhật UI dựa trên trạng thái thích
+        private fun updateLikeUI(isLiked: Boolean) {
+            if (isLiked) {
+                ivLike.setImageResource(R.drawable.ic_liked_red) // Biểu tượng trái tim đã thích
+
+            } else {
+                ivLike.setImageResource(R.drawable.ic_liked) // Biểu tượng trái tim chưa thích
             }
         }
 

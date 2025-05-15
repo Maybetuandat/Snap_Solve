@@ -14,9 +14,11 @@ import java.time.LocalDate
 
 class PostDetailViewModel : ViewModel() {
     private val repository = PostRepositoryImpl()
+    private var postId: Long = 0 // Thêm biến để lưu ID bài viết
 
-    private val _post = MutableLiveData<Post>()
-    val post: LiveData<Post> = _post
+    // Thay đổi kiểu dữ liệu để chấp nhận null
+    private val _post = MutableLiveData<Post?>()
+    val post: LiveData<Post?> = _post
 
     private val _comments = MutableLiveData<List<Comment>>()
     val comments: LiveData<List<Comment>> = _comments
@@ -32,15 +34,17 @@ class PostDetailViewModel : ViewModel() {
 
     // Load post details by ID
     fun loadPostDetails(postId: Long) {
+        this.postId = postId // Lưu ID bài viết
         _isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = repository.getPostById(postId)
                 if (response.isSuccessful) {
                     val postData = response.body()
+                    // Kiểm tra null trước khi gán
                     if (postData != null) {
                         _post.value = postData
-                        _comments.value = postData.comment
+                        _comments.value = postData.comment ?: emptyList()
                     } else {
                         _error.value = "Post data is empty"
                     }
@@ -49,6 +53,50 @@ class PostDetailViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e("PostDetailViewModel", "Error loading post details", e)
+                _error.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // Thêm phương thức để xử lý thích/bỏ thích bài viết
+    fun toggleLikePost(userId: Long) {
+        if (postId <= 0) {
+            _error.value = "Invalid post ID"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+
+                // Kiểm tra xem người dùng đã thích bài viết này chưa
+                val currentPost = _post.value
+                val hasUserLiked = currentPost?.react?.any { it.user.id == userId } ?: false
+
+                val response = if (hasUserLiked) {
+                    // Nếu đã thích, gọi API để bỏ thích
+                    repository.unlikePost(postId, userId)
+                } else {
+                    // Nếu chưa thích, gọi API để thích
+                    repository.likePost(postId, userId)
+                }
+
+                if (response.isSuccessful) {
+                    // Cập nhật bài viết với dữ liệu mới từ server
+                    val updatedPost = response.body()
+                    // Kiểm tra null trước khi gán
+                    if (updatedPost != null) {
+                        _post.postValue(updatedPost)
+                    } else {
+                        Log.e("PostDetailViewModel", "Updated post is null")
+                    }
+                } else {
+                    _error.value = "Error toggling like: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                Log.e("PostDetailViewModel", "Error toggling like", e)
                 _error.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
@@ -71,7 +119,11 @@ class PostDetailViewModel : ViewModel() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val postId = _post.value?.id ?: return@launch
+                val currentPost = _post.value
+                if (currentPost == null) {
+                    _error.value = "Post is not loaded"
+                    return@launch
+                }
 
                 // In a real app, you would upload the image first if imageUri is not null
                 // Then send the comment with image URL to the server
@@ -85,7 +137,7 @@ class PostDetailViewModel : ViewModel() {
                     content = content,
                     image = imageUri?.toString(), // In a real app this would be the uploaded image URL
                     createDate = LocalDate.now(),
-                    user = _post.value?.user ?: return@launch // Use the current user
+                    user = currentPost.user // Use the current user
                 )
 
                 // Add to the list
@@ -102,31 +154,6 @@ class PostDetailViewModel : ViewModel() {
                 _error.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
-            }
-        }
-    }
-
-    // Like the post
-    fun likePost() {
-        viewModelScope.launch {
-            try {
-                val postId = _post.value?.id ?: return@launch
-
-                // In a real app, you would call the repository
-                // val response = repository.likePost(postId)
-
-                // For now, just update the UI
-                _post.value?.let { currentPost ->
-                    // Create a new react list with one more like
-                    val updatedReacts = currentPost.react.toMutableList()
-                    // Add a new like (in a real app this would be handled properly)
-
-                    // Update the post
-                    _post.postValue(currentPost.copy(react = updatedReacts))
-                }
-            } catch (e: Exception) {
-                Log.e("PostDetailViewModel", "Error liking post", e)
-                _error.value = "Error: ${e.message}"
             }
         }
     }

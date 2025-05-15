@@ -32,8 +32,18 @@ interface PostApi {
     ): Response<Comment>
 
     @POST("/api/post/{id}/like")
-    suspend fun likePost(@Path("id") postId: Long): Response<Post>
+    suspend fun likePost(
+        @Path("id") postId: Long,
+        @Query("userId") userId: Long
+    ): Response<Post>
+
+    @POST("/api/post/{id}/unlike")
+    suspend fun unlikePost(
+        @Path("id") postId: Long,
+        @Query("userId") userId: Long
+    ): Response<Post>
 
     @POST("/api/comment/{id}/like")
     suspend fun likeComment(@Path("id") commentId: Long): Response<Comment>
+
 }

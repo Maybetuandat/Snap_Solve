@@ -27,13 +27,6 @@ data class React(
     val user: User
 )
 
-//data class Comment(
-//    val id: Long,
-//    val content: String,
-//    val image: String?,
-//    val createDate: LocalDate,
-//    val user: User
-//)
 
 data class Topic(
     val id: Long,

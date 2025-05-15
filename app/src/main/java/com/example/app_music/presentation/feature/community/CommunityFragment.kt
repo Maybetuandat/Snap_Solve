@@ -15,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.app_music.R
+import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.data.model.Post
 import com.example.app_music.data.model.Topic
 import com.example.app_music.presentation.feature.community.adapter.PostAdapter
@@ -54,6 +55,10 @@ class CommunityFragment : Fragment() {
 
         // Thiết lập adapter
         postAdapter = PostAdapter()
+
+        // Lấy ID người dùng hiện tại từ preferences và đặt nó vào adapter
+        val currentUserId = UserPreference.getUserId(requireContext())
+        postAdapter.setCurrentUserId(currentUserId)
         recyclerView.adapter = postAdapter
 
         // Thiết lập sự kiện click cho các bài đăng
@@ -77,8 +82,8 @@ class CommunityFragment : Fragment() {
 
         // Xử lý khi người dùng nhấn nút like
         postAdapter.setOnLikeClickListener { post ->
-            // Trong ứng dụng thực, bạn sẽ gọi phương thức để like bài đăng
-            Toast.makeText(requireContext(), "Đã thích bài viết: ${post.id}", Toast.LENGTH_SHORT).show()
+            // Gọi API để thích/bỏ thích bài viết
+            viewModel.toggleLikePost(post, UserPreference.getUserId(requireContext()))
         }
 
         // Xử lý khi người dùng nhấn nút comment

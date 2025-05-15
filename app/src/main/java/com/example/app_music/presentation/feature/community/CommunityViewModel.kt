@@ -103,6 +103,34 @@ class CommunityViewModel : ViewModel() {
         }
     }
 
+    // Thêm phương thức này để xử lý thích/bỏ thích bài viết
+    fun toggleLikePost(post: Post, userId: Long) {
+        viewModelScope.launch {
+            try {
+                // Kiểm tra xem người dùng đã thích bài viết này chưa
+                val hasUserLiked = post.react.any { it.user.id == userId }
+
+                val response = if (hasUserLiked) {
+                    // Nếu đã thích, gọi API để bỏ thích
+                    repository.unlikePost(post.id, userId)
+                } else {
+                    // Nếu chưa thích, gọi API để thích
+                    repository.likePost(post.id, userId)
+                }
+
+                if (response.isSuccessful) {
+                    // Sau khi thích/bỏ thích thành công, tải lại dữ liệu bài viết
+                    loadPosts()
+                } else {
+                    _error.value = "Lỗi: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                Log.e("CommunityViewModel", "Error toggling like", e)
+                _error.value = "Lỗi kết nối: ${e.message}"
+            }
+        }
+    }
+
     // Tìm kiếm bài post
     fun searchPosts(keyword: String) {
         if (keyword.isBlank()) {
