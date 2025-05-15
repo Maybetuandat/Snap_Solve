@@ -9,7 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.time.LocalDate
 
-object RetrofitClient {
+object RetrofitFactory {
     private val retrofit by lazy {
         val gson = GsonBuilder()
             .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
