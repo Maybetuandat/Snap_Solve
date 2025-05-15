@@ -14,10 +14,11 @@ import com.example.app_music.R
 import com.example.app_music.databinding.ActivityLanguageSettingsBinding
 import com.example.app_music.domain.utils.MultiLanguage
 import com.example.app_music.presentation.feature.common.BaseActivity
-import com.example.app_music.presentation.feature.setting.restartappdialog.RestartAppDialog
+import com.example.app_music.presentation.feature.setting.multilanguage.RestartAppDialog
 
 class LanguageSettingsActivity : BaseActivity() {
     private lateinit var binding: ActivityLanguageSettingsBinding
+    private var pendingLanguageCode: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,13 +31,12 @@ class LanguageSettingsActivity : BaseActivity() {
 
     private fun setupUI() {
 
-        val currentLanguage = MultiLanguage.getSelectedLanguage(this)
-
-
         val languages = MultiLanguage.getSupportedLanguages()
-
-
         binding.radioGroupLanguages.removeAllViews()
+
+
+        val isUsingSystemLanguage = MultiLanguage.isUsingSystemLanguage(this)
+        val selectedLanguageCode = if (isUsingSystemLanguage) "system" else MultiLanguage.getSelectedLanguage(this)
 
 
         languages.forEach { language ->
@@ -51,14 +51,11 @@ class LanguageSettingsActivity : BaseActivity() {
             radioButton.setPadding(0, 30, 0, 30)
 
 
-            if (language.code == currentLanguage) {
-                radioButton.isChecked = true
-            }
+            radioButton.isChecked = language.code == selectedLanguageCode
 
             binding.radioGroupLanguages.addView(radioButton)
         }
     }
-
     private fun setupListeners() {
         binding.btnBack.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
@@ -68,31 +65,83 @@ class LanguageSettingsActivity : BaseActivity() {
             try {
                 val radioButton = findViewById<RadioButton>(checkedId)
                 val newLanguageCode = radioButton.tag as String
-                val currentLanguageCode = MultiLanguage.getSelectedLanguage(this)
+
+
+                val isUsingSystemLanguage = MultiLanguage.isUsingSystemLanguage(this)
+                val currentLanguageCode = if (isUsingSystemLanguage) "system" else MultiLanguage.getSelectedLanguage(this)
 
                 if (newLanguageCode != currentLanguageCode) {
 
-                    MultiLanguage.setSelectedLanguage(this, newLanguageCode)
+                    pendingLanguageCode = newLanguageCode
 
 
-
-
-
-                    try {
-                        val dialog = RestartAppDialog(this)
-                        dialog.show()
-                    } catch (e: Exception) {
-
-                        Log.e("LanguageSetting", "Error showing dialog: ${e.message}")
-                        Toast.makeText(
-                            this,
-                            "Vui lòng khởi động lại ứng dụng để áp dụng thay đổi ngôn ngữ",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    showConfirmDialog()
                 }
             } catch (e: Exception) {
                 Log.e("LanguageSetting", "Error in radio change: ${e.message}")
+            }
+        }
+    }
+
+
+    private fun showRestartDialog() {
+        try {
+            val dialog = RestartAppDialog(this)
+            dialog.show()
+        } catch (e: Exception) {
+            Log.e("LanguageSetting", "Error showing dialog: ${e.message}")
+            Toast.makeText(
+                this,
+                "Vui lòng khởi động lại ứng dụng để áp dụng thay đổi ngôn ngữ",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun showConfirmDialog() {
+        try {
+            val dialog = ConfirmLanguageDialog(
+                this,
+                onConfirm = {
+
+                    pendingLanguageCode?.let { languageCode ->
+
+                        MultiLanguage.setSelectedLanguage(this, languageCode)
+
+                        showRestartDialog()
+                    }
+                }
+            )
+
+
+            dialog.setOnDismissListener {
+
+                if (pendingLanguageCode != null) {
+
+                    resetRadioButtonSelection()
+
+                    pendingLanguageCode = null
+                }
+            }
+
+            dialog.show()
+        } catch (e: Exception) {
+            Log.e("LanguageSetting", "Error showing dialog: ${e.message}")
+        }
+    }
+
+
+    private fun resetRadioButtonSelection() {
+
+        val isUsingSystemLanguage = MultiLanguage.isUsingSystemLanguage(this)
+        val currentLanguageCode = if (isUsingSystemLanguage) "system" else MultiLanguage.getSelectedLanguage(this)
+
+
+        for (i in 0 until binding.radioGroupLanguages.childCount) {
+            val radioButton = binding.radioGroupLanguages.getChildAt(i) as? RadioButton
+            if (radioButton?.tag == currentLanguageCode) {
+                radioButton.isChecked = true
+                break
             }
         }
     }
