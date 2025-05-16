@@ -89,17 +89,7 @@
                 android:clickable="true"
                 android:focusable="true"/>
 
-            <TextView
-                android:id="@+id/tvHelp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/help"
-                android:textSize="16sp"
-                android:textColor="@android:color/black"
-                android:padding="16dp"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"/>
+
 
             <TextView
                 android:id="@+id/tvLanguage"

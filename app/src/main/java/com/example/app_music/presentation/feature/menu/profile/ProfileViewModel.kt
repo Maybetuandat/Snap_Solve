@@ -104,13 +104,13 @@ class ProfileEditViewModel : ViewModel() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                // Tạo RequestBody từ file
+
                 val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
 
-                // Tạo MultipartBody.Part từ RequestBody
+
                 val body = MultipartBody.Part.createFormData("avatar", imageFile.name, requestFile)
 
-                // Gọi API để upload avatar
+
                 val response = uploadAvatarUseCase(userId, body)
 
                 if (response.isSuccessful) {

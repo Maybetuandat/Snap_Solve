@@ -52,10 +52,7 @@ class ProfileActivity : BaseActivity() {
                     ) == PackageManager.PERMISSION_GRANTED -> {
                         openGallery()
                     }
-                    shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_IMAGES) -> {
-                        // Hiển thị dialog giải thích tại sao cần quyền này
-                        showPermissionRationaleDialog(Manifest.permission.READ_MEDIA_IMAGES)
-                    }
+
                     else -> {
                         // Xin quyền
                         requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
@@ -72,10 +69,7 @@ class ProfileActivity : BaseActivity() {
                     ) == PackageManager.PERMISSION_GRANTED -> {
                         openGallery()
                     }
-                    shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE) -> {
-                        // Hiển thị dialog giải thích tại sao cần quyền này
-                        showPermissionRationaleDialog(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
+
                     else -> {
                         // Xin quyền
                         requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -92,10 +86,7 @@ class ProfileActivity : BaseActivity() {
                     ) == PackageManager.PERMISSION_GRANTED -> {
                         openGallery()
                     }
-                    shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE) -> {
-                        // Hiển thị dialog giải thích tại sao cần quyền này
-                        showPermissionRationaleDialog(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
+
                     else -> {
                         // Xin quyền
                         requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -105,30 +96,17 @@ class ProfileActivity : BaseActivity() {
         }
     }
 
-    // Hiển thị dialog giải thích về quyền
-    private fun showPermissionRationaleDialog(permission: String) {
-        AlertDialog.Builder(this)
-            .setTitle("Cần quyền truy cập")
-            .setMessage("Ứng dụng cần quyền truy cập vào thư viện ảnh để bạn có thể chọn ảnh đại diện.")
-            .setPositiveButton("Cấp quyền") { _, _ ->
-                requestPermissionLauncher.launch(permission)
-            }
-            .setNegativeButton("Không") { dialog, _ ->
-                dialog.dismiss()
-                Toast.makeText(this, "Không thể chọn ảnh khi không có quyền", Toast.LENGTH_LONG).show()
-            }
-            .create()
-            .show()
-    }
+
 
     // Launcher để mở gallery và chọn ảnh
+    //android mo ung dung cho phep chon anh -> nguoi dung lua chon -> android se tra ve uri( con tro tro den anh)
     private val galleryLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
                 selectedImageUri = uri
-                displaySelectedImage(uri)
+
 
                 // Chuyển URI thành File và upload
                 val file = uriToFile(uri)
@@ -152,7 +130,7 @@ class ProfileActivity : BaseActivity() {
         setupListeners()
         observeViewModel()
 
-        // Tải thông tin người dùng khi màn hình được tạo
+
         val userId = UserPreference.getUserId(this)
         viewModel.fetchUserData(userId)
     }
@@ -177,9 +155,9 @@ class ProfileActivity : BaseActivity() {
             startActivity(intent)
         }
 
-        // Xử lý sự kiện click vào ảnh đại diện
+
         binding.cvProfilePictureContainer.setOnClickListener {
-            checkPermissionAndOpenGallery()
+            checkAndRequestPermissions()
         }
     }
 
@@ -190,25 +168,18 @@ class ProfileActivity : BaseActivity() {
         viewModel.user.observe(this) { user ->
             // Hiển thị thông tin người dùng
             binding.tvUsernameValue.text = user.username
-            binding.tvStatusValue.text = user.statusMessage ?: getString(R.string.detail_status_message)
-            binding.tvStudentInfoValue.text = user.studentInformation ?: getString(R.string.detail_student_infomation)
+            binding.tvStatusValue.text = user.statusMessage
+            binding.tvStudentInfoValue.text = user.studentInformation
             binding.tvEmailValue.text = user.email
             binding.tvUidValue.text = user.suid
 
-            // Hiển thị ảnh đại diện nếu có
+
             if (!user.avatarUrl.isNullOrEmpty()) {
                 displayAvatarFromUrl(user.avatarUrl!!)
             }
         }
 
-        viewModel.isLoading.observe(this) { isLoading ->
-            // Hiển thị loading indicator nếu cần
-            if (isLoading) {
-                // Hiển thị progress bar hoặc indicator
-            } else {
-                // Ẩn progress bar hoặc indicator
-            }
-        }
+
 
         viewModel.error.observe(this) { errorMsg ->
             if (!errorMsg.isNullOrEmpty()) {
@@ -223,41 +194,20 @@ class ProfileActivity : BaseActivity() {
         }
     }
 
-    private fun checkPermissionAndOpenGallery() {
-        checkAndRequestPermissions()
-    }
+
 
     private fun openGallery() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         galleryLauncher.launch(intent)
     }
 
-    private fun displaySelectedImage(uri: Uri) {
-        // Xóa TextView "Change" nếu có
-        binding.cvProfilePictureContainer.removeAllViews()
 
-        // Tạo ImageView mới và thêm vào CardView
-        val imageView = ImageView(this).apply {
-            layoutParams = android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            scaleType = ImageView.ScaleType.CENTER_CROP
-        }
-        binding.cvProfilePictureContainer.addView(imageView)
-
-        // Hiển thị ảnh đã chọn
-        Glide.with(this)
-            .load(uri)
-            .centerCrop()
-            .into(imageView)
-    }
 
     private fun displayAvatarFromUrl(avatarUrl: String) {
-        // Xóa TextView "Change" nếu có
+
         binding.cvProfilePictureContainer.removeAllViews()
 
-        // Tạo ImageView mới và thêm vào CardView
+
         val imageView = ImageView(this).apply {
             layoutParams = android.view.ViewGroup.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
@@ -267,22 +217,22 @@ class ProfileActivity : BaseActivity() {
         }
         binding.cvProfilePictureContainer.addView(imageView)
 
-        // Hiển thị ảnh từ URL
+
         Glide.with(this)
             .load(avatarUrl)
             .centerCrop()
-            .placeholder(R.drawable.ic_person) // Ảnh placeholder khi đang tải
-            .error(R.drawable.ic_person) // Ảnh hiển thị khi lỗi
+            .placeholder(R.drawable.ic_person)
+            .error(R.drawable.ic_person)
             .into(imageView)
     }
 
-    // Helper method để chuyển đổi từ Uri sang File
+
     private fun uriToFile(uri: Uri): File? {
         try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
             val outputFile = File(cacheDir, "temp_avatar_${System.currentTimeMillis()}.jpg")
             FileOutputStream(outputFile).use { outputStream ->
-                val buffer = ByteArray(4 * 1024) // 4k buffer
+                val buffer = ByteArray(4 * 1024) // 4k buffer  //kich thuoc cua mot block -> doc theo tung block mot trong anh
                 var read: Int
                 while (inputStream.read(buffer).also { read = it } != -1) {
                     outputStream.write(buffer, 0, read)
@@ -294,6 +244,11 @@ class ProfileActivity : BaseActivity() {
             e.printStackTrace()
             return null
         }
+    }
+    override fun onResume() {
+        super.onResume()
+        val userId = UserPreference.getUserId(this)
+        viewModel.fetchUserData(userId)
     }
 
 

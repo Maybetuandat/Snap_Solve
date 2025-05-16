@@ -429,25 +429,7 @@
                 app:layout_constraintTop_toBottomOf="@id/textViewSupportTitle"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
-            <TextView
-                android:id="@+id/textViewHelp"
 
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:text="@string/help"
-                android:clickable="true"
-                android:focusable="true"
-                android:textSize="@dimen/text_medium"
-                android:textColor="@color/black"
-                android:background="?android:attr/selectableItemBackground"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/textViewNotice"
-                app:layout_constraintEnd_toEndOf="parent"/>
 
 
 
