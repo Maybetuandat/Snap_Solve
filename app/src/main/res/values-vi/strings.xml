@@ -109,5 +109,20 @@
         <string name="remember_me">Ghi nhớ đăng nhập</string>
         <string name="or">Hoặc</string>
         <string name="sign_in_with_google">Đăng nhập với google</string>
-
+        <string name="up_load_file">Thêm file</string>
+        <string name="create_new_note">Tạo ghi chú mới</string>
+        <string name="create_new_folder">Tạo tệp mới</string>
+        <string name="camera">Camera</string>
+        <string name="scan">Quét</string>
+        <string name="day">Ngày</string>
+        <string name="name">Tên</string>
+        <string name="type">Loại</string>
+        <string name="folder">Tệp</string>
+        <string name="new_text">Mới</string>
+        <string name="rename">Đổi tên</string>
+        <string name="delete">Xóa</string>
+        <string name="get_help">Xem trợ giúp</string>
+        <string name="see_solve">Xem giải</string>
+        <string name="gethelp">Xem trợ giúp</string>
+        <string name="xemgiaithich">Xem giải</string>
 </resources>
