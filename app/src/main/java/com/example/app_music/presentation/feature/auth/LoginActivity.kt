@@ -19,6 +19,10 @@ class LoginActivity : BaseActivity() {
     private lateinit var viewModel: AuthViewModel
     private val TAG = "LoginActivity"
 
+    companion object {
+        const val EXTRA_REGISTRATION_SUCCESS = "extra_registration_success"
+        private const val TAG = "LoginActivity"
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,12 +38,33 @@ class LoginActivity : BaseActivity() {
         setupListeners()
         observeViewModel()
 
+        if (intent.getBooleanExtra(EXTRA_REGISTRATION_SUCCESS, false)) {
+            // Hiển thị thông báo thành công trên textview
+            binding.tvRegistrationMessage.visibility = View.VISIBLE
+            var languageCode: String = ""
+            if(MultiLanguage.isUsingSystemLanguage(this))
+                languageCode = MultiLanguage.getSystemLanguage()
+            else
+                 languageCode = MultiLanguage.getSelectedLanguage(this)
+            if(languageCode == "en")
+            {
+                binding.tvRegistrationMessage.text = "Register is succesfull. Please Login "
+            }
+            else
+            {
+                binding.tvRegistrationMessage.text = "Đăng ký thành công! Vui lòng đăng nhập với tài khoản của bạn."
+            }
+        } else {
+            binding.tvRegistrationMessage.visibility = View.GONE
+        }
+
+
         viewModel.checkSavedCredentials()
     }
 
     private fun setupLanguageSpinner() {
         try {
-            // Get supported languages
+
             val languages = MultiLanguage.getSupportedLanguages()
             Log.d(TAG, "Available languages: ${languages.map { it.code }}")
 
@@ -145,9 +170,9 @@ class LoginActivity : BaseActivity() {
             Toast.makeText(this, "Chức năng quên mật khẩu sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
         }
 
-        binding.cvGoogleLogin.setOnClickListener {
-            Toast.makeText(this, "Đăng nhập bằng Google sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
-        }
+//        binding.cvGoogleLogin.setOnClickListener {
+//            Toast.makeText(this, "Đăng nhập bằng Google sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
+//        }
     }
 
     private fun observeViewModel() {

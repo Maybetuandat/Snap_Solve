@@ -35,13 +35,13 @@
     <string name="logout">Logout</string>
     <string name="note_delete_account">You will lost all of your data and can\'t\nlogin this account</string>
     <string name="delete_account">Delete Account</string>
-    <string name="my_profile">My profile</string>
+    <string name="my_profile">My Profile</string>
     <string name="change">Change</string>
     <string name="username">Username</string>
     <string name="status_message">Status message</string>
-    <string name="detail_status_message">I\'m hungry with my exercise</string>
+    <string name="detail_status_message">Please fill your status message</string>
     <string name="student_information">Student Information</string>
-    <string name="detail_student_infomation">I\'m learning at grade fifthteen</string>
+    <string name="detail_student_infomation">Please update your student information</string>
     <string name="account_information">Account information</string>
     <string name="mailOfUser">trinhvinhtuandat@gmail.com</string>
     <string name="snap_solve_uid">Snap Solve UID</string>

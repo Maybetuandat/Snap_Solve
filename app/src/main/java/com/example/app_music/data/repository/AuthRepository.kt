@@ -7,6 +7,7 @@ import com.example.app_music.domain.model.AuthResponse
 import com.example.app_music.domain.model.User
 import com.example.app_music.domain.repository.AuthRepository
 import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.ResponseBody
 import retrofit2.Response
 
@@ -29,7 +30,7 @@ class AuthRepository(
             return Response.error(
                 response.code(),
                 ResponseBody.create(
-                    MediaType.parse("text/plain"),
+                    "text/plain".toMediaTypeOrNull(),
                     response.errorBody()?.string() ?: "Unknown error"
                 )
             )
@@ -52,7 +53,7 @@ class AuthRepository(
             return Response.error(
                 response.code(),
                 ResponseBody.create(
-                    MediaType.parse("text/plain"),
+                    "text/plain".toMediaTypeOrNull(),
                     response.errorBody()?.string() ?: "Unknown error"
                 )
             )
