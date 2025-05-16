@@ -1,16 +1,40 @@
-package com.example.app_music.presentation.community
+package com.example.app_music.presentation.feature.community.communityProfile
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.app_music.R
+import com.example.app_music.data.local.preferences.UserPreference
+import com.example.app_music.presentation.feature.community.adapter.PostAdapter
 import com.google.android.material.tabs.TabLayout
+import de.hdodenhof.circleimageview.CircleImageView
 
 class CommunityProfileFragment : Fragment() {
+
+    private lateinit var viewModel: CommunityProfileViewModel
+    private lateinit var postAdapter: PostAdapter
+
+    private lateinit var recyclerViewYourPosts: RecyclerView
+    private lateinit var recyclerViewLikedPosts: RecyclerView
+    private lateinit var tabLayout: TabLayout
+    private lateinit var progressBar: ProgressBar
+    private lateinit var btnBack: ImageButton
+    private lateinit var ivUserAvatar: CircleImageView
+    private lateinit var tvUserName: TextView
+    private lateinit var tvUserStatus: TextView
+
+    private var currentUserId: Long = 0
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -19,37 +43,97 @@ class CommunityProfileFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_community_profile, container, false)
     }
 
-    private lateinit var recyclerViewYourPosts: androidx.recyclerview.widget.RecyclerView
-    private lateinit var recyclerViewLikedPosts: androidx.recyclerview.widget.RecyclerView
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize RecyclerViews
+        // Khởi tạo ViewModel
+        viewModel = ViewModelProvider(this)[CommunityProfileViewModel::class.java]
+
+        // Lấy ID người dùng hiện tại
+        currentUserId = UserPreference.getUserId(requireContext())
+
+        // Tìm các view
+        findViews(view)
+
+        // Thiết lập các adapter và sự kiện
+        setupRecyclerViews()
+        setupListeners()
+
+        // Quan sát ViewModel
+        observeViewModel()
+
+        // Tải dữ liệu
+        loadData()
+    }
+
+    private fun findViews(view: View) {
         recyclerViewYourPosts = view.findViewById(R.id.recyclerViewYourPosts)
         recyclerViewLikedPosts = view.findViewById(R.id.recyclerViewLikedPosts)
+        tabLayout = view.findViewById(R.id.tabLayout)
+        btnBack = view.findViewById(R.id.btnBack)
+        ivUserAvatar = view.findViewById(R.id.ivUserAvatar)
+        tvUserName = view.findViewById(R.id.tvUserName)
+        tvUserStatus = view.findViewById(R.id.tvUserStatus)
 
-        // Set up back button
-        val backButton = view.findViewById<ImageButton>(R.id.btnBack)
-        backButton.setOnClickListener {
+        // Thêm ProgressBar vào view nếu chưa có
+        progressBar = ProgressBar(requireContext(), null, android.R.attr.progressBarStyleLarge)
+        (view as ViewGroup).addView(progressBar)
+        val params = progressBar.layoutParams as ViewGroup.LayoutParams
+        params.width = ViewGroup.LayoutParams.WRAP_CONTENT
+        params.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        progressBar.layoutParams = params
+        progressBar.visibility = View.GONE
+    }
+
+    private fun setupRecyclerViews() {
+        // Tạo adapter cho cả hai RecyclerView
+        val yourPostsAdapter = PostAdapter()
+        val likedPostsAdapter = PostAdapter()
+
+        // Đặt ID người dùng hiện tại cho adapter
+        yourPostsAdapter.setCurrentUserId(currentUserId)
+        likedPostsAdapter.setCurrentUserId(currentUserId)
+
+        // Gán adapter cho RecyclerView
+        recyclerViewYourPosts.adapter = yourPostsAdapter
+        recyclerViewLikedPosts.adapter = likedPostsAdapter
+
+        // Thiết lập sự kiện click cho các bài đăng
+        yourPostsAdapter.setOnPostClickListener { post ->
+            navigateToPostDetail(post.id)
+        }
+
+        likedPostsAdapter.setOnPostClickListener { post ->
+            navigateToPostDetail(post.id)
+        }
+
+        // Thiết lập sự kiện thích/bỏ thích
+        yourPostsAdapter.setOnLikeClickListener { post ->
+            // Xử lý thích/bỏ thích bài viết (có thể thêm code sau)
+        }
+
+        likedPostsAdapter.setOnLikeClickListener { post ->
+            // Xử lý thích/bỏ thích bài viết (có thể thêm code sau)
+        }
+    }
+
+    private fun setupListeners() {
+        // Xử lý nút Back
+        btnBack.setOnClickListener {
             findNavController().navigateUp()
         }
 
-        // Set up TabLayout
-        val tabLayout = view.findViewById<TabLayout>(R.id.tabLayout)
+        // Xử lý sự kiện chọn tab
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                // Handle tab selection - show appropriate RecyclerView
                 when (tab?.position) {
-                    0 -> {
+                    0 -> { // Tab "Your posts"
                         recyclerViewYourPosts.visibility = View.VISIBLE
                         recyclerViewLikedPosts.visibility = View.GONE
-                        loadUserPosts()
                     }
-                    1 -> {
+                    1 -> { // Tab "Liked posts"
                         recyclerViewYourPosts.visibility = View.GONE
                         recyclerViewLikedPosts.visibility = View.VISIBLE
-                        loadLikedPosts()
                     }
                 }
             }
@@ -57,37 +141,58 @@ class CommunityProfileFragment : Fragment() {
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
-
-        // Set up adapters for both RecyclerViews
-        setupRecyclerViews()
-
-        // Initially load user posts
-        loadUserPosts()
     }
 
-    private fun setupRecyclerViews() {
-        // TODO: Create and set your post adapters here
-        // For example:
-        // val yourPostsAdapter = PostAdapter()
-        // recyclerViewYourPosts.adapter = yourPostsAdapter
-        //
-        // val likedPostsAdapter = PostAdapter()
-        // recyclerViewLikedPosts.adapter = likedPostsAdapter
+    private fun observeViewModel() {
+        // Quan sát thông tin người dùng
+        viewModel.userInfo.observe(viewLifecycleOwner) { user ->
+            user?.let {
+                tvUserName.text = it.username
+                tvUserStatus.text = it.statusMessage ?: "Không có giới thiệu"
+
+                // Tải ảnh đại diện
+                if (!it.avatarUrl.isNullOrEmpty()) {
+                    Glide.with(requireContext())
+                        .load(it.avatarUrl)
+                        .placeholder(R.drawable.avatar)
+                        .into(ivUserAvatar)
+                }
+            }
+        }
+
+        // Quan sát danh sách bài đăng của người dùng
+        viewModel.userPosts.observe(viewLifecycleOwner) { posts ->
+            (recyclerViewYourPosts.adapter as PostAdapter).submitList(posts)
+        }
+
+        // Quan sát danh sách bài đăng đã thích
+        viewModel.likedPosts.observe(viewLifecycleOwner) { posts ->
+            (recyclerViewLikedPosts.adapter as PostAdapter).submitList(posts)
+        }
+
+        // Quan sát trạng thái tải
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+
+        // Quan sát lỗi
+        viewModel.error.observe(viewLifecycleOwner) { errorMessage ->
+            if (errorMessage.isNotEmpty()) {
+                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
-    private fun loadUserPosts() {
-        // In a real app, you would fetch user posts from a data source
-        // For example:
-        // viewModel.getUserPosts().observe(viewLifecycleOwner) { posts ->
-        //     (recyclerViewYourPosts.adapter as PostAdapter).submitList(posts)
-        // }
+    private fun loadData() {
+        viewModel.loadUserInfo(currentUserId)
+        viewModel.loadUserPosts(currentUserId)
+        viewModel.loadLikedPosts(currentUserId)
     }
 
-    private fun loadLikedPosts() {
-        // In a real app, you would fetch liked posts from a data source
-        // For example:
-        // viewModel.getLikedPosts().observe(viewLifecycleOwner) { posts ->
-        //     (recyclerViewLikedPosts.adapter as PostAdapter).submitList(posts)
-        // }
+    private fun navigateToPostDetail(postId: Long) {
+        val bundle = Bundle().apply {
+            putLong("postId", postId)
+        }
+        findNavController().navigate(R.id.action_communityProfileFragment_to_postDetailFragment, bundle)
     }
 }

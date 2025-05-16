@@ -6,8 +6,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.app_music.data.model.Comment
-import com.example.app_music.data.model.Post
+import com.example.app_music.domain.model.Comment
+import com.example.app_music.domain.model.Post
 import com.example.app_music.data.repository.PostRepositoryImpl
 import kotlinx.coroutines.launch
 import java.time.LocalDate

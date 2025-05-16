@@ -16,8 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
-import com.example.app_music.data.model.Post
-import com.example.app_music.data.model.Topic
+import com.example.app_music.domain.model.Post
+import com.example.app_music.domain.model.Topic
 import com.example.app_music.presentation.feature.community.adapter.PostAdapter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 

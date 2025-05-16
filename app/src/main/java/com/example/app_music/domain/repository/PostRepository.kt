@@ -1,7 +1,7 @@
 package com.example.app_music.domain.repository
 
-import com.example.app_music.data.model.Comment
-import com.example.app_music.data.model.Post
+import com.example.app_music.domain.model.Comment
+import com.example.app_music.domain.model.Post
 import retrofit2.Response
 
 interface PostRepository {
@@ -14,4 +14,6 @@ interface PostRepository {
     suspend fun likePost(postId: Long, userId: Long): Response<Post>
     suspend fun likeComment(commentId: Long): Response<Comment>
     suspend fun unlikePost(postId: Long, userId: Long): Response<Post>
+    suspend fun getPostsByUserId(userId: Long): Response<List<Post>>
+    suspend fun getLikedPostsByUserId(userId: Long): Response<List<Post>>
 }

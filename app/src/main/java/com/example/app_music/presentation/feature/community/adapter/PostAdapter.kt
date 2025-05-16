@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.app_music.R
-import com.example.app_music.data.model.Post
+import com.example.app_music.domain.model.Post
 import java.time.LocalDate
 import java.time.Period
 

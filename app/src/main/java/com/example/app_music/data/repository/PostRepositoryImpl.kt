@@ -1,7 +1,7 @@
 package com.example.app_music.data.repository
 
-import com.example.app_music.data.model.Comment
-import com.example.app_music.data.model.Post
+import com.example.app_music.domain.model.Comment
+import com.example.app_music.domain.model.Post
 import com.example.app_music.domain.repository.PostRepository
 import com.example.app_music.domain.utils.RetrofitFactory
 import retrofit2.Response
@@ -51,4 +51,11 @@ class PostRepositoryImpl : PostRepository {
         return RetrofitFactory.postApi.unlikePost(postId, userId)
     }
 
+    override suspend fun getPostsByUserId(userId: Long): Response<List<Post>> {
+        return RetrofitFactory.postApi.getPostsByUserId(userId)
+    }
+
+    override suspend fun getLikedPostsByUserId(userId: Long): Response<List<Post>> {
+        return RetrofitFactory.postApi.getLikedPostsByUserId(userId)
+    }
 }

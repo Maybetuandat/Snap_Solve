@@ -1,7 +1,7 @@
 package com.example.app_music.data.remote.api
 
-import com.example.app_music.data.model.Comment
-import com.example.app_music.data.model.Post
+import com.example.app_music.domain.model.Comment
+import com.example.app_music.domain.model.Post
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -46,4 +46,9 @@ interface PostApi {
     @POST("/api/comment/{id}/like")
     suspend fun likeComment(@Path("id") commentId: Long): Response<Comment>
 
+    @GET("/api/post/user/{userId}")
+    suspend fun getPostsByUserId(@Path("userId") userId: Long): Response<List<Post>>
+
+    @GET("/api/post/liked/{userId}")
+    suspend fun getLikedPostsByUserId(@Path("userId") userId: Long): Response<List<Post>>
 }

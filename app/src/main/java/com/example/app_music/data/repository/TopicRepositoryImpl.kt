@@ -1,6 +1,6 @@
 package com.example.app_music.data.repository
 
-import com.example.app_music.data.model.Topic
+import com.example.app_music.domain.model.Topic
 import com.example.app_music.domain.repository.TopicRepository
 import com.example.app_music.domain.utils.RetrofitFactory
 import retrofit2.Response

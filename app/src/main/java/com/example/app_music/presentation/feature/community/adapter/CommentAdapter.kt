@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.app_music.R
-import com.example.app_music.data.model.Comment
+import com.example.app_music.domain.model.Comment
 import de.hdodenhof.circleimageview.CircleImageView
 
 class CommentAdapter : RecyclerView.Adapter<CommentAdapter.CommentViewHolder>() {
