@@ -63,10 +63,12 @@
                     <ImageView
                         android:id="@+id/imageCropped"
                         android:layout_width="match_parent"
-                        android:layout_height="150dp"
+                        android:layout_height="wrap_content"
                         android:background="@color/white"
-                        android:scaleType="centerInside"
-                        android:padding="16dp"
+                        android:adjustViewBounds="true"
+                        android:maxHeight="250dp"
+                        android:scaleType="fitCenter"
+                        android:padding="8dp"
                         android:layout_margin="4dp"
                         tools:src="@drawable/ic_person" />
 

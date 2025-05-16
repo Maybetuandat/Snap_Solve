@@ -288,59 +288,62 @@ class CameraActivity : BaseActivity() {
             val bitmapWidth = originalBitmap!!.width.toFloat()
             val bitmapHeight = originalBitmap!!.height.toFloat()
 
-            // Calculate the scale factor between the ImageView and the bitmap
-            // This is needed to convert between view coordinates and bitmap coordinates
-            val scaleX = bitmapWidth / viewWidth
-            val scaleY = bitmapHeight / viewHeight
-
-            // If the image is centered in the view (e.g., due to centerInside scaleType)
-            // we need to calculate offsets
+            // Calculate image scale and position in the ImageView
             val imageViewRatio = viewWidth / viewHeight
             val bitmapRatio = bitmapWidth / bitmapHeight
 
             var offsetX = 0f
             var offsetY = 0f
+            var scaledWidth = viewWidth
+            var scaledHeight = viewHeight
 
             if (imageViewRatio > bitmapRatio) {
                 // Image is taller than the view, centered horizontally
-                val scaledWidth = viewHeight * bitmapRatio
+                scaledWidth = viewHeight * bitmapRatio
                 offsetX = (viewWidth - scaledWidth) / 2f
+                scaledHeight = viewHeight
             } else {
                 // Image is wider than the view, centered vertically
-                val scaledHeight = viewWidth / bitmapRatio
+                scaledHeight = viewWidth / bitmapRatio
                 offsetY = (viewHeight - scaledHeight) / 2f
+                scaledWidth = viewWidth
             }
 
-            // Convert touch coordinates to bitmap coordinates
+            // Calculate scale factors between displayed image and actual bitmap
+            val scaleX = bitmapWidth / scaledWidth
+            val scaleY = bitmapHeight / scaledHeight
+
+            // Convert selection rectangle from view coordinates to bitmap coordinates
             val cropX = (selectedRect.left - offsetX) * scaleX
             val cropY = (selectedRect.top - offsetY) * scaleY
             val cropWidth = selectedRect.width() * scaleX
             val cropHeight = selectedRect.height() * scaleY
 
-            // Log coordinates for debugging
-            Log.d(TAG, "ImageView size: $viewWidth x $viewHeight")
-            Log.d(TAG, "Bitmap size: $bitmapWidth x $bitmapHeight")
-            Log.d(TAG, "Scale: $scaleX x $scaleY, Offset: $offsetX x $offsetY")
-            Log.d(TAG, "Selected in view: $selectedRect")
-            Log.d(TAG, "Crop in bitmap: $cropX, $cropY, $cropWidth x $cropHeight")
-
             // Ensure crop values are within bitmap bounds
             val safeX = cropX.coerceIn(0f, bitmapWidth - 1f)
             val safeY = cropY.coerceIn(0f, bitmapHeight - 1f)
 
-            // Fix the ambiguity by explicitly using intermediate variables
-            val widthRemaining = bitmapWidth - safeX
-            val heightRemaining = bitmapHeight - safeY
-            val safeWidth = cropWidth.coerceIn(1f, widthRemaining)
-            val safeHeight = cropHeight.coerceIn(1f, heightRemaining)
+            // Use the smaller of the remaining width/height or the calculated crop dimensions
+            val safeWidth = cropWidth.coerceAtMost(bitmapWidth - safeX)
+            val safeHeight = cropHeight.coerceAtMost(bitmapHeight - safeY)
 
-            // Crop the bitmap to the selected area
+            // Add a small padding at the bottom to ensure nothing is cut off
+            val paddedHeight = (safeHeight * 1.05f).coerceAtMost(bitmapHeight - safeY)
+
+            // Log all dimensions for debugging
+            Log.d(TAG, "Original bitmap: ${bitmapWidth}x${bitmapHeight}")
+            Log.d(TAG, "View size: ${viewWidth}x${viewHeight}")
+            Log.d(TAG, "Scaled image in view: ${scaledWidth}x${scaledHeight} at offset ${offsetX},${offsetY}")
+            Log.d(TAG, "Crop in view: ${selectedRect.left},${selectedRect.top} - ${selectedRect.width()}x${selectedRect.height()}")
+            Log.d(TAG, "Crop in bitmap: ${safeX},${safeY} - ${safeWidth}x${paddedHeight}")
+
+            // Crop the bitmap to the selected area with the padding
             val croppedBitmap = Bitmap.createBitmap(
                 originalBitmap!!,
                 safeX.toInt(),
                 safeY.toInt(),
                 safeWidth.toInt(),
-                safeHeight.toInt()
+                paddedHeight.toInt()
             )
 
             // Save the cropped bitmap to a file

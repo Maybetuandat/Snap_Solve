@@ -73,6 +73,11 @@ dependencies {
     implementation ("androidx.camera:camera-lifecycle:${camerax_version}")
     implementation ("androidx.camera:camera-view:${camerax_version}")
 
+    // OkHttp dependencies for network requests
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
+    // Gson for JSON parsing
+    implementation("com.google.code.gson:gson:2.10.1")
 
 }
