@@ -6,6 +6,8 @@ import com.example.app_music.domain.model.AuthResponse
 import com.example.app_music.domain.utils.RetrofitFactory
 import retrofit2.Response
 
+
+// overload toán tử () cho phep goi nhu mot function
 class LoginUseCase {
     private val repository = AuthRepository(RetrofitFactory.authApi)
 

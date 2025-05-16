@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import com.example.app_music.databinding.FragmentMenuBinding
-import com.example.app_music.presentation.feature.profile.ProfileActivity
+import com.example.app_music.presentation.feature.menu.profile.ProfileActivity
 import com.example.app_music.presentation.feature.setting.SettingActivity
 
 
@@ -69,6 +69,7 @@ class MenuFragment : Fragment() {
     {
         viewModel.user.observe(viewLifecycleOwner) {user ->
             binding.textViewUserName.text = user.username ?: "User"
+
         }
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility= if(isLoading) View.VISIBLE else View.GONE

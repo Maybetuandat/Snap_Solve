@@ -47,9 +47,9 @@
         <string name="change">Thay đổi</string>
         <string name="username">Tên người dùng</string>
         <string name="status_message">Thông điệp trạng thái</string>
-        <string name="detail_status_message">Tôi đói sau khi tập thể dục</string>
+        <string name="detail_status_message">hãy điền thông tin trạng thái của bạn</string>
         <string name="student_information">Thông tin học sinh</string>
-        <string name="detail_student_infomation">Tôi đang học lớp mười lăm</string>
+        <string name="detail_student_infomation">Hãy cập nhật thông tin học sinh</string>
         <string name="account_information">Thông tin tài khoản</string>
         <string name="mailOfUser">trinhvinhtuandat@gmail.com</string>
         <string name="snap_solve_uid">UID Snap Solve</string>

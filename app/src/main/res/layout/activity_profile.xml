@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".presentation.feature.profile.ProfileActivity">
+    tools:context=".presentation.feature.menu.profile.ProfileActivity">
 
 
     <ImageView
@@ -268,46 +268,15 @@
         app:layout_constraintStart_toEndOf="@id/tv_uid_label"
         app:layout_constraintEnd_toEndOf="parent" />
 
-
-    <TextView
-        android:id="@+id/tv_linked_accounts_label"
+    <ProgressBar
+        android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/linked_accounts"
-        android:textColor="@android:color/black"
-        android:textSize="@dimen/text_medium"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="20dp"
-        app:layout_constraintTop_toBottomOf="@id/tv_uid_label"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <LinearLayout
-        android:id="@+id/ll_linked_accounts_values"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="end"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintTop_toTopOf="@id/tv_linked_accounts_label"
-        app:layout_constraintStart_toEndOf="@id/tv_linked_accounts_label"
-        app:layout_constraintEnd_toEndOf="parent" >
 
-    <TextView
-        android:id="@+id/tv_linked_account_facebook"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/facebook"
-        android:textColor="@color/unselectedicon"
-        android:textSize="@dimen/text_small"/>
-
-    <TextView
-        android:id="@+id/tv_linked_account_username"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/nameOfFacebookUser"
-        android:layout_marginTop="20dp"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="@dimen/text_small"/>
-</LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -68,6 +68,10 @@ dependencies {
     kapt ("androidx.room:room-compiler:$room_version")
     implementation ("androidx.room:room-ktx:$room_version")
 
+    implementation ("com.github.bumptech.glide:glide:4.15.1")
+    kapt ("com.github.bumptech.glide:compiler:4.15.1")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
+
 
 
 
