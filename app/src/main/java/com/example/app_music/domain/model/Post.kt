@@ -1,6 +1,5 @@
 package com.example.app_music.domain.model
 
-import com.example.app_music.domain.model.User
 import java.time.LocalDate
 
 data class Post(

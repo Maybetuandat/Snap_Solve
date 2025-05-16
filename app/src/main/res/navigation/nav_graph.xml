@@ -55,7 +55,31 @@
     <fragment
         android:id="@+id/searchPostFragment"
         android:name="com.example.app_music.presentation.feature.community.communitySearchPost.SearchPostFragment"
-        android:label="Search" />
+        android:label="Search">
+        <action
+            android:id="@+id/action_searchPostFragment_to_searchResultFragment"
+            app:destination="@id/searchResultFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/searchResultFragment"
+        android:name="com.example.app_music.presentation.feature.community.communitySearchPost.SearchResultFragment"
+        android:label="Search Results">
+        <argument
+            android:name="searchQuery"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_searchResultFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/communityProfileFragment"

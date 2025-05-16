@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Base Theme -->
-    <style name="Base.Theme.App_music" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="Base.Theme.App_music" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Làm status bar trong suốt -->
         <item name="android:statusBarColor">@android:color/transparent</item>
 

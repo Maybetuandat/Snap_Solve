@@ -52,7 +52,7 @@
     <!-- Recent Search Section -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="16dp">
 
@@ -77,112 +77,16 @@
                 android:layout_height="wrap_content"
                 android:text="Delete all"
                 android:textColor="@color/selectedicon"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
         </LinearLayout>
 
-        <!-- Recent Search Items -->
-        <HorizontalScrollView
+        <!-- Recent Search Items - FlexboxLayout sẽ tốt hơn nhưng để đơn giản ta dùng LinearLayout -->
+        <LinearLayout
+            android:id="@+id/recentSearchContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvRecentSearch1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="lorem ispum"
-                    android:textColor="@color/selectedicon"
-                    android:background="@drawable/search_item_background"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:gravity="center"
-                    android:layout_marginEnd="8dp" />
-
-                <TextView
-                    android:id="@+id/tvRecentSearch2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="hello mi ..."
-                    android:textColor="@color/selectedicon"
-                    android:background="@drawable/search_item_background"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:gravity="center"
-                    android:layout_marginEnd="8dp" />
-            </LinearLayout>
-        </HorizontalScrollView>
+            android:orientation="horizontal" />
     </LinearLayout>
-
-    <!-- Popular Hashtag Section -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Popular Hashtag"
-            android:textColor="#333333"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp" />
-
-        <!-- Popular Hashtag Items - First Row -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scrollbars="none"
-            android:layout_marginBottom="8dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvHashtag1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="#art"
-                    android:textColor="@color/selectedicon"
-                    android:background="@drawable/search_item_background"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:gravity="center"
-                    android:layout_marginEnd="8dp" />
-
-                <TextView
-                    android:id="@+id/tvHashtag2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="#cat"
-                    android:textColor="@color/selectedicon"
-                    android:background="@drawable/search_item_background"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:gravity="center"
-                    android:layout_marginEnd="8dp" />
-
-                <TextView
-                    android:id="@+id/tvHashtag3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="#art"
-                    android:textColor="@color/selectedicon"
-                    android:background="@drawable/search_item_background"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:gravity="center"
-                    android:layout_marginEnd="8dp" />
-            </LinearLayout>
-        </HorizontalScrollView>
-    </LinearLayout>
-
 </LinearLayout>
