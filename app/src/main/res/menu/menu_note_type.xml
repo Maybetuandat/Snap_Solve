@@ -1,0 +1,15 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/type_day"
+        android:title="@string/day"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/type_name"
+        android:title="@string/name"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/type_type"
+        android:title="@string/type"
+        app:showAsAction="ifRoom"/>
+</menu>

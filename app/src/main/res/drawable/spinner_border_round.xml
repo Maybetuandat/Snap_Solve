@@ -2,5 +2,5 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <solid android:color="#FFFFFF" /> <!-- Màu nền, có thể thay đổi -->
     <corners android:radius="10dp" /> <!-- Bán kính bo tròn -->
-    <stroke android:color="#ABAAAA" android:width="1dp" /> <!-- Màu và độ dày viền -->
+    <stroke android:color="#BBB4B4B4" android:width="1dp" /><!-- Màu và độ dày viền -->
 </shape>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bóng đổ -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#20000000" />
+            <size
+                android:width="24dp"
+                android:height="24dp" />
+            <padding android:bottom="2dp" />
+        </shape>
+    </item>
+
+    <!-- Thumb chính -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:startColor="#2196F3"
+                android:endColor="#03A9F4"
+                android:angle="135" />
+            <size
+                android:width="20dp"
+                android:height="20dp" />
+        </shape>
+    </item>
+
+    <!-- Vòng trắng bên trong -->
+    <item
+        android:left="6dp"
+        android:top="6dp"
+        android:right="6dp"
+        android:bottom="6dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+</layer-list>
