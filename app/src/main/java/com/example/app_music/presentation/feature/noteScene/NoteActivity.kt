@@ -40,7 +40,9 @@ import com.example.app_music.presentation.feature.noteScene.noteAdapter.NotesAda
 import com.example.app_music.presentation.feature.qrscanner.QRScannerActivity
 import com.example.app_music.utils.StorageManager
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -604,36 +606,52 @@ class NoteActivity : BaseActivity() {
             .show()
     }
 
+    // Phương thức createNewFolder cần sửa như sau:
     private fun createNewFolder(folderName: String) {
-        lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+        binding.progressBar.visibility = View.VISIBLE
 
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // Kiểm tra xác thực
+                if (currentUserId.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@NoteActivity, "Cần đăng nhập để tạo thư mục", Toast.LENGTH_SHORT).show()
+                        binding.progressBar.visibility = View.GONE
+                    }
+                    return@launch
+                }
+
                 val result = repository.createFolder(folderName)
 
-                if (result.isSuccess) {
-                    val newFolder = result.getOrNull()!!
+                withContext(Dispatchers.Main) {
+                    if (result.isSuccess) {
+                        val newFolder = result.getOrNull()!!
 
-                    // Add to local list
-                    val folderItem = NoteItem(
-                        id = newFolder.id,
-                        title = newFolder.title,
-                        date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
-                            .format(Date(newFolder.createdAt)),
-                        isFolder = true
-                    )
+                        val folderItem = NoteItem(
+                            id = newFolder.id,
+                            title = newFolder.title,
+                            date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                                .format(Date(newFolder.createdAt)),
+                            isFolder = true
+                        )
 
-                    notesList.add(0, folderItem) // Add at the top
-                    adapter.notifyDataSetChanged()
+                        // Thêm và cập nhật cụ thể
+                        notesList.add(0, folderItem)
+                        adapter.notifyItemInserted(0)
 
-                    Toast.makeText(this@NoteActivity, "Folder created", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@NoteActivity, "Failed to create folder", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@NoteActivity, "Đã tạo thư mục", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@NoteActivity,
+                            "Không thể tạo thư mục: ${result.exceptionOrNull()?.message}",
+                            Toast.LENGTH_SHORT).show()
+                    }
+                    binding.progressBar.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@NoteActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                    binding.progressBar.visibility = View.GONE
+                }
             }
         }
     }

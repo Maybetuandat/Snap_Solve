@@ -11,6 +11,7 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
 import java.util.Date
 import java.util.UUID
@@ -33,6 +34,11 @@ class FirebaseNoteRepository {
     }
 
     suspend fun createFolder(title: String): Result<FolderFirebaseModel> {
+        // Kiểm tra người dùng đã đăng nhập
+        if (currentUserId.isEmpty()) {
+            return Result.failure(Exception("Người dùng chưa đăng nhập"))
+        }
+
         return try {
             val folderId = UUID.randomUUID().toString()
             val folder = FolderFirebaseModel(
@@ -42,11 +48,21 @@ class FirebaseNoteRepository {
                 updatedAt = Date().time,
                 ownerId = currentUserId
             )
-            
-            foldersCollection.document(folderId).set(folder).await()
-            Result.success(folder)
+
+            // Thêm timeout để tránh chờ vô hạn
+            withTimeout(10000) {
+                foldersCollection.document(folderId).set(folder).await()
+            }
+
+            // Kiểm tra xem folder có được tạo thành công không
+            val checkDoc = foldersCollection.document(folderId).get().await()
+            if (checkDoc.exists()) {
+                Result.success(folder)
+            } else {
+                Result.failure(Exception("Không thể tạo thư mục trên máy chủ"))
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error creating folder", e)
+            Log.e(TAG, "Lỗi khi tạo thư mục", e)
             Result.failure(e)
         }
     }
