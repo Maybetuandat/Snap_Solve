@@ -158,28 +158,31 @@ class NoteDetailActivity : BaseActivity() {
             Toast.makeText(this, "Explanation feature coming soon", Toast.LENGTH_SHORT).show()
         }
     }
-
+    private var previousUserCount = 0
     private fun setupCollaboration() {
         // Mark user as active
         val username = currentUser?.displayName ?: "Anonymous"
         collaborationManager.setUserPresence(username, userColor)
 
-        // Observe active users
+        // Observe active users with improved UI feedback
         lifecycleScope.launch {
             collaborationManager.getActiveUsers().collectLatest { users ->
                 binding.activeUsersView.updateActiveUsers(users)
                 binding.userCount.text = "${users.size}"
+
+                // Show toast when a new user joins (except for the first user, which is the current user)
+                if (previousUserCount > 0 && users.size > previousUserCount) {
+                    val newUser = users.lastOrNull { it.userId != currentUser?.uid }
+                    if (newUser != null) {
+                        Toast.makeText(this@NoteDetailActivity,
+                            "${newUser.username} joined", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                previousUserCount = users.size
             }
         }
 
-        // Observe drawing actions from other users
-        lifecycleScope.launch {
-            collaborationManager.getDrawingActions().collectLatest { actions ->
-                // Process drawing actions
-                // In a real app, you would implement logic to apply these actions to the canvas
-                // This is a simplified placeholder implementation
-            }
-        }
+        // Rest of the collaboration setup
     }
 
     private fun syncDrawingAction() {

@@ -34,6 +34,7 @@ import com.example.app_music.data.model.NoteFirebaseModel
 import com.example.app_music.data.repository.FirebaseNoteRepository
 import com.example.app_music.databinding.ActivityNoteBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
+import com.example.app_music.presentation.feature.common.SpacingItemDecoration
 import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.presentation.feature.noteScene.noteAdapter.NotesAdapter
 import com.example.app_music.presentation.feature.qrscanner.QRScannerActivity
@@ -173,7 +174,16 @@ class NoteActivity : BaseActivity() {
     }
 
     private fun setupRecyclerView() {
-        binding.recycleViewNote.layoutManager = LinearLayoutManager(this)
+        val layoutManager = LinearLayoutManager(this)
+        binding.recycleViewNote.layoutManager = layoutManager
+
+        // Add item decoration for better spacing
+        binding.recycleViewNote.addItemDecoration(
+            SpacingItemDecoration(resources.getDimensionPixelSize(R.dimen.item_spacing))
+        )
+
+        // Improve performance with fixed size
+        binding.recycleViewNote.setHasFixedSize(true)
 
         adapter = NotesAdapter(
             context = this,
@@ -192,6 +202,19 @@ class NoteActivity : BaseActivity() {
         binding.recycleViewNote.adapter = adapter
     }
 
+
+    // Add a method to show permission rationale
+    private fun showPermissionRationaleDialog(title: String, message: String, permission: String, action: PendingAction) {
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("Grant") { _, _ ->
+                pendingAction = action
+                requestPermissionLauncher.launch(permission)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
     private fun setupMenuButton() {
         binding.noteButtonMenu.setOnClickListener {
             val menuRes = if (isInFolder) R.menu.menu_folder_action else R.menu.menu_note_action
@@ -616,12 +639,23 @@ class NoteActivity : BaseActivity() {
     }
 
     private fun checkCameraPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED) {
-            pendingAction = PendingAction.OPEN_CAMERA
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        } else {
-            openCamera()
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED -> {
+                openCamera()
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
+                showPermissionRationaleDialog(
+                    "Camera Permission",
+                    "Camera permission is needed to take photos for your notes",
+                    Manifest.permission.CAMERA,
+                    PendingAction.OPEN_CAMERA
+                )
+            }
+            else -> {
+                pendingAction = PendingAction.OPEN_CAMERA
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 

@@ -3,4 +3,6 @@
     <dimen name="text_large">24sp</dimen>
     <dimen name="text_medium">18sp</dimen>
     <dimen name="text_small">14sp</dimen>
+    <dimen name="item_spacing">8dp</dimen>
+    <dimen name="color_button_size">36dp</dimen>
 </resources>
