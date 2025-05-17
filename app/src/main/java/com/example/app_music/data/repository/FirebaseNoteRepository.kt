@@ -30,12 +30,6 @@ class FirebaseNoteRepository {
     
     // Folders operations
     init {
-        // Enable offline capabilities for Firestore
-        val settings = FirebaseFirestoreSettings.Builder()
-            .setPersistenceEnabled(true)
-            .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
-            .build()
-        db.firestoreSettings = settings
     }
 
     suspend fun createFolder(title: String): Result<FolderFirebaseModel> {
