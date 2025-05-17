@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".presentation.noteScene.NoteActivity">
+    tools:context=".presentation.feature.noteScene.NoteActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -46,7 +46,7 @@
             android:layout_marginStart="12dp"
             android:paddingEnd="15dp"
             android:paddingStart="15dp"
-            android:text="Day"
+            android:text="@string/day"
             android:textStyle="normal"
             android:background="@drawable/spinner_border_round"
             android:gravity="center"
@@ -76,15 +76,29 @@
             android:textColor="@color/white" />
 
     </LinearLayout>
-    <ImageView
+
+    <!-- Path bar showing current folder path -->
+    <LinearLayout
+        android:id="@+id/path_bar"
         android:layout_width="match_parent"
-        android:layout_height="220dp"
-        android:src="@drawable/back_img"
-        app:layout_constraintTop_toBottomOf="@+id/element_top_note"
-        android:id="@+id/imageview_note"
-        android:paddingTop="8dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:background="@color/white"
-        />
+        android:padding="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/element_top_note">
+
+        <TextView
+            android:id="@+id/tv_path"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/blue"
+            android:textSize="14sp"
+            android:ellipsize="start"
+            android:singleLine="true"
+            tools:text="Home > Folder1" />
+
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycleViewNote"
@@ -92,5 +106,29 @@
         android:layout_height="0dp"
         android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/imageview_note" />
+        app:layout_constraintTop_toBottomOf="@id/path_bar" />
+
+    <!-- Progress indicator -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Floating button for QR scanning -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_scan_qr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_qr_code_scanner"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white"
+        app:backgroundTint="@color/selectedicon" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

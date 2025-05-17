@@ -1,282 +1,320 @@
-package com.example.app_music.presentation.noteScene
+package com.example.app_music.presentation.feature.noteScene
 
-import android.app.ProgressDialog
+import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
-import android.view.Window
-import android.view.WindowManager
-import android.widget.Button
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.SeekBar
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
+import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import com.example.app_music.R
-import com.example.app_music.presentation.noteScene.views.DrawingView
-import com.example.app_music.presentation.utils.StorageManager
-import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
-import com.skydoves.colorpickerview.ColorPickerDialog
-import java.io.File
-import java.io.FileOutputStream
+import com.example.app_music.data.collaboration.CollaborationManager
+import com.example.app_music.data.repository.FirebaseNoteRepository
+import com.example.app_music.databinding.ActivityNoteDetailBinding
+import com.example.app_music.presentation.feature.common.BaseActivity
+import com.example.app_music.presentation.feature.noteScene.views.DrawingView
+import com.example.app_music.presentation.noteScene.ColorPickerDialog
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import java.util.Random
 
-class NoteDetailActivity : AppCompatActivity() {
+class NoteDetailActivity : BaseActivity() {
 
-    companion object {
-        private const val TAG = "NoteDetailActivity"
-    }
+    private lateinit var binding: ActivityNoteDetailBinding
+    private lateinit var repository: FirebaseNoteRepository
+    private lateinit var collaborationManager: CollaborationManager
 
-    private lateinit var noteTitle: TextView
-    private lateinit var backButton: ImageButton
-    private lateinit var drawingView: DrawingView
-
-    // Drawing tools
-    private lateinit var handButton: ImageButton
-    private lateinit var penButton: ImageButton
-    private lateinit var eraserButton: ImageButton
-    private lateinit var colorButton: ImageButton
-    private lateinit var strokeWidthButton: ImageButton
-    private lateinit var undoButton: ImageButton
-    private lateinit var redoButton: ImageButton
-
-    // Help buttons
-    private lateinit var helpAiButton: Button
-    private lateinit var viewExplanationButton: Button
+    private var noteId: String = ""
+    private var noteTitle: String = ""
+    private var fromQrCode: Boolean = false
 
     // Drawing variables
     private var currentColor = Color.BLACK
     private var currentWidth = 5f
 
-    // Storage manager
-    private lateinit var storageManager: StorageManager
+    // User colors for collaboration
+    private val userColors = arrayOf(
+        Color.RED,
+        Color.BLUE,
+        Color.GREEN,
+        Color.MAGENTA,
+        Color.CYAN,
+        Color.DKGRAY
+    )
+    private val userColor = userColors[Random().nextInt(userColors.size)]
 
-    // Note info
-    private lateinit var noteId: String
-
-    // Cập nhật phương thức onCreate trong NoteDetailActivity
+    // Firebase Auth
+    private val auth = FirebaseAuth.getInstance()
+    private val currentUser get() = auth.currentUser
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_note_detail)
+        binding = ActivityNoteDetailBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Get data from intent
+        // Get note details from intent
         noteId = intent.getStringExtra("note_id") ?: ""
-        val noteName = intent.getStringExtra("note_title") ?: "Unknown Note"
+        noteTitle = intent.getStringExtra("note_title") ?: ""
+        fromQrCode = intent.getBooleanExtra("from_qr_code", false)
 
-        // Initialize storage manager
-        storageManager = StorageManager(this)
+        if (noteId.isEmpty()) {
+            Toast.makeText(this, "Note ID is missing", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
-        // Initialize views
-        initViews()
+        // Initialize Firebase repository
+        repository = FirebaseNoteRepository()
 
-        // Set note info
-        noteTitle.text = noteName
+        // Initialize collaboration manager
+        collaborationManager = CollaborationManager(noteId)
 
-        // Load note image
-        loadNoteImage()
+        // Set up UI
+        setupToolbar()
+        setupDrawingTools()
+        setupHelpButtons()
 
-        // Set up drawing view listener cho việc tự động lưu
-        drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
-            override fun onDrawCompleted() {
-                // Cập nhật trạng thái nút undo/redo
-                updateUndoRedoButtons()
+        // Load note data
+        loadNote()
 
-                // Lưu nét vẽ ngay lập tức
-                saveDrawing(false) // false = không hiển thị thông báo
-            }
-        })
+        // Set up collaboration
+        setupCollaboration()
+    }
 
-        // Set up event listeners
-        setupListeners()
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.apply {
+            title = noteTitle
+            setDisplayHomeAsUpEnabled(true)
+            setDisplayShowHomeEnabled(true)
+        }
+    }
 
-        // Set default mode to PAN (hand tool)
+    private fun setupDrawingTools() {
+        // Default to PAN mode
         selectMode(DrawingView.DrawMode.PAN)
 
-        // Update undo/redo button states
-        updateUndoRedoButtons()
-    }
-
-    // Sửa lại phương thức saveDrawing trong NoteDetailActivity
-    private fun saveDrawing(showToast: Boolean = true) {
-        if (noteId.isEmpty()) return
-
-        try {
-            // Sử dụng Thread.sleep để đảm bảo UI được cập nhật trước
-            // Tạo bitmap kết hợp cả nền và nét vẽ
-            val combinedBitmap = drawingView.getCombinedBitmap()
-
-            // Lưu bitmap theo cả hai cách để đảm bảo luôn có dữ liệu
-            val success = storageManager.saveDrawingLayer(noteId, combinedBitmap) &&
-                    storageManager.saveNoteImage(noteId, combinedBitmap)
-
-            if (showToast) {
-                runOnUiThread {
-                    if (success) {
-                        Toast.makeText(this, "Đã lưu bản vẽ", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this, "Không thể lưu bản vẽ", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                Log.d(TAG, "Tự động lưu: " + (if (success) "thành công" else "thất bại"))
-            }
-
-            // Giải phóng bitmap
-            combinedBitmap.recycle()
-        } catch (e: Exception) {
-            Log.e(TAG, "Lỗi khi lưu bản vẽ: ${e.message}")
-            e.printStackTrace()
-        }
-    }
-
-
-
-    private fun initViews() {
-        noteTitle = findViewById(R.id.text_note_title)
-        backButton = findViewById(R.id.button_back_note_detail)
-        drawingView = findViewById(R.id.drawing_view)
-
-        // Drawing tools
-        handButton = findViewById(R.id.button_hand)
-        penButton = findViewById(R.id.button_pen)
-        eraserButton = findViewById(R.id.button_eraser)
-        colorButton = findViewById(R.id.button_color)
-        strokeWidthButton = findViewById(R.id.button_stroke_width)
-        undoButton = findViewById(R.id.button_undo)
-        redoButton = findViewById(R.id.button_redo)
-
-        // Help buttons
-        helpAiButton = findViewById(R.id.button_help_ai)
-        viewExplanationButton = findViewById(R.id.button_view_explanation)
-    }
-
-    private fun loadNoteImage() {
-        if (noteId.isEmpty()) return
-
-        // Hiển thị loading nếu cần
-        val progressDialog = ProgressDialog(this)
-        progressDialog.setMessage("Đang tải ảnh...")
-        progressDialog.setCancelable(false)
-        progressDialog.show()
-
-        // Tải ảnh trên thread phụ
-        Thread {
-            // Tải ảnh gốc
-            val originalBitmap = storageManager.getNoteImageBitmap(noteId)
-
-            // Tải lớp vẽ (nếu có)
-            val drawingBitmap = storageManager.loadDrawingLayer(noteId)
-
-            runOnUiThread {
-                progressDialog.dismiss()
-
-                if (originalBitmap != null) {
-                    // Đặt ảnh gốc làm background cho drawingView
-                    drawingView.setBackgroundImage(originalBitmap)
-
-                    // Nếu có lớp vẽ, vẽ lên DrawingView
-                    // (không cần làm gì thêm ở đây vì drawingView sẽ hiển thị phần vẽ của nó)
-
-                    Toast.makeText(this, "Đã tải ảnh thành công", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Không thể tải ảnh", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }.start()
-    }
-
-    private fun setupListeners() {
-        // Cập nhật phương thức backButton.setOnClickListener trong setupListeners
-        backButton.setOnClickListener {
-            // Lưu trạng thái vẽ trước khi quay lại và hiển thị thông báo
-            saveDrawing(true)
-
-            // Chờ một khoảng thời gian ngắn để đảm bảo việc lưu đã được xử lý
-            Handler(Looper.getMainLooper()).postDelayed({
-                finish()
-            }, 300) // 300ms đủ để nhìn thấy thông báo và cảm thấy mượt mà
-        }
-
-        // Hand tool (pan/move document)
-        handButton.setOnClickListener {
+        // Tool selection listeners
+        binding.buttonHand.setOnClickListener {
             selectMode(DrawingView.DrawMode.PAN)
         }
 
-        // Pen tool
-        penButton.setOnClickListener {
+        binding.buttonPen.setOnClickListener {
             selectMode(DrawingView.DrawMode.DRAW)
         }
 
-        // Eraser tool
-        eraserButton.setOnClickListener {
+        binding.buttonEraser.setOnClickListener {
             selectMode(DrawingView.DrawMode.ERASE)
         }
 
-        // Color picker
-        colorButton.setOnClickListener {
+        binding.buttonColor.setOnClickListener {
             showColorPicker()
         }
 
-        // Stroke width
-        strokeWidthButton.setOnClickListener {
+        binding.buttonStrokeWidth.setOnClickListener {
             showStrokeWidthDialog()
         }
 
-        // Undo button
-        undoButton.setOnClickListener {
-            if (drawingView.undo()) {
+        binding.buttonUndo.setOnClickListener {
+            binding.drawingView.undo()
+            updateUndoRedoButtons()
+            saveDrawing(false)
+        }
+
+        binding.buttonRedo.setOnClickListener {
+            binding.drawingView.redo()
+            updateUndoRedoButtons()
+            saveDrawing(false)
+        }
+
+        // Set up drawing view listener for auto-saving
+        binding.drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
+            override fun onDrawCompleted() {
                 updateUndoRedoButtons()
-            } else {
-                Toast.makeText(this, "Không có thao tác để hoàn tác", Toast.LENGTH_SHORT).show()
+                saveDrawing(false)
+
+                // Sync drawing action with collaborators
+                syncDrawingAction()
+            }
+        })
+    }
+
+    private fun setupHelpButtons() {
+        binding.buttonHelpAi.setOnClickListener {
+            Toast.makeText(this, "AI help feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.buttonViewExplanation.setOnClickListener {
+            Toast.makeText(this, "Explanation feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupCollaboration() {
+        // Mark user as active
+        val username = currentUser?.displayName ?: "Anonymous"
+        collaborationManager.setUserPresence(username, userColor)
+
+        // Observe active users
+        lifecycleScope.launch {
+            collaborationManager.getActiveUsers().collectLatest { users ->
+                binding.activeUsersView.updateActiveUsers(users)
+                binding.userCount.text = "${users.size}"
             }
         }
 
-        // Redo button
-        redoButton.setOnClickListener {
-            if (drawingView.redo()) {
-                updateUndoRedoButtons()
-            } else {
-                Toast.makeText(this, "Không có thao tác để làm lại", Toast.LENGTH_SHORT).show()
+        // Observe drawing actions from other users
+        lifecycleScope.launch {
+            collaborationManager.getDrawingActions().collectLatest { actions ->
+                // Process drawing actions
+                // In a real app, you would implement logic to apply these actions to the canvas
+                // This is a simplified placeholder implementation
             }
         }
+    }
 
-        // Help buttons
-        helpAiButton.setOnClickListener {
-            Toast.makeText(this, "Chức năng trợ giúp đang phát triển", Toast.LENGTH_SHORT).show()
+    private fun syncDrawingAction() {
+        // Get the current drawing path and convert it to a DrawingAction
+        // In a real app, you would implement logic to convert the path to a serializable format
+        // This is a simplified placeholder implementation
+        val path = binding.drawingView.getCurrentPath()
+        if (path != null) {
+            val pathPoints = collaborationManager.pathToPointsList(path)
+            val drawingAction = CollaborationManager.DrawingAction(
+                type = CollaborationManager.ActionType.DRAW,
+                path = pathPoints,
+                color = currentColor,
+                strokeWidth = currentWidth
+            )
+            collaborationManager.saveDrawingAction(drawingAction)
         }
+    }
 
-        viewExplanationButton.setOnClickListener {
-            Toast.makeText(this, "Chức năng giải thích đang phát triển", Toast.LENGTH_SHORT).show()
+    private fun loadNote() {
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val noteResult = repository.getNote(noteId)
+
+                if (noteResult.isSuccess) {
+                    val note = noteResult.getOrNull()!!
+
+                    // Update title if needed
+                    if (noteTitle.isEmpty()) {
+                        noteTitle = note.title
+                        supportActionBar?.title = noteTitle
+                    }
+
+                    // Load image if available
+                    note.imagePath?.let { path ->
+                        val imageUriResult = repository.getImageBitmap(path)
+                        if (imageUriResult.isSuccess) {
+                            val uri = imageUriResult.getOrNull()!!
+                            Glide.with(this@NoteDetailActivity)
+                                .load(uri)
+                                .into(binding.imageNote)
+                        }
+                    }
+
+                    // Load drawing data if available
+                    note.drawingData?.let { base64Data ->
+                        // In a real app, you would decode base64 to bitmap and set it to drawing view
+                        // This is a simplified placeholder
+                    }
+                } else {
+                    Toast.makeText(this@NoteDetailActivity, "Failed to load note", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun saveDrawing(showToast: Boolean = true) {
+        lifecycleScope.launch {
+            binding.saveProgressBar.visibility = View.VISIBLE
+
+            try {
+                // Get the note first
+                val noteResult = repository.getNote(noteId)
+
+                if (noteResult.isSuccess) {
+                    val note = noteResult.getOrNull()!!
+
+                    // Get combined bitmap (background + drawing)
+                    val combinedBitmap = binding.drawingView.getCombinedBitmap()
+
+                    // Convert drawing to base64
+                    // In a real app, you would implement logic to convert the drawing to base64
+                    // This is a simplified placeholder implementation
+                    val drawingData = "base64data"
+
+                    // Update note with drawing data
+                    val updatedNote = note.copy(
+                        drawingData = drawingData,
+                        updatedAt = System.currentTimeMillis()
+                    )
+
+                    val result = repository.updateNote(updatedNote)
+
+                    if (result.isSuccess) {
+                        if (showToast) {
+                            Toast.makeText(this@NoteDetailActivity, "Drawing saved", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        if (showToast) {
+                            Toast.makeText(this@NoteDetailActivity, "Failed to save drawing", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                if (showToast) {
+                    Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                binding.saveProgressBar.visibility = View.GONE
+            }
         }
     }
 
     private fun selectMode(mode: DrawingView.DrawMode) {
         // Set the drawing mode
-        drawingView.setMode(mode)
+        binding.drawingView.setMode(mode)
 
         // Update UI to highlight selected tool
-        handButton.setBackgroundResource(if (mode == DrawingView.DrawMode.PAN) R.drawable.tool_selected_bg else android.R.color.transparent)
-        penButton.setBackgroundResource(if (mode == DrawingView.DrawMode.DRAW) R.drawable.tool_selected_bg else android.R.color.transparent)
-        eraserButton.setBackgroundResource(if (mode == DrawingView.DrawMode.ERASE) R.drawable.tool_selected_bg else android.R.color.transparent)
+        binding.buttonHand.setBackgroundResource(
+            if (mode == DrawingView.DrawMode.PAN) R.drawable.tool_selected_bg
+            else android.R.color.transparent
+        )
+        binding.buttonPen.setBackgroundResource(
+            if (mode == DrawingView.DrawMode.DRAW) R.drawable.tool_selected_bg
+            else android.R.color.transparent
+        )
+        binding.buttonEraser.setBackgroundResource(
+            if (mode == DrawingView.DrawMode.ERASE) R.drawable.tool_selected_bg
+            else android.R.color.transparent
+        )
 
         // Configure drawing view based on mode
         when (mode) {
             DrawingView.DrawMode.DRAW -> {
-                drawingView.setColor(currentColor)
-                drawingView.setStrokeWidth(currentWidth)
+                binding.drawingView.setColor(currentColor)
+                binding.drawingView.setStrokeWidth(currentWidth)
             }
             DrawingView.DrawMode.ERASE -> {
-                drawingView.setStrokeWidth(currentWidth * 2) // Eraser is thicker than pen
+                binding.drawingView.setStrokeWidth(currentWidth * 2) // Eraser is thicker
             }
             DrawingView.DrawMode.PAN -> {
                 // No special configuration needed
@@ -285,193 +323,122 @@ class NoteDetailActivity : AppCompatActivity() {
     }
 
     private fun showColorPicker() {
-        ColorPickerDialog.Builder(this)
-            .setTitle("Chọn màu sắc")
-            .setPreferenceName("NoteColorPickerDialog")
-            .setPositiveButton("Chọn", ColorEnvelopeListener { envelope, _ ->
-                currentColor = envelope.color
-                if (drawingView.getMode() == DrawingView.DrawMode.DRAW) {
-                    drawingView.setColor(currentColor)
-                }
+        val colorPickerDialog = ColorPickerDialog(this)
+        colorPickerDialog.setOnColorSelectedListener { color ->
+            currentColor = color
+            binding.buttonColor.setColorFilter(color)
 
-                // Update color button tint
-                colorButton.setColorFilter(currentColor)
-            })
-            .setNegativeButton("Hủy") { dialogInterface, _ ->
-                dialogInterface.dismiss()
+            if (binding.drawingView.getMode() == DrawingView.DrawMode.DRAW) {
+                binding.drawingView.setColor(color)
             }
-            .attachAlphaSlideBar(true)
-            .attachBrightnessSlideBar(true)
-            .setBottomSpace(12)
-            .show()
+        }
+        colorPickerDialog.show()
     }
 
     private fun showStrokeWidthDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_stroke_width, null)
+        val dialog = StrokeWidthDialog(this, currentWidth)
+        dialog.setOnStrokeWidthSelectedListener { width ->
+            currentWidth = width
 
-        // Lấy tham chiếu đến các view
-        val seekBar = dialogView.findViewById<SeekBar>(R.id.stroke_width_seekbar)
-        val previewView = dialogView.findViewById<View>(R.id.stroke_preview)
-        val widthValueText = dialogView.findViewById<TextView>(R.id.width_value_text)
-
-        // Các nút preset
-        val btnThin = dialogView.findViewById<TextView>(R.id.btn_thin)
-        val btnMedium = dialogView.findViewById<TextView>(R.id.btn_medium)
-        val btnThick = dialogView.findViewById<TextView>(R.id.btn_thick)
-
-        // Các nút hành động
-        val btnCancel = dialogView.findViewById<TextView>(R.id.btn_cancel)
-        val btnApply = dialogView.findViewById<TextView>(R.id.btn_apply)
-
-        // Khởi tạo giá trị
-        seekBar.progress = currentWidth.toInt()
-        updateStrokePreview(previewView, currentWidth, currentColor)
-        widthValueText.text = "Độ dày: ${currentWidth.toInt()}"
-
-        // Tạo dialog
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setCancelable(true)
-            .create()
-
-        // Thiết lập không có title mặc định
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-
-        // Thiết lập listener cho SeekBar
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val width = progress.coerceAtLeast(1).toFloat()
-                widthValueText.text = "Độ dày: ${width.toInt()}"
-                updateStrokePreview(previewView, width, currentColor)
+            // Update stroke width based on current mode
+            if (binding.drawingView.getMode() == DrawingView.DrawMode.DRAW) {
+                binding.drawingView.setStrokeWidth(width)
+            } else if (binding.drawingView.getMode() == DrawingView.DrawMode.ERASE) {
+                binding.drawingView.setStrokeWidth(width * 2)
             }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        // Thiết lập listener cho các nút preset
-        btnThin.setOnClickListener {
-            val thinWidth = 2f
-            seekBar.progress = thinWidth.toInt()
-            widthValueText.text = "Độ dày: ${thinWidth.toInt()}"
-            updateStrokePreview(previewView, thinWidth, currentColor)
-
-            // Cập nhật trạng thái các nút
-            updatePresetButtonsState(btnThin, btnMedium, btnThick)
         }
-
-        btnMedium.setOnClickListener {
-            val mediumWidth = 8f
-            seekBar.progress = mediumWidth.toInt()
-            widthValueText.text = "Độ dày: ${mediumWidth.toInt()}"
-            updateStrokePreview(previewView, mediumWidth, currentColor)
-
-            // Cập nhật trạng thái các nút
-            updatePresetButtonsState(btnMedium, btnThin, btnThick)
-        }
-
-        btnThick.setOnClickListener {
-            val thickWidth = 15f
-            seekBar.progress = thickWidth.toInt()
-            widthValueText.text = "Độ dày: ${thickWidth.toInt()}"
-            updateStrokePreview(previewView, thickWidth, currentColor)
-
-            // Cập nhật trạng thái các nút
-            updatePresetButtonsState(btnThick, btnThin, btnMedium)
-        }
-
-        // Thiết lập listener cho các nút hành động
-        btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        btnApply.setOnClickListener {
-            currentWidth = seekBar.progress.coerceAtLeast(1).toFloat()
-
-            // Cập nhật độ dày nét vẽ
-            if (drawingView.getMode() == DrawingView.DrawMode.DRAW) {
-                drawingView.setStrokeWidth(currentWidth)
-            } else if (drawingView.getMode() == DrawingView.DrawMode.ERASE) {
-                drawingView.setStrokeWidth(currentWidth * 2)
-            }
-
-            dialog.dismiss()
-        }
-
-        // Thiết lập dialog window để có bo góc
-        dialog.window?.let { window ->
-            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-
-            // Thiết lập kích thước
-            val params = window.attributes
-            params.width = WindowManager.LayoutParams.MATCH_PARENT
-            params.height = WindowManager.LayoutParams.WRAP_CONTENT
-            window.attributes = params
-        }
-
-        // Hiển thị dialog
         dialog.show()
     }
 
-    // Cập nhật trạng thái hiển thị của các nút preset
-    private fun updatePresetButtonsState(selectedButton: TextView, vararg otherButtons: TextView) {
-        // Cập nhật nút được chọn
-        selectedButton.setBackgroundResource(R.drawable.button_blue)
-        selectedButton.setTextColor(Color.WHITE)
+    private fun updateUndoRedoButtons() {
+        binding.buttonUndo.isEnabled = binding.drawingView.canUndo()
+        binding.buttonUndo.alpha = if (binding.drawingView.canUndo()) 1.0f else 0.5f
 
-        // Cập nhật các nút khác
-        for (button in otherButtons) {
-            button.setBackgroundResource(R.drawable.button_rounded_white)
-            button.setTextColor(Color.parseColor("#333333"))
+        binding.buttonRedo.isEnabled = binding.drawingView.canRedo()
+        binding.buttonRedo.alpha = if (binding.drawingView.canRedo()) 1.0f else 0.5f
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_note_detail, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                // Save before exiting
+                saveDrawing(true)
+                finish()
+                true
+            }
+            R.id.action_share -> {
+                showShareDialog()
+                true
+            }
+            R.id.action_collaborate -> {
+                showCollaborateDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
-    private fun updateStrokePreview(view: View, width: Float, color: Int) {
-        // Cập nhật chiều cao của view để thể hiện độ dày nét vẽ
-        val params = view.layoutParams
-        params.height = width.toInt()
-        view.layoutParams = params
-
-        // Cập nhật màu sắc
-        view.setBackgroundColor(color)
+    private fun showShareDialog() {
+        val qrCodeFragment = QRCodeFragment.newInstance(noteId, false)
+        qrCodeFragment.show(supportFragmentManager, "qrcode_dialog")
     }
 
-    private fun updateUndoRedoButtons() {
-        // Update undo/redo button states
-        undoButton.isEnabled = drawingView.canUndo()
-        undoButton.alpha = if (drawingView.canUndo()) 1.0f else 0.5f
+    private fun showCollaborateDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_collaborator, null)
+        val editTextEmail = dialogView.findViewById<android.widget.EditText>(R.id.et_email)
 
-        redoButton.isEnabled = drawingView.canRedo()
-        redoButton.alpha = if (drawingView.canRedo()) 1.0f else 0.5f
-    }
-
-    private fun saveDrawing() {
-        if (noteId.isEmpty()) return
-
-        // Lấy bitmap chứa các nét vẽ
-        val drawingBitmap = drawingView.getDrawingBitmap()
-
-        // Lưu bitmap vào bộ nhớ
-        Thread {
-            val success = storageManager.saveDrawingLayer(noteId, drawingBitmap)
-
-            runOnUiThread {
-                if (success) {
-                    Log.d(TAG, "Đã lưu bản vẽ thành công")
-                } else {
-                    Log.e(TAG, "Lỗi khi lưu bản vẽ")
+        AlertDialog.Builder(this)
+            .setTitle("Add Collaborator")
+            .setView(dialogView)
+            .setPositiveButton("Add") { _, _ ->
+                val email = editTextEmail.text.toString().trim()
+                if (email.isNotEmpty()) {
+                    addCollaborator(email)
                 }
             }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
 
-            // Giải phóng bitmap
-            drawingBitmap.recycle()
-        }.start()
+    private fun addCollaborator(email: String) {
+        lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
+
+            try {
+                val result = repository.shareNoteWithUser(noteId, email)
+
+                if (result.isSuccess) {
+                    Toast.makeText(this@NoteDetailActivity, "Collaborator added", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@NoteDetailActivity, "Failed to add collaborator", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        // Lưu bản vẽ khi rời khỏi màn hình
-        saveDrawing()
+
+        // Save drawing state
+        saveDrawing(false)
+
+        // Update user typing status
+        collaborationManager.setUserTyping(false)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        // Remove user presence when leaving
+        collaborationManager.removeUserPresence()
     }
 }
