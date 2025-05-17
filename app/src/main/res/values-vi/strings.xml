@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-
-
+        <string name="collaborators">Collaborators: </string>
+        <string name="scan_qr_code">Quét mã QR</string>
+        <string name="center_qr_code">Center the QR code in the frame to scan</string>
+        <string name="share_via_qr">Share via QR Code</string>
+        <string name="scan_to_collaborate">Scan this QR code to collaborate on this note</string>
+        <string name="share_link">Share Link</string>
+        <string name="newbutton">Mới</string>
         <string name="noteTitle"> Ghi chú QANDA</string>
         <string name="restart_required">Yêu cầu khởi động lại</string>
         <string name="language_change_restart_message">Ngôn ngữ đã được thay đổi. Để áp dụng thay đổi hoàn toàn, ứng dụng cần được khởi động lại.</string>

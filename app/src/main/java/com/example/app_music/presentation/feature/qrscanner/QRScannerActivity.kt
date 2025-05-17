@@ -6,6 +6,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.app_music.databinding.ActivityQrScannerBinding
+import com.example.app_music.presentation.feature.noteScene.NoteActivity
+import com.example.app_music.presentation.feature.noteScene.NoteDetailActivity
 import com.google.zxing.ResultPoint
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult

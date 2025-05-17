@@ -1,8 +1,14 @@
 <resources>
     <string name="app_name" translatable="false">Snap_Solve</string>
 
-
+    <string name="collaborators">Collaborators: </string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="center_qr_code">Center the QR code in the frame to scan</string>
+    <string name="share_via_qr">Share via QR Code</string>
+    <string name="scan_to_collaborate">Scan this QR code to collaborate on this note</string>
+    <string name="share_link">Share Link</string>
     <!-- Note -->
+    <string name="newbutton">New</string>
     <string name="noteTitle"> QANDA Notes</string>
     <string name="back">Back</string>
     <string name="nameOfScreenMenu">Menu</string>

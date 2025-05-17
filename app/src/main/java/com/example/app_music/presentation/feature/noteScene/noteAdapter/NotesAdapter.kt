@@ -2,6 +2,7 @@ package com.example.app_music.presentation.feature.noteScene.noteAdapter
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,7 +15,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
 import com.example.app_music.presentation.feature.noteScene.NoteDetailActivity
 import com.example.app_music.presentation.feature.noteScene.model.NoteItem
-import com.example.app_music.presentation.utils.StorageManager
+import com.example.app_music.utils.StorageManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class NotesAdapter(
     private val context: Context,
@@ -92,19 +96,26 @@ class NotesAdapter(
             textTitle.text = note.title
             textDate.text = note.date
 
-            // Hiển thị hình ảnh mặc định hoặc thumbnail
+            // Default image for notes
+            imagePreview.setImageResource(R.drawable.ic_note)
+
+            // Load thumbnail with coroutines
             if (note.hasImage() && note.imagePreview != null) {
                 imagePreview.setImageBitmap(note.imagePreview)
             } else {
-                // Tải thumbnail từ bộ nhớ nếu có
-                val storageManager = StorageManager(context)
-                val thumbnail = storageManager.loadThumbnail(note.id)
+                // Launch a coroutine in the Main dispatcher
+                val scope = CoroutineScope(Dispatchers.Main)
+                scope.launch {
+                    try {
+                        val storageManager = StorageManager(context)
+                        val thumbnail = storageManager.loadThumbnail(note.id)
 
-                if (thumbnail != null) {
-                    imagePreview.setImageBitmap(thumbnail)
-                } else {
-                    // Nếu không có thumbnail, hiển thị hình ảnh mặc định
-                    imagePreview.setImageResource(R.drawable.ic_note)
+                        if (thumbnail != null) {
+                            imagePreview.setImageBitmap(thumbnail)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NotesAdapter", "Error loading thumbnail: ${e.message}")
+                    }
                 }
             }
 

@@ -5,6 +5,8 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -35,6 +37,7 @@ import com.example.app_music.presentation.feature.common.BaseActivity
 import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.presentation.feature.noteScene.noteAdapter.NotesAdapter
 import com.example.app_music.presentation.feature.qrscanner.QRScannerActivity
+import com.example.app_music.utils.StorageManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.io.File
@@ -225,7 +228,7 @@ class NoteActivity : BaseActivity() {
         // Update UI
         binding.textTitle.text = getString(R.string.noteTitle)
         updateMenuForFolderView()
-
+        updatePathBar(null)
         // Load folders
         loadFolders()
     }
@@ -274,7 +277,7 @@ class NoteActivity : BaseActivity() {
         // Update UI
         binding.textTitle.text = folderTitle
         updateMenuForNoteView()
-
+        updatePathBar(folderTitle)
         // Load notes in this folder
         loadNotesInFolder(folderId)
     }
@@ -673,6 +676,17 @@ class NoteActivity : BaseActivity() {
         }
     }
 
+    private fun updatePathBar(folderTitle: String?) {
+        val pathView = binding.tvPath
+        if (isInFolder && folderTitle != null) {
+            pathView.text = "Home > $folderTitle"
+            binding.pathBar.visibility = View.VISIBLE
+        } else {
+            pathView.text = "Home"
+            binding.pathBar.visibility = View.GONE
+        }
+    }
+
     private fun createTempImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_${timeStamp}_"
@@ -731,10 +745,26 @@ class NoteActivity : BaseActivity() {
                 val contentResolver = applicationContext.contentResolver
                 val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, photoUri)
 
-                val result = repository.createNote(noteName, currentFolderId!!, bitmap)
+                // First create the note in Firestore
+                val result = repository.createNote(noteName, currentFolderId!!, null) // Pass null for now
 
                 if (result.isSuccess) {
                     val newNote = result.getOrNull()!!
+
+                    // Then upload the image to Firebase Storage
+                    val storageManager = StorageManager(applicationContext)
+                    val uploadSuccess = storageManager.saveImage(newNote.id, bitmap)
+
+                    // Also save a thumbnail (scaled-down version)
+                    val thumbnailBitmap = createThumbnail(bitmap)
+                    val thumbnailSuccess = storageManager.saveThumbnail(newNote.id, thumbnailBitmap)
+
+                    // Update the note with the image path
+                    if (uploadSuccess) {
+                        val imagePath = "${newNote.id}.jpg" // This is the path in Firebase Storage
+                        val updatedNote = newNote.copy(imagePath = imagePath)
+                        repository.updateNote(updatedNote)
+                    }
 
                     // Add to local list
                     val noteItem = NoteItem(
@@ -767,6 +797,21 @@ class NoteActivity : BaseActivity() {
         }
     }
 
+    private fun createThumbnail(original: Bitmap): Bitmap {
+        val width = original.width
+        val height = original.height
+        val maxSize = 200 // Thumbnail size
+
+        val scale = Math.min(
+            maxSize.toFloat() / width.toFloat(),
+            maxSize.toFloat() / height.toFloat()
+        )
+
+        val matrix = Matrix()
+        matrix.postScale(scale, scale)
+
+        return Bitmap.createBitmap(original, 0, 0, width, height, matrix, true)
+    }
     private fun sortItemsByDate() {
         notesList.sortByDescending {
             try {
