@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Camera permissions -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -10,6 +13,9 @@
     <!-- Quyền cho Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
+    <!-- Storage permissions -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <application
         android:name=".SnapSolveApplication"
         android:allowBackup="true"
@@ -22,8 +28,18 @@
         android:theme="@style/Theme.App_music"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <activity
-            android:name=".presentation.feature.QRScanner"
+            android:name=".presentation.feature.qrscanner.QRScannerActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.feature.auth.UpdateProfileActivity"
@@ -63,6 +79,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".presentation.feature.noteScene.NoteDetailActivity"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="false" />

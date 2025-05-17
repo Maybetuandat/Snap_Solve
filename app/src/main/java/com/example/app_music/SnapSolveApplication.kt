@@ -10,11 +10,16 @@ class SnapSolveApplication : Application() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
 
-        // Configure Firestore for offline persistence
+        // Configure Firestore once for the entire app
         val firestore = FirebaseFirestore.getInstance()
         val settings = FirebaseFirestoreSettings.Builder()
             .setPersistenceEnabled(true)
             .build()
         firestore.firestoreSettings = settings
+        FirebaseFirestore.getInstance().firestoreSettings =
+            FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                .build()
     }
 }

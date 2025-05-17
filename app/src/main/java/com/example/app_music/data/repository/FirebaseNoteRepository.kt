@@ -27,7 +27,7 @@ class FirebaseNoteRepository {
     
     // Current user ID
     private val currentUserId: String
-        get() = auth.currentUser?.uid ?: ""
+        get() = "test_user_1"
     
     // Folders operations
     init {
@@ -49,10 +49,7 @@ class FirebaseNoteRepository {
                 ownerId = currentUserId
             )
 
-            // Thêm timeout để tránh chờ vô hạn
-            withTimeout(10000) {
-                foldersCollection.document(folderId).set(folder).await()
-            }
+            foldersCollection.document(folderId).set(folder).await()
 
             // Kiểm tra xem folder có được tạo thành công không
             val checkDoc = foldersCollection.document(folderId).get().await()
@@ -66,24 +63,32 @@ class FirebaseNoteRepository {
             Result.failure(e)
         }
     }
-    
+
+    // Sửa hàm getFolders() để log chi tiết hơn
     suspend fun getFolders(): Result<List<FolderFirebaseModel>> {
         return try {
             val snapshot = foldersCollection
-                .whereEqualTo("ownerId", currentUserId)
+                .whereEqualTo("ownerId", "test_user_1") // Đã sửa thành ID test cố định
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
-                
+
+            Log.d("Firebase", "Truy vấn Firestore thành công, nhận được ${snapshot.size()} tài liệu")
+
             val folders = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(FolderFirebaseModel::class.java)?.apply {
-                    id = doc.id
+                try {
+                    val folder = doc.toObject(FolderFirebaseModel::class.java)
+                    folder?.apply { id = doc.id }
+                } catch (e: Exception) {
+                    Log.e("Firebase", "Lỗi chuyển đổi tài liệu ${doc.id}: ${e.message}")
+                    null
                 }
             }
-            
+
             Result.success(folders)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting folders", e)
+            Log.e("Firebase", "Lỗi trong getFolders(): ${e.javaClass.simpleName} - ${e.message}")
+            e.printStackTrace() // In stack trace đầy đủ
             Result.failure(e)
         }
     }
@@ -215,7 +220,23 @@ class FirebaseNoteRepository {
             Result.failure(e)
         }
     }
-    
+    suspend fun createNoteWithId(note: NoteFirebaseModel): Result<NoteFirebaseModel> {
+        return try {
+            // Sử dụng ID đã có từ tham số
+            val noteId = note.id
+
+            // Lưu note với ID đã có
+            notesCollection.document(noteId).set(note).await()
+
+            // Log để debug
+            Log.d(TAG, "Note created with ID: $noteId, imagePath: ${note.imagePath}")
+
+            Result.success(note)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating note with ID ${note.id}", e)
+            Result.failure(e)
+        }
+    }
     suspend fun deleteNote(noteId: String): Result<Boolean> {
         return try {
             // First get the note to check if it has an image

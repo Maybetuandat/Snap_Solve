@@ -63,8 +63,16 @@ class NotesAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
             is NewItemViewHolder -> holder.bind()
-            is FolderViewHolder -> holder.bind(notesList[position - 1]) // Adjust position (-1) because of NEW item
-            is NoteViewHolder -> holder.bind(notesList[position - 1]) // Adjust position (-1) because of NEW item
+            is FolderViewHolder, is NoteViewHolder -> {
+                // Safer approach with bounds checking
+                val adjustedPosition = position - 1
+                if (adjustedPosition >= 0 && adjustedPosition < notesList.size) {
+                    when (holder) {
+                        is FolderViewHolder -> holder.bind(notesList[adjustedPosition])
+                        is NoteViewHolder -> holder.bind(notesList[adjustedPosition])
+                    }
+                }
+            }
         }
     }
 
@@ -115,21 +123,30 @@ class NotesAdapter(
             imagePreview.setImageResource(R.drawable.ic_note)
 
             // Load thumbnail with coroutines
+            // Trong NoteViewHolder.bind()
+// Load thumbnail with coroutines
             if (note.hasImage() && note.imagePreview != null) {
                 imagePreview.setImageBitmap(note.imagePreview)
+                Log.d("NotesAdapter", "Using existing thumbnail")
             } else {
                 // Launch a coroutine in the Main dispatcher
                 val scope = CoroutineScope(Dispatchers.Main)
                 scope.launch {
                     try {
+                        Log.d("NotesAdapter", "Loading thumbnail for note ${note.id}")
                         val storageManager = StorageManager(context)
                         val thumbnail = storageManager.loadThumbnail(note.id)
 
                         if (thumbnail != null) {
+                            Log.d("NotesAdapter", "Thumbnail loaded successfully")
                             imagePreview.setImageBitmap(thumbnail)
+                        } else {
+                            Log.d("NotesAdapter", "No thumbnail found, using default image")
+                            imagePreview.setImageResource(R.drawable.ic_note)
                         }
                     } catch (e: Exception) {
                         Log.e("NotesAdapter", "Error loading thumbnail: ${e.message}")
+                        imagePreview.setImageResource(R.drawable.ic_note)
                     }
                 }
             }

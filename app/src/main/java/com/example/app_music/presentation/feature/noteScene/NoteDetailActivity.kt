@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -26,6 +27,7 @@ import com.example.app_music.presentation.noteScene.ColorPickerDialog
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.util.Random
 
 class NoteDetailActivity : BaseActivity() {
@@ -259,10 +261,13 @@ class NoteDetailActivity : BaseActivity() {
                     // Get combined bitmap (background + drawing)
                     val combinedBitmap = binding.drawingView.getCombinedBitmap()
 
-                    // Convert drawing to base64
-                    // In a real app, you would implement logic to convert the drawing to base64
-                    // This is a simplified placeholder implementation
-                    val drawingData = "base64data"
+                    // Convert bitmap to base64 string
+                    val baos = ByteArrayOutputStream()
+                    combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                    val imageBytes = baos.toByteArray()
+                    val drawingData = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT)
+
+                    Log.d("NoteDetailActivity", "Drawing data length: ${drawingData.length}")
 
                     // Update note with drawing data
                     val updatedNote = note.copy(
@@ -276,13 +281,21 @@ class NoteDetailActivity : BaseActivity() {
                         if (showToast) {
                             Toast.makeText(this@NoteDetailActivity, "Drawing saved", Toast.LENGTH_SHORT).show()
                         }
+                        Log.d("NoteDetailActivity", "Drawing saved successfully")
                     } else {
                         if (showToast) {
                             Toast.makeText(this@NoteDetailActivity, "Failed to save drawing", Toast.LENGTH_SHORT).show()
                         }
+                        Log.e("NoteDetailActivity", "Failed to save drawing: ${result.exceptionOrNull()?.message}")
+                    }
+                } else {
+                    Log.e("NoteDetailActivity", "Failed to get note: ${noteResult.exceptionOrNull()?.message}")
+                    if (showToast) {
+                        Toast.makeText(this@NoteDetailActivity, "Failed to get note", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error saving drawing", e)
                 if (showToast) {
                     Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }

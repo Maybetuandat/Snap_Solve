@@ -78,10 +78,16 @@ class DrawingView @JvmOverloads constructor(
 
     fun setOnDrawCompletedListener(listener: OnDrawCompletedListener) {
         mDrawCompletedListener = listener
+        Log.d("DrawingView", "Draw completed listener set")
     }
 
     private fun notifyDrawCompleted() {
-        mDrawCompletedListener?.onDrawCompleted()
+        try {
+            Log.d("DrawingView", "Notifying draw completed")
+            mDrawCompletedListener?.onDrawCompleted()
+        } catch (e: Exception) {
+            Log.e("DrawingView", "Error notifying draw completed", e)
+        }
     }
 
 
