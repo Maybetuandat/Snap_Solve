@@ -14,6 +14,7 @@
     <!-- For Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <application
+        android:largeHeap="true"
         android:name=".SnapSolveApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
