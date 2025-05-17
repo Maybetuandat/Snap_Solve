@@ -9,6 +9,7 @@ import com.example.app_music.databinding.ActivityResultBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
 import java.io.File
 
+
 class ResultActivity : BaseActivity() {
 
     private lateinit var binding: ActivityResultBinding
@@ -89,8 +90,6 @@ class ResultActivity : BaseActivity() {
 
                     // Show an empty result with only the cropped image
                     binding.linearResults.visibility = View.VISIBLE
-                    binding.tvQuestion.text = "Unable to analyze image"
-                    binding.tvAnswer.text = "There was a problem uploading the image to our servers. You can try again or post to the community for help."
                 }
             }
         }
@@ -104,21 +103,77 @@ class ResultActivity : BaseActivity() {
                     binding.linearResults.visibility = View.GONE
                 }
                 is ResultViewModel.AnalyzeResult.Success -> {
-                    // Hide loading, show results
+                    // Hide loading
                     binding.progressBar.visibility = View.GONE
                     binding.linearResults.visibility = View.VISIBLE
 
-                    // Set the text fields
-                    binding.tvQuestion.text = result.question
-                    binding.tvAnswer.text = result.answer
+                    // Hide text views and show WebView
+//                    binding.tvQuestion.visibility = View.GONE
+//                    binding.tvAnswer.visibility = View.GONE
+                    binding.webViewResult.visibility = View.VISIBLE
+
+                    // Configure WebView
+                    binding.webViewResult.settings.javaScriptEnabled = true
+
+                    // Create properly formatted content for MathJax
+                    val htmlContent = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+                    <script type="text/x-mathjax-config">
+                        MathJax.Hub.Config({
+                            tex2jax: {
+                                inlineMath: [['$$','$$']],
+                                displayMath: [['\\[','\\]']]
+                            }
+                        });
+                    </script>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            line-height: 1.4;
+                            font-size: 14px;
+                            color: #333;
+                        }
+                        h3 { 
+                            margin-top: 8px; 
+                            margin-bottom: 12px; 
+                            color: #000;
+                            font-size: 16px;
+                        }
+                        p { margin-bottom: 16px; }
+                        .formula { 
+                            display: block;
+                            margin: 12px 0;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h3>Question:</h3>
+                    ${formatContentForWebView(result.question)}
+                    
+                    <h3>Answer:</h3>
+                    ${formatContentForWebView(result.answer)}
+                </body>
+                </html>
+            """.trimIndent()
+
+                    // Load content into WebView
+                    binding.webViewResult.loadDataWithBaseURL(
+                        null,
+                        htmlContent,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
                 }
                 is ResultViewModel.AnalyzeResult.Error -> {
                     binding.progressBar.visibility = View.GONE
                     binding.linearResults.visibility = View.VISIBLE
 
-                    // Show error message but still display the image
-                    binding.tvQuestion.text = "Analysis failed"
-                    binding.tvAnswer.text = "Error: ${result.message}\n\nYou can post to the community for help."
                     Toast.makeText(this, "Analysis error: ${result.message}", Toast.LENGTH_LONG).show()
                 }
             }
@@ -154,5 +209,24 @@ class ResultActivity : BaseActivity() {
 //                viewModel.manuallyUploadImage(File(path))
 //            }
 //        }
+    }
+
+    private fun formatContentForWebView(content: String): String {
+        // Split the content by lines
+        val lines = content.lines()
+
+        // Format each line
+        val formattedLines = lines.map { line ->
+            // If the line is empty, just return a paragraph break
+            if (line.trim().isEmpty()) {
+                return@map "<br>"
+            }
+
+            // Wrap each line in a paragraph tag
+            "<p>${line}</p>"
+        }
+
+        // Join the formatted lines
+        return formattedLines.joinToString("\n")
     }
 }

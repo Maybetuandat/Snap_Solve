@@ -5,7 +5,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.app_music.data.remote.api.ImageUploadResponse
 import com.example.app_music.data.repository.ImageRepository
 import kotlinx.coroutines.launch
 import java.io.File
@@ -78,10 +77,30 @@ class ResultViewModel : ViewModel() {
                 // Simulate network delay
                 kotlinx.coroutines.delay(1500)
 
-                // Mock response
+                // Mock response with proper inline LaTeX formatting
+                // Added spaces between $$ and text to prevent parsing issues
                 _analyzeResult.value = AnalyzeResult.Success(
-                    question = "Tìm hệ số a,b,c để y sau có cực trị: y = a·x² + b·x + c·y + x²",
-                    answer = "Để có cực trị, y' = 0:\n2a·x + b + 2x = 0\nSắp xếp: (2a+2)x + b = 0\nVì phương trình này có nghiệm với mọi x, nên:\n2a+2 = 0 → a = -1\nb = 0\nDo đó (a,b,c) = (-1, 0, c) với c bất kỳ."
+                    question = """
+                Một chiếc thùng hình lập phương có chiều dài cạnh là $$ x $$ (cm).
+                a) Viết công thức tính thể tích $$ V $$ ($$ cm^3 $$) và tổng diện tích $$ S $$ ($$ cm^2 $$) các mặt của hình lập phương theo $$ x $$
+                b) Viết công thức tính $$ x $$ theo $$ S $$
+                c) Viết công thức tính $$ V $$ theo $$ S $$. Tính $$ V $$ khi $$ S = 50 \text{ cm}^{2} $$
+            """.trimIndent(),
+
+                    answer = """
+                a) Thể tích hình lập phương:
+                $$ V = x^3 $$ ($$ cm^3 $$)
+                Diện tích một mặt: $$ x^2 $$
+                Tổng diện tích 6 mặt:
+                $$ S = 6x^2 $$ ($$ cm^2 $$)
+                b) Từ công thức $$ S = 6x^2 $$, ta có:
+                $$ x^2 = \frac{S}{6} $$
+                $$ x = \sqrt{\frac{S}{6}} $$
+                c) Thay công thức của $$ x $$ theo $$ S $$ vào công thức tính $$ V $$:
+                $$ V = x^3 = \left(\sqrt{\frac{S}{6}}\right)^3 = \frac{S^{3/2}}{6^{3/2}} = \frac{S^{3/2}}{6\sqrt{6}} $$
+                Khi $$ S = 50 \text{ cm}^2 $$:
+                $$ V = \frac{50^{3/2}}{6\sqrt{6}} = \frac{50\sqrt{50}}{6\sqrt{6}} \approx 47.54 \text{ cm}^3 $$
+            """.trimIndent()
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error analyzing image", e)
