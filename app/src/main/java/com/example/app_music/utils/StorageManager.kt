@@ -9,6 +9,7 @@ import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -33,23 +34,24 @@ class StorageManager(private val context: Context) {
     suspend fun saveThumbnail(noteId: String, thumbnail: Bitmap): Boolean {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d(TAG, "Saving thumbnail for note: $noteId")
                 val thumbnailRef = storageRef.child("$THUMBNAILS_PATH/$noteId.jpg")
-                
+
                 // Convert bitmap to byte array
                 val baos = ByteArrayOutputStream()
                 thumbnail.compress(Bitmap.CompressFormat.JPEG, 70, baos)
                 val data = baos.toByteArray()
-                
+
                 // Upload to Firebase
                 val uploadTask = thumbnailRef.putBytes(data).await()
-                
+
                 // Also save a local copy for faster access
-                saveThumbnailLocally(noteId, thumbnail)
-                
-                Log.d(TAG, "Saved thumbnail for note $noteId to Firebase")
+                val localSaved = saveThumbnailLocally(noteId, thumbnail)
+
+                Log.d(TAG, "Thumbnail saved to Firebase: success. Local save: $localSaved")
                 true
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving thumbnail for note $noteId to Firebase", e)
+                Log.e(TAG, "Error saving thumbnail for note $noteId: ${e.message}", e)
                 false
             }
         }
@@ -125,22 +127,29 @@ class StorageManager(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val imageRef = storageRef.child("$IMAGES_PATH/$noteId.jpg")
-                
-                // Convert bitmap to byte array
+
+                // Chuyển bitmap thành byte array
                 val baos = ByteArrayOutputStream()
-                image.compress(Bitmap.CompressFormat.JPEG, 95, baos)
+
+                // Giảm chất lượng nếu kích thước quá lớn
+                val quality = if (image.width * image.height > 1000000) 85 else 95
+                image.compress(Bitmap.CompressFormat.JPEG, quality, baos)
                 val data = baos.toByteArray()
-                
-                // Upload to Firebase
-                val uploadTask = imageRef.putBytes(data).await()
-                
-                // Also save a local copy for faster access
+
+                Log.d(TAG, "Uploading image for note $noteId, size: ${data.size} bytes")
+
+                // Upload lên Firebase với timeout
+                withTimeout(30000) { // 30 giây timeout
+                    imageRef.putBytes(data).await()
+                }
+
+                // Lưu bản sao local
                 saveImageLocally(noteId, image)
-                
-                Log.d(TAG, "Saved image for note $noteId to Firebase")
+
+                Log.d(TAG, "Uploaded image for note $noteId successfully")
                 true
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving image for note $noteId to Firebase", e)
+                Log.e(TAG, "Error saving image for note $noteId: ${e.message}", e)
                 false
             }
         }
