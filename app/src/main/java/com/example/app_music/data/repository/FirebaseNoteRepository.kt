@@ -7,6 +7,7 @@ import com.example.app_music.data.model.FolderFirebaseModel
 import com.example.app_music.data.model.NoteFirebaseModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
@@ -28,7 +29,15 @@ class FirebaseNoteRepository {
         get() = auth.currentUser?.uid ?: ""
     
     // Folders operations
-    
+    init {
+        // Enable offline capabilities for Firestore
+        val settings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+            .build()
+        db.firestoreSettings = settings
+    }
+
     suspend fun createFolder(title: String): Result<FolderFirebaseModel> {
         return try {
             val folderId = UUID.randomUUID().toString()
@@ -137,7 +146,7 @@ class FirebaseNoteRepository {
             Result.failure(e)
         }
     }
-    
+
     suspend fun getNotes(folderId: String): Result<List<NoteFirebaseModel>> {
         return try {
             val snapshot = notesCollection
@@ -145,27 +154,27 @@ class FirebaseNoteRepository {
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
-                
+
             val notes = snapshot.documents.mapNotNull { doc ->
                 doc.toObject(NoteFirebaseModel::class.java)?.apply {
                     id = doc.id
                 }
             }
-            
+
             Result.success(notes)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting notes", e)
             Result.failure(e)
         }
     }
-    
+
     suspend fun getNote(noteId: String): Result<NoteFirebaseModel> {
         return try {
             val doc = notesCollection.document(noteId).get().await()
             val note = doc.toObject(NoteFirebaseModel::class.java)?.apply {
                 id = doc.id
             }
-            
+
             if (note != null) {
                 Result.success(note)
             } else {

@@ -5,67 +5,74 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.app_music.databinding.ActivityQrScannerBinding
+import androidx.appcompat.widget.Toolbar
+import com.example.app_music.R
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
 import com.example.app_music.presentation.feature.noteScene.NoteDetailActivity
 import com.google.zxing.ResultPoint
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.CaptureManager
+import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import java.util.regex.Pattern
 
 class QRScannerActivity : AppCompatActivity() {
-    
-    private lateinit var binding: ActivityQrScannerBinding
+
+    private lateinit var barcodeScanner: DecoratedBarcodeView
+    private lateinit var toolbar: Toolbar
+    private lateinit var progressBar: View
     private lateinit var captureManager: CaptureManager
     private var isProcessingResult = false
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityQrScannerBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        
+        setContentView(R.layout.activity_qrscanner)
+
+        // Ánh xạ view
+        barcodeScanner = findViewById(R.id.barcode_scanner)
+        toolbar = findViewById(R.id.toolbar)
+        progressBar = findViewById(R.id.progressBar)
+
         setupToolbar()
         setupScanner(savedInstanceState)
     }
-    
+
     private fun setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener {
+        toolbar.setNavigationOnClickListener {
             finish()
         }
     }
-    
+
     private fun setupScanner(savedInstanceState: Bundle?) {
-        val barcodeView = binding.barcodeScanner
-        captureManager = CaptureManager(this, barcodeView)
+        captureManager = CaptureManager(this, barcodeScanner)
         captureManager.initializeFromIntent(intent, savedInstanceState)
-        
+
         // Setup callback for scan results
-        barcodeView.decodeSingle(object : BarcodeCallback {
+        barcodeScanner.decodeSingle(object : BarcodeCallback {
             override fun barcodeResult(result: BarcodeResult) {
                 if (isProcessingResult) return
                 isProcessingResult = true
-                
+
                 val scanResult = result.text
                 processScanResult(scanResult)
             }
-            
+
             override fun possibleResultPoints(resultPoints: List<ResultPoint>) {
                 // Not used
             }
         })
     }
-    
+
     private fun processScanResult(scanResult: String) {
-        binding.progressBar.visibility = View.VISIBLE
-        
+        progressBar.visibility = View.VISIBLE
+
         // Check if the scan result is a valid note or folder URL
         val notePattern = Pattern.compile("snapsolve://notes/([a-zA-Z0-9-]+)")
         val folderPattern = Pattern.compile("snapsolve://folders/([a-zA-Z0-9-]+)")
-        
+
         val noteMatcher = notePattern.matcher(scanResult)
         val folderMatcher = folderPattern.matcher(scanResult)
-        
+
         when {
             noteMatcher.matches() -> {
                 val noteId = noteMatcher.group(1)
@@ -76,14 +83,14 @@ class QRScannerActivity : AppCompatActivity() {
                 openFolder(folderId)
             }
             else -> {
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Invalid QR code", Toast.LENGTH_SHORT).show()
+                progressBar.visibility = View.GONE
+                Toast.makeText(this, "Mã QR không hợp lệ", Toast.LENGTH_SHORT).show()
                 isProcessingResult = false
-                binding.barcodeScanner.decodeSingle(null) // Reset scanner
+                barcodeScanner.decodeSingle(null) // Reset scanner
             }
         }
     }
-    
+
     private fun openNoteDetail(noteId: String) {
         // Open the NoteDetailActivity with the scanned note ID
         val intent = Intent(this, NoteDetailActivity::class.java).apply {
@@ -93,7 +100,7 @@ class QRScannerActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-    
+
     private fun openFolder(folderId: String) {
         // Open the NoteActivity with the scanned folder ID
         val intent = Intent(this, NoteActivity::class.java).apply {
@@ -103,27 +110,27 @@ class QRScannerActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-    
+
     override fun onResume() {
         super.onResume()
         captureManager.onResume()
     }
-    
+
     override fun onPause() {
         super.onPause()
         captureManager.onPause()
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         captureManager.onDestroy()
     }
-    
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         captureManager.onSaveInstanceState(outState)
     }
-    
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

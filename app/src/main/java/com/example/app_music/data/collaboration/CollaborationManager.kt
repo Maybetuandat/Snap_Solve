@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -27,7 +28,10 @@ class CollaborationManager(private val noteId: String) {
     
     // User presence data
     private val userPresenceRef = usersRef.child(currentUserId)
-    
+
+    private val connectionRef = database.getReference(".info/connected")
+    private var lastUsername: String = ""
+    private var lastColor: Int = 0
     data class DrawingAction(
         val userId: String = "",
         val actionId: String = "",
@@ -68,7 +72,32 @@ class CollaborationManager(private val noteId: String) {
     /**
      * Mark the current user as present/active
      */
+    init {
+        // Set up disconnect handler
+        userPresenceRef.onDisconnect().removeValue()
+
+        // Monitor connection state
+        connectionRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val connected = snapshot.getValue(Boolean::class.java) ?: false
+                if (connected) {
+                    Log.d(TAG, "Connected to Firebase Realtime Database")
+                    // Reset user presence when reconnected
+                    setUserPresence(lastUsername, lastColor)
+                } else {
+                    Log.d(TAG, "Disconnected from Firebase Realtime Database")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error monitoring connection state", error.toException())
+            }
+        })
+    }
     fun setUserPresence(username: String, color: Int) {
+        lastUsername = username
+        lastColor = color
+
         val userInfo = UserInfo(
             userId = currentUserId,
             username = username,
@@ -77,9 +106,15 @@ class CollaborationManager(private val noteId: String) {
             isTyping = false
         )
         userPresenceRef.setValue(userInfo)
-        
-        // Keep user presence active
-        userPresenceRef.child("lastActive").setValue(System.currentTimeMillis())
+            .addOnSuccessListener {
+                Log.d(TAG, "User presence set successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error setting user presence", e)
+            }
+
+        // Keep user presence active with server timestamp
+        userPresenceRef.child("lastActive").setValue(ServerValue.TIMESTAMP)
     }
     
     /**
