@@ -154,8 +154,8 @@
 
                 <ImageView
                     android:id="@+id/ivLike"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:src="@drawable/ic_liked"/>
 
                 <TextView
@@ -180,8 +180,8 @@
 
                 <ImageView
                     android:id="@+id/ivComment"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:src="@drawable/ic_comment" />
 
                 <TextView

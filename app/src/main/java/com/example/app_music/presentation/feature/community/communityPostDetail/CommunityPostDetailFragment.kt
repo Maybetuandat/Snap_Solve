@@ -1,6 +1,7 @@
 package com.example.app_music.presentation.feature.community.communityPostDetail
 
 import android.app.Activity
+import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
@@ -17,6 +18,7 @@ import com.bumptech.glide.Glide
 import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.domain.model.Post
+import com.example.app_music.domain.utils.UrlUtils
 import com.example.app_music.presentation.feature.community.adapter.CommentAdapter
 import com.google.android.material.snackbar.Snackbar
 import de.hdodenhof.circleimageview.CircleImageView
@@ -45,6 +47,9 @@ class PostDetailFragment : Fragment() {
     private lateinit var btnLike: LinearLayout
     private lateinit var ivLike: ImageView // Thêm biến này để tham chiếu đến biểu tượng trái tim
     private lateinit var progressBar: ProgressBar
+    private lateinit var rvPostImages: RecyclerView
+    private lateinit var tvImagesLabel: TextView
+    private val imagesAdapter = PostImagesAdapter()
 
     // Biến theo dõi trạng thái thích cục bộ
     private var isLikedLocally = false
@@ -91,6 +96,13 @@ class PostDetailFragment : Fragment() {
 
         // Tải dữ liệu bài viết
         loadPostData()
+
+        rvPostImages.adapter = imagesAdapter
+        imagesAdapter.setOnImageClickListener { imageUrl, position ->
+            // Xử lý khi người dùng nhấn vào ảnh, có thể hiển thị ảnh ở chế độ toàn màn hình
+            // Ví dụ: mở dialog hiển thị ảnh
+            showFullscreenImage(imageUrl)
+        }
     }
 
     private fun findViews(view: View) {
@@ -110,6 +122,8 @@ class PostDetailFragment : Fragment() {
         btnBack = view.findViewById(R.id.btnBack)
         btnLike = view.findViewById(R.id.btnLike)
         ivLike = view.findViewById(R.id.ivLike) // Lấy tham chiếu đến ImageView trong btnLike
+        rvPostImages = view.findViewById(R.id.rvPostImages)
+        tvImagesLabel = view.findViewById(R.id.tvImagesLabel)
 
         // Thêm progress bar nếu chưa có
         progressBar = ProgressBar(requireContext(), null, android.R.attr.progressBarStyleLarge)
@@ -229,22 +243,41 @@ class PostDetailFragment : Fragment() {
         isLikedLocally = hasUserLiked
         updateLikeUI(isLikedLocally)
 
-        // Tải avatar người dùng
-        if (!post.user.avatarUrl.isNullOrEmpty()) {
+        // Tải avatar người dùng với URL tuyệt đối
+        val avatarUrl = UrlUtils.getAbsoluteUrl(post.user.avatarUrl)
+        if (avatarUrl.isNotEmpty()) {
             Glide.with(requireContext())
-                .load(post.user.avatarUrl)
+                .load(avatarUrl)
                 .placeholder(R.drawable.avatar)
                 .into(ivUserAvatar)
         }
 
-        // Tải ảnh bài viết nếu có
-        if (!post.image.isNullOrEmpty()) {
-            ivPostImage.visibility = View.VISIBLE
-            Glide.with(requireContext())
-                .load(post.image)
-                .into(ivPostImage)
-        } else {
+        val allImages = post.getAllImages()
+        if (allImages.isNotEmpty()) {
+            // Hiển thị RecyclerView và label
+            rvPostImages.visibility = View.VISIBLE
+            tvImagesLabel.visibility = View.VISIBLE
+
+            // Đặt danh sách ảnh cho adapter
+            imagesAdapter.submitList(allImages)
+
+            // Ẩn ảnh chính nếu đã hiển thị tất cả trong gallery
             ivPostImage.visibility = View.GONE
+        } else {
+            // Ẩn RecyclerView và label nếu không có ảnh
+            rvPostImages.visibility = View.GONE
+            tvImagesLabel.visibility = View.GONE
+
+            // Kiểm tra xem có ảnh chính không để hiển thị
+            val mainImageUrl = UrlUtils.getAbsoluteUrl(post.image)
+            if (mainImageUrl.isNotEmpty()) {
+                ivPostImage.visibility = View.VISIBLE
+                Glide.with(requireContext())
+                    .load(mainImageUrl)
+                    .into(ivPostImage)
+            } else {
+                ivPostImage.visibility = View.GONE
+            }
         }
 
         // Hiển thị số lượng comments
@@ -313,5 +346,32 @@ class PostDetailFragment : Fragment() {
             soNgay < 365 -> "${soNgay / 30} tháng trước"
             else -> "${soNgay / 365} năm trước"
         }
+    }
+
+    private fun showFullscreenImage(imageUrl: String) {
+        // Tạo một dialog hiển thị ảnh toàn màn hình
+        val dialog = Dialog(requireContext(), android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        val imageView = ImageView(requireContext())
+
+        // Thiết lập thuộc tính cho ImageView
+        imageView.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        imageView.scaleType = ImageView.ScaleType.FIT_CENTER
+
+        // Tải ảnh vào ImageView
+        Glide.with(requireContext())
+            .load(imageUrl)
+            .into(imageView)
+
+        // Thiết lập sự kiện click để đóng dialog
+        imageView.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        // Hiển thị dialog
+        dialog.setContentView(imageView)
+        dialog.show()
     }
 }

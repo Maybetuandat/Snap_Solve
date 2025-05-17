@@ -86,7 +86,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="12dp"
-                android:background="?attr/selectableItemBackground"
+                android:paddingHorizontal="8dp"
+                android:layout_marginVertical="8dp"
+                android:background="@drawable/topic_selector_background"
                 android:clickable="true"
                 android:focusable="true">
 
@@ -141,7 +143,7 @@
             <EditText
                 android:id="@+id/etContent"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:background="@null"
                 android:hint="@string/posting_hint_content"
                 android:textSize="16sp"
@@ -149,7 +151,53 @@
                 android:paddingVertical="12dp"
                 android:gravity="top"
                 android:inputType="textCapSentences|textMultiLine"
-                android:minLines="10" />
+                android:minLines="5" />
+
+            <!-- Selected Topics Container -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Selected Topics"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"
+                android:id="@+id/tvSelectedTopicsTitle" />
+
+            <com.google.android.flexbox.FlexboxLayout
+                android:id="@+id/selectedTopicsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:flexWrap="wrap"
+                app:alignItems="flex_start"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone" />
+
+            <!-- Selected Images Preview -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Selected Images"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"
+                android:id="@+id/tvSelectedImagesTitle" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSelectedImages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="100dp"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="3"
+                tools:listitem="@layout/item_selected_image"
+                tools:visibility="visible" />
 
         </LinearLayout>
     </ScrollView>
@@ -170,7 +218,7 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
-            android:id="@+id/tvCharCount"
+            android:id="@+id/tvImageCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0/10"
@@ -206,6 +254,17 @@
                 android:textColor="#333333" />
 
         </LinearLayout>
+
+        <!-- Progress bar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="16dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/tvImageCount"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

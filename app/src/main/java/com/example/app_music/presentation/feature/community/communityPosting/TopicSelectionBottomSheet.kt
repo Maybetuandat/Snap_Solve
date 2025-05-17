@@ -1,13 +1,16 @@
 package com.example.app_music.presentation.feature.community.communityPosting
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.RadioButton
-import android.widget.RadioGroup
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.example.app_music.R
+import com.example.app_music.domain.model.Topic
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
@@ -16,12 +19,16 @@ class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
         return R.style.BottomSheetDialogTheme
     }
 
-    private lateinit var radioGroupTopics: RadioGroup
+    private lateinit var topicsContainer: LinearLayout
     private lateinit var btnSelect: Button
 
-    // Interface for callback to the parent fragment
+    // Lưu trữ các topic được chọn
+    private val selectedTopicIds = mutableSetOf<Long>()
+    private var allTopics: List<Topic> = emptyList()
+
+    // Interface cho callback đến parent fragment
     interface TopicSelectionListener {
-        fun onTopicSelected(topic: String)
+        fun onTopicsSelected(selectedTopics: List<Topic>)
     }
 
     private var listener: TopicSelectionListener? = null
@@ -30,54 +37,98 @@ class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
         this.listener = listener
     }
 
+    // Phương thức để thiết lập danh sách topic và những topic nào đã được chọn sẵn
+    fun setTopics(topics: List<Topic>, preSelectedTopicIds: Set<Long> = emptySet()) {
+        allTopics = topics
+        selectedTopicIds.clear()
+        selectedTopicIds.addAll(preSelectedTopicIds)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.layout_topic_selection, container, false)
+        // Tạo view từ layout
+        val view = inflater.inflate(R.layout.layout_topic_selection, container, false)
+
+        // Thêm background cho dialog
+        view.setBackgroundResource(R.drawable.topic_dialog_background)
+
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        radioGroupTopics = view.findViewById(R.id.radioGroupTopics)
+        topicsContainer = view.findViewById(R.id.topicsContainer)
         btnSelect = view.findViewById(R.id.btnSelectTopic)
 
-        // Set up the topics (these could come from resources or as arguments)
+        // Thiết lập các topic
         setupTopics()
 
-        // Handle select button click
+        // Xử lý click vào nút chọn
         btnSelect.setOnClickListener {
-            val selectedId = radioGroupTopics.checkedRadioButtonId
-            if (selectedId != -1) {
-                val radioButton = view.findViewById<RadioButton>(selectedId)
-                listener?.onTopicSelected(radioButton.text.toString())
-                dismiss()
-            }
+            // Lấy danh sách các topic đã chọn
+            val selectedTopics = allTopics.filter { it.id in selectedTopicIds }
+
+            // Gọi callback
+            listener?.onTopicsSelected(selectedTopics)
+            dismiss()
         }
     }
 
     private fun setupTopics() {
-        // Load topics from string resources
-        val topics = listOf(
-            getString(R.string.topic_general),
-            getString(R.string.topic_questions),
-            getString(R.string.topic_news)
-        )
+        // Xóa tất cả checkbox hiện tại
+        topicsContainer.removeAllViews()
 
-        // Access individual radio buttons
-        val rbTopic1 = view?.findViewById<RadioButton>(R.id.rbTopic1)
-        val rbTopic2 = view?.findViewById<RadioButton>(R.id.rbTopic2)
-        val rbTopic3 = view?.findViewById<RadioButton>(R.id.rbTopic3)
+        // Thêm checkbox cho mỗi topic
+        allTopics.forEach { topic ->
+            val checkBox = CheckBox(requireContext()).apply {
+                text = topic.name
+                isChecked = topic.id in selectedTopicIds
+                id = View.generateViewId()
 
-        // Set text for each radio button
-        rbTopic1?.text = topics[0]
-        rbTopic2?.text = topics[1]
-        rbTopic3?.text = topics[2]
+                // Style cho checkbox
+                textSize = 16f
+                setPadding(16, 16, 16, 16)
 
-        // Preselect the first option
-        rbTopic1?.isChecked = true
+                // Xử lý khi checkbox được click
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        selectedTopicIds.add(topic.id)
+                    } else {
+                        selectedTopicIds.remove(topic.id)
+                    }
+                }
+            }
+
+            // Thêm padding và margin
+            val layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(8, 8, 8, 8)
+            }
+
+            // Thêm vào container
+            topicsContainer.addView(checkBox, layoutParams)
+        }
+
+        // Nếu không có topic nào, hiển thị thông báo
+        if (allTopics.isEmpty()) {
+            val message = TextView(requireContext()).apply {
+                text = "Không có chủ đề nào"
+                gravity = Gravity.CENTER
+                textSize = 16f
+                setPadding(16, 16, 16, 16)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            topicsContainer.addView(message)
+        }
     }
 
     companion object {

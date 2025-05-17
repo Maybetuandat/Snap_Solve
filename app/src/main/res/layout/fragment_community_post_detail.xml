@@ -159,6 +159,31 @@
                 android:src="@drawable/lorem"
                 android:visibility="visible" />
 
+            <!-- Post Images Gallery -->
+            <TextView
+                android:id="@+id/tvImagesLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hình ảnh"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="16dp"
+                android:layout_marginHorizontal="16dp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPostImages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="12dp"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="2"
+                tools:listitem="@layout/item_post_image"
+                tools:visibility="visible" />
             <!-- Likes and Comments Count -->
             <LinearLayout
                 android:layout_width="match_parent"

@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.app_music.R
 import com.example.app_music.domain.model.Post
+import com.example.app_music.domain.utils.UrlUtils
 import java.time.LocalDate
 import java.time.Period
 
@@ -89,24 +90,42 @@ class PostAdapter : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
 
 
+            val userAvaterUrl = UrlUtils.getAbsoluteUrl(post.user.avatarUrl)
             // Hiển thị ảnh người dùng nếu có
             if (!post.user.avatarUrl.isNullOrEmpty()) {
                 Glide.with(itemView.context)
-                    .load(post.user.avatarUrl)
+                    .load(userAvaterUrl)
                     .placeholder(R.drawable.avatar)
                     .into(ivUserAvatar)
             }
 
+
             // Hiển thị ảnh bài viết nếu có
-            if (!post.image.isNullOrEmpty()) {
+            val imageUrl = UrlUtils.getAbsoluteUrl(post.image)
+            if (imageUrl.isNotEmpty()) {
                 ivPostImage.visibility = View.VISIBLE
+
+                // Sử dụng thumbnail (image chính) từ bài viết
                 Glide.with(itemView.context)
-                    .load(post.image)
+                    .load(imageUrl)
                     .placeholder(R.drawable.lorem)
                     .into(ivPostImage)
             } else {
-                ivPostImage.visibility = View.GONE
+                // Nếu không có ảnh chính, kiểm tra xem có ảnh phụ không
+                if (!post.additionalImages.isNullOrEmpty()) {
+                    ivPostImage.visibility = View.VISIBLE
+                    // Hiển thị ảnh đầu tiên từ additionalImages nếu không có thumbnail
+                    val additionalImageUrl = UrlUtils.getAbsoluteUrl(post.additionalImages.first())
+                    Glide.with(itemView.context)
+                        .load(additionalImageUrl)
+                        .placeholder(R.drawable.lorem)
+                        .into(ivPostImage)
+                } else {
+                    // Ẩn ImageView nếu không có ảnh nào
+                    ivPostImage.visibility = View.GONE
+                }
             }
+
 
             // Hiển thị các chủ đề
             if (post.topics.isNotEmpty()) {

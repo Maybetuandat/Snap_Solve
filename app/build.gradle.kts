@@ -81,4 +81,5 @@ dependencies {
 
     // Thêm thư viện SwipeRefreshLayout
     implementation ("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation ("com.google.android.flexbox:flexbox:3.0.0")
 }
