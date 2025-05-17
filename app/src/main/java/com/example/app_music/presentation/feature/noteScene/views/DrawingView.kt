@@ -17,6 +17,8 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import java.util.ArrayList
+import android.graphics.Rect
+import android.graphics.Region
 
 class DrawingView @JvmOverloads constructor(
     context: Context,
@@ -283,47 +285,47 @@ class DrawingView @JvmOverloads constructor(
             }
         }
     }
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
 
-    private fun erasePaths(): List<DrawAction> {
-        // For eraser, we'll find paths that intersect with the eraser path
-        // and mark them for removal
-
-        // Create a temporary bitmap to check intersections
-        val tempBitmap = Bitmap.createBitmap(mBitmap.width, mBitmap.height, Bitmap.Config.ARGB_8888)
-        val tempCanvas = Canvas(tempBitmap)
-
-        // Draw the eraser path with a thick width to make it easier to hit paths
-        val eraserPaint = Paint(mPaint).apply {
-            color = Color.BLACK
-            strokeWidth = mPaint.strokeWidth * 1.5f
-            style = Paint.Style.STROKE
+        if (::mBitmap.isInitialized && !mBitmap.isRecycled) {
+            mBitmap.recycle()
         }
-        tempCanvas.drawPath(mPath, eraserPaint)
 
-        // Check which paths intersect with the eraser path
+        mBackgroundBitmap?.recycle()
+        mBackgroundBitmap = null
+    }
+    private fun erasePaths(): List<DrawAction> {
         val pathsToRemove = mutableListOf<DrawAction>()
+
+        // Create a region for the eraser path
+        val eraserRegion = Region()
+        val eraserPath = Path(mPath) // Clone the current path
+
+        val rectF = RectF()
+        eraserPath.computeBounds(rectF, true)
+        val rect = Rect()
+        rectF.roundOut(rect)
+
+        eraserRegion.setPath(eraserPath, Region(rect))
+
+        // Check each drawn path for intersection
         for (path in mDrawnPaths) {
-            // Check if paths intersect (simplified approach)
-            val pathBitmap = Bitmap.createBitmap(tempBitmap.width, tempBitmap.height, Bitmap.Config.ARGB_8888)
-            val pathCanvas = Canvas(pathBitmap)
-            pathCanvas.drawPath(path.path, eraserPaint)
+            val pathRegion = Region()
+            val pathRectF = RectF()
+            path.path.computeBounds(pathRectF, true)
+            val pathRect = Rect()
+            pathRectF.roundOut(pathRect)
 
-            // Check for intersection (any pixel that is non-zero in both bitmaps)
-            var intersection = false
-
-            // Just check a few sample points for performance
-            val sampleSize = 10
-            for (i in 0 until tempBitmap.width step sampleSize) {
-                for (j in 0 until tempBitmap.height step sampleSize) {
-                    if (tempBitmap.getPixel(i, j) != 0 && pathBitmap.getPixel(i, j) != 0) {
-                        intersection = true
-                        break
-                    }
-                }
-                if (intersection) break
+            // If the path bounds don't intersect the eraser bounds at all, skip further checks
+            if (!Rect.intersects(rect, pathRect)) {
+                continue
             }
 
-            if (intersection) {
+            pathRegion.setPath(path.path, Region(pathRect))
+
+            // If the regions intersect, mark path for removal
+            if (!pathRegion.quickReject(eraserRegion) && pathRegion.op(eraserRegion, Region.Op.INTERSECT)) {
                 pathsToRemove.add(path)
             }
         }
@@ -343,6 +345,16 @@ class DrawingView @JvmOverloads constructor(
     /**
      * Set the color for drawing
      */
+    /**
+     * Get the current drawing path for collaboration
+     */
+    fun getCurrentPath(): Path? {
+        return if (mCurrentDrawAction != null) {
+            mCurrentDrawAction?.path
+        } else {
+            null
+        }
+    }
     fun setColor(color: Int) {
         mPaint.color = color
     }
