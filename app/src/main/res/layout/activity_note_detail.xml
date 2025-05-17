@@ -4,49 +4,53 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".presentation.noteScene.NoteDetailActivity">
+    tools:context=".presentation.feature.noteScene.NoteDetailActivity">
 
-    <!-- Header bar -->
-    <LinearLayout
-        android:id="@+id/layout_header"
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="@color/white"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/white"
         android:elevation="4dp"
-        android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        app:layout_constraintTop_toTopOf="parent">
+        app:titleTextColor="@android:color/black"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <ImageButton
-            android:id="@+id/button_back_note_detail"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_vertical"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/back"
-            android:src="@drawable/back_img" />
+    <!-- Collaboration panel showing active users -->
+    <LinearLayout
+        android:id="@+id/collaboration_panel"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="#F5F5F5"
+        android:elevation="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
         <TextView
-            android:id="@+id/text_note_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Collaborators: "
+            android:textColor="@android:color/darker_gray"
+            android:textSize="12sp" />
+
+        <com.example.app_music.presentation.feature.noteScene.views.UserPresenceView
+            android:id="@+id/active_users_view"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            tools:text="Scan_20250413_192543" />
+            android:layout_weight="1" />
 
-        <ImageButton
-            android:id="@+id/button_menu"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_vertical"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/menu"
-            android:src="@drawable/ic_menu" />
+        <TextView
+            android:id="@+id/user_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="12sp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            tools:text="2" />
     </LinearLayout>
 
     <!-- Tools bar -->
@@ -54,11 +58,11 @@
         android:id="@+id/layout_tools"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="@color/white"
+        android:background="@android:color/white"
         android:elevation="4dp"
         android:gravity="center"
         android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/layout_header">
+        app:layout_constraintTop_toBottomOf="@id/collaboration_panel">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -151,7 +155,7 @@
         android:background="@drawable/page_indicator_bg"
         android:padding="8dp"
         android:text="1 / 1"
-        android:textColor="@color/white"
+        android:textColor="@android:color/white"
         android:textSize="16sp"
         android:layout_margin="16dp"
         app:layout_constraintStart_toStartOf="parent"
@@ -172,7 +176,7 @@
             android:contentDescription="Note Image"
             android:scaleType="fitCenter" />
 
-        <com.example.app_music.presentation.noteScene.views.DrawingView
+        <com.example.app_music.presentation.feature.noteScene.views.DrawingView
             android:id="@+id/drawing_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -202,9 +206,8 @@
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
             android:background="@android:color/transparent"
-            android:drawableStart="@drawable/ic_hand"
+            android:drawableStart="@drawable/ic_help"
             android:drawableTint="#2196F3"
-
             android:textSize="14sp"
             android:gravity="center"
             android:paddingVertical="12dp" />
@@ -233,5 +236,27 @@
             android:gravity="center"
             android:paddingVertical="12dp" />
     </LinearLayout>
+
+    <!-- Small progress bar for save operations -->
+    <ProgressBar
+        android:id="@+id/save_progress_bar"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/layout_bottom_buttons"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Main progress bar -->
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

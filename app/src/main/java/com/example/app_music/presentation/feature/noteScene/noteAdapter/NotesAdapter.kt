@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.noteScene.noteAdapter
+package com.example.app_music.presentation.feature.noteScene.noteAdapter
 
 import android.content.Context
 import android.content.Intent
@@ -12,8 +12,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
-import com.example.app_music.presentation.noteScene.NoteDetailActivity
-import com.example.app_music.presentation.noteScene.model.NoteItem
+import com.example.app_music.presentation.feature.noteScene.NoteDetailActivity
+import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.presentation.utils.StorageManager
 
 class NotesAdapter(

@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.noteScene.model
+package com.example.app_music.presentation.feature.noteScene.model
 
 import android.graphics.Bitmap
 

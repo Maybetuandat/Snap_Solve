@@ -40,7 +40,12 @@ android {
         jvmTarget = "1.8"
     }
 }
-
+buildscript {
+    dependencies {
+        // Add this line
+        classpath("com.google.gms:google-services:4.4.0")
+    }
+}
 
 dependencies {
 
@@ -67,11 +72,17 @@ dependencies {
     implementation ("androidx.room:room-runtime:$room_version")
     kapt ("androidx.room:room-compiler:$room_version")
     implementation ("androidx.room:room-ktx:$room_version")
-    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-analytics")
 
+    implementation("com.google.firebase:firebase-database:20.3.0")
+    implementation("com.google.firebase:firebase-firestore:24.10.0")
+    implementation("com.google.firebase:firebase-storage:20.3.0")
+    implementation("com.google.firebase:firebase-auth:22.3.0")
 
+    // QR Code generation and scanning
+    implementation ("com.google.zxing:core:3.5.2")
+    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
 
+    // Real-time collaboration
+    implementation ("com.google.firebase:firebase-database-ktx:20.3.0")
 
 }

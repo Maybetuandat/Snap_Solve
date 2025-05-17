@@ -1,47 +1,49 @@
-package com.example.app_music.presentation.noteScene
+package com.example.app_music.presentation.feature.noteScene
 
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import coil.ImageLoader
-import coil.decode.GifDecoder
-import coil.decode.ImageDecoderDecoder
-import coil.request.ImageRequest
 import com.example.app_music.R
-import com.example.app_music.presentation.noteScene.model.NoteItem
-import com.example.app_music.presentation.noteScene.noteAdapter.NotesAdapter
-import com.example.app_music.presentation.utils.StorageManager
+import com.example.app_music.data.model.FolderFirebaseModel
+import com.example.app_music.data.model.NoteFirebaseModel
+import com.example.app_music.data.repository.FirebaseNoteRepository
+import com.example.app_music.databinding.ActivityNoteBinding
+import com.example.app_music.presentation.feature.common.BaseActivity
+import com.example.app_music.presentation.feature.noteScene.model.NoteItem
+import com.example.app_music.presentation.feature.noteScene.noteAdapter.NotesAdapter
+import com.example.app_music.presentation.feature.qrscanner.QRScannerActivity
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
-class NoteActivity : AppCompatActivity() {
+class NoteActivity : BaseActivity() {
 
     companion object {
         private const val TAG = "NoteActivity"
@@ -50,226 +52,113 @@ class NoteActivity : AppCompatActivity() {
         private const val PERMISSION_REQUEST_CODE = 200
     }
 
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var binding: ActivityNoteBinding
     private lateinit var adapter: NotesAdapter
     private var notesList: MutableList<NoteItem> = mutableListOf()
-    private var mainNotesList: MutableList<NoteItem> = mutableListOf()
 
-    // UI elements
-    private lateinit var titleTextView: TextView
-    private lateinit var backButton: ImageButton
-    private lateinit var addNewButton: Button
+    // Firebase repository
+    private val repository = FirebaseNoteRepository()
 
-    // Tracking current folder
+    // Current user and folder info
+    private val currentUserId: String
+        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+    // Folder navigation
     private var currentFolderId: String? = null
     private var currentFolderTitle: String? = null
     private var isInFolder = false
-    private var folderHistory = mutableListOf<FolderHistoryItem>()
 
-    // Để lưu trữ thông tin ảnh
+    // Photo capture variables
     private var photoUri: Uri? = null
     private var currentPhotoPath: String? = null
 
-    // Storage manager
-    private lateinit var storageManager: StorageManager
-
-    // Danh sách quyền cần thiết
-    private val REQUIRED_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_MEDIA_IMAGES
-        )
-    } else {
-        arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        )
+    // Permission launcher for newer Android versions
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            if (pendingAction == PendingAction.OPEN_CAMERA) {
+                openCamera()
+            } else if (pendingAction == PendingAction.OPEN_GALLERY) {
+                openFilePicker()
+            }
+            pendingAction = PendingAction.NONE
+        } else {
+            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+        }
     }
+
+    // For tracking pending actions after permission requests
+    private enum class PendingAction {
+        NONE, OPEN_CAMERA, OPEN_GALLERY
+    }
+
+    private var pendingAction = PendingAction.NONE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_note)
+        binding = ActivityNoteBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Khởi tạo StorageManager
-        storageManager = StorageManager(this)
-
-        // Khởi tạo UI elements
-        titleTextView = findViewById(R.id.text_title)
-        backButton = findViewById(R.id.button_back_note)
-        addNewButton = findViewById(R.id.note_button_menu)
-
-        // Thiết lập back button
         setupBackButton()
-
-        // Thiết lập nút filter kiểu
         setupTypeButton()
-
-        // Tải animation GIF
-        loadGifAnimation()
-
-        // Tải dữ liệu đã lưu
-        loadSavedNotes()
-
-        // Thiết lập RecyclerView
         setupRecyclerView()
-
-        // Thiết lập nút menu
         setupMenuButton()
 
-        // Kiểm tra và yêu cầu quyền cần thiết
-        checkAndRequestPermissions()
-    }
-
-    private fun loadSavedNotes() {
-        // Xóa danh sách cũ
-        mainNotesList.clear()
-        notesList.clear()
-
-        // Tải dữ liệu từ StorageManager
-        val savedNotes = storageManager.loadNotesList()
-
-        // Thêm vào danh sách chính
-        mainNotesList.addAll(savedNotes)
-        notesList.addAll(savedNotes)
-
-        Log.d(TAG, "Đã tải ${mainNotesList.size} note từ bộ nhớ")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // Lưu danh sách notes khi đóng ứng dụng hoặc chuyển màn hình
-        saveNotes()
-    }
-
-    private fun saveNotes() {
-        // Lưu danh sách note chính vào bộ nhớ
-        storageManager.saveNotesList(mainNotesList)
-        Log.d(TAG, "Đã lưu ${mainNotesList.size} note vào bộ nhớ")
-    }
-
-    private fun checkAndRequestPermissions() {
-        val permissionsToRequest = ArrayList<String>()
-
-        for (permission in REQUIRED_PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(this, permission) !=
-                PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(permission)
+        // Check if we're opening a specific folder (from QR code or deep link)
+        val folderId = intent.getStringExtra("folder_id")
+        if (folderId != null) {
+            lifecycleScope.launch {
+                val folderResult = repository.getFolders().getOrNull()?.find { it.id == folderId }
+                if (folderResult != null) {
+                    openFolder(folderResult.id, folderResult.title, false)
+                } else {
+                    Toast.makeText(this@NoteActivity, "Folder not found", Toast.LENGTH_SHORT).show()
+                }
             }
+        } else {
+            // Load folders by default (top level)
+            loadFolders()
         }
 
-        if (permissionsToRequest.isNotEmpty()) {
-            ActivityCompat.requestPermissions(
-                this,
-                permissionsToRequest.toTypedArray(),
-                PERMISSION_REQUEST_CODE
-            )
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-
-            if (!allGranted) {
-                Toast.makeText(
-                    this,
-                    "Ứng dụng cần các quyền này để hoạt động đầy đủ",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        // Set up QR scanner button
+        binding.fabScanQr.setOnClickListener {
+            startActivity(Intent(this, QRScannerActivity::class.java))
         }
     }
 
     private fun setupBackButton() {
-        backButton.setOnClickListener {
+        binding.buttonBackNote.setOnClickListener {
             if (isInFolder) {
-                // Quay lại thư mục trước đó hoặc màn hình chính
-                navigateBack()
+                // Go back to folders view
+                showFoldersView()
             } else {
-                // Hành vi back tiêu chuẩn khi ở màn hình chính
+                // Standard back behavior
                 onBackPressed()
             }
         }
     }
 
-    private fun navigateBack() {
-        if (folderHistory.isEmpty()) {
-            // Nếu lịch sử trống, quay lại danh sách notes chính
-            showMainNotesList()
-        } else {
-            // Lấy thư mục cuối cùng từ lịch sử
-            val previousFolder = folderHistory.removeAt(folderHistory.size - 1)
-
-            if (previousFolder.folderId == null) {
-                // Nếu thư mục trước đó là màn hình chính
-                showMainNotesList()
-            } else {
-                // Điều hướng đến thư mục trước đó
-                previousFolder.folderId?.let { folderId ->
-                    previousFolder.folderTitle?.let { folderTitle ->
-                        openFolder(folderId, folderTitle, false)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun showMainNotesList() {
-        // Đặt lại trạng thái
-        isInFolder = false
-        currentFolderId = null
-        currentFolderTitle = null
-        folderHistory.clear()
-
-        // Cập nhật UI
-        titleTextView.text = getString(R.string.noteTitle)
-
-        // Sử dụng menu gốc với tùy chọn tạo thư mục
-        addNewButton.setOnClickListener {
-            val popupMenu = PopupMenu(this, addNewButton)
-            popupMenu.menuInflater.inflate(R.menu.menu_note_action, popupMenu.menu)
-            enablePopupIcons(popupMenu)
-            popupMenu.setOnMenuItemClickListener { item ->
-                handleMenuItemClick(item.itemId)
-            }
-            popupMenu.show()
-        }
-
-        // Khôi phục danh sách notes gốc
-        notesList.clear()
-        notesList.addAll(mainNotesList)
-        adapter.notifyDataSetChanged()
-    }
-
     private fun setupTypeButton() {
-        val btnType = findViewById<Button>(R.id.note_button_type)
-
-        btnType.setOnClickListener {
-            val popupMenu = PopupMenu(this, btnType)
+        binding.noteButtonType.setOnClickListener {
+            val popupMenu = PopupMenu(this, it)
             popupMenu.menuInflater.inflate(R.menu.menu_note_type, popupMenu.menu)
 
             popupMenu.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.type_day -> {
-                        btnType.text = getString(R.string.day)
-                        sortNotesByDate()
+                        binding.noteButtonType.text = getString(R.string.day)
+                        sortItemsByDate()
                         true
                     }
                     R.id.type_name -> {
-                        btnType.text = getString(R.string.name)
-                        sortNotesByName()
+                        binding.noteButtonType.text = getString(R.string.name)
+                        sortItemsByName()
                         true
                     }
                     R.id.type_type -> {
-                        btnType.text = getString(R.string.type)
-                        sortNotesByType()
+                        binding.noteButtonType.text = getString(R.string.type)
+                        sortItemsByType()
                         true
                     }
                     else -> false
@@ -280,53 +169,8 @@ class NoteActivity : AppCompatActivity() {
         }
     }
 
-    private fun sortNotesByDate() {
-        notesList.sortByDescending {
-            try {
-                val format = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
-                format.parse(it.date)?.time ?: 0L
-            } catch (e: Exception) {
-                0L
-            }
-        }
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun sortNotesByName() {
-        notesList.sortBy { it.title }
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun sortNotesByType() {
-        // Sắp xếp theo kiểu: thư mục trước, sau đó đến note
-        notesList.sortWith(compareBy({ !it.isFolder }, { it.title }))
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun loadGifAnimation() {
-        val imageView = findViewById<ImageView>(R.id.imageview_note)
-
-        val imageLoader = ImageLoader.Builder(this)
-            .components {
-                if (Build.VERSION.SDK_INT >= 28) {
-                    add(ImageDecoderDecoder.Factory())
-                } else {
-                    add(GifDecoder.Factory())
-                }
-            }
-            .build()
-
-        val request = ImageRequest.Builder(this)
-            .data(R.raw.pencils)
-            .target(imageView)
-            .build()
-
-        imageLoader.enqueue(request)
-    }
-
     private fun setupRecyclerView() {
-        recyclerView = findViewById(R.id.recycleViewNote)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recycleViewNote.layoutManager = LinearLayoutManager(this)
 
         adapter = NotesAdapter(
             context = this,
@@ -338,74 +182,174 @@ class NoteActivity : AppCompatActivity() {
                 showItemOptions(anchorView, item)
             },
             onFolderClick = { folder ->
-                // Mở nội dung thư mục
+                // Open folder
                 openFolder(folder.id, folder.title, true)
             }
         )
-        recyclerView.adapter = adapter
+        binding.recycleViewNote.adapter = adapter
     }
 
-    private fun openFolder(folderId: String, folderTitle: String, addToHistory: Boolean) {
-        // Lưu trạng thái hiện tại vào lịch sử nếu cần
-        if (addToHistory) {
-            folderHistory.add(FolderHistoryItem(currentFolderId, currentFolderTitle))
-        }
+    private fun setupMenuButton() {
+        binding.noteButtonMenu.setOnClickListener {
+            val menuRes = if (isInFolder) R.menu.menu_folder_action else R.menu.menu_note_action
+            val popupMenu = PopupMenu(this, it)
+            popupMenu.menuInflater.inflate(menuRes, popupMenu.menu)
 
-        // Cập nhật thông tin thư mục hiện tại
+            // Enable icons
+            try {
+                val menuField = PopupMenu::class.java.getDeclaredField("mPopup")
+                menuField.isAccessible = true
+                val menuPopupHelper = menuField.get(popupMenu)
+
+                val classPopupHelper = Class.forName(menuPopupHelper.javaClass.name)
+                val setForceIcons = classPopupHelper.getMethod("setForceShowIcon", Boolean::class.java)
+                setForceIcons.invoke(menuPopupHelper, true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            popupMenu.setOnMenuItemClickListener { item ->
+                handleMenuItemClick(item.itemId)
+            }
+
+            popupMenu.show()
+        }
+    }
+
+    private fun showFoldersView() {
+        // Reset folder navigation state
+        isInFolder = false
+        currentFolderId = null
+        currentFolderTitle = null
+
+        // Update UI
+        binding.textTitle.text = getString(R.string.noteTitle)
+        updateMenuForFolderView()
+
+        // Load folders
+        loadFolders()
+    }
+
+    private fun loadFolders() {
+        binding.progressBar.visibility = View.VISIBLE
+        notesList.clear()
+
+        lifecycleScope.launch {
+            try {
+                val foldersResult = repository.getFolders()
+
+                if (foldersResult.isSuccess) {
+                    val folders = foldersResult.getOrNull() ?: emptyList()
+
+                    // Convert to NoteItem objects
+                    val folderItems = folders.map { folder ->
+                        NoteItem(
+                            id = folder.id,
+                            title = folder.title,
+                            date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                                .format(Date(folder.createdAt)),
+                            isFolder = true
+                        )
+                    }
+
+                    notesList.addAll(folderItems)
+                    adapter.notifyDataSetChanged()
+                } else {
+                    Toast.makeText(this@NoteActivity, "Failed to load folders", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun openFolder(folderId: String, folderTitle: String, addToHistory: Boolean = false) {
+        // Update state
         isInFolder = true
         currentFolderId = folderId
         currentFolderTitle = folderTitle
 
-        // Cập nhật UI
-        titleTextView.text = folderTitle
+        // Update UI
+        binding.textTitle.text = folderTitle
+        updateMenuForNoteView()
 
-        // Thay đổi menu sang menu thư mục (không có tùy chọn tạo thư mục)
-        addNewButton.setOnClickListener {
-            val popupMenu = PopupMenu(this, addNewButton)
-            popupMenu.menuInflater.inflate(R.menu.menu_folder_action, popupMenu.menu)
-            enablePopupIcons(popupMenu)
-            popupMenu.setOnMenuItemClickListener { item ->
-                handleMenuItemClick(item.itemId)
-            }
-            popupMenu.show()
-        }
-
-        // Tải nội dung thư mục
-        loadFolderContents(folderId)
+        // Load notes in this folder
+        loadNotesInFolder(folderId)
     }
 
-    private fun loadFolderContents(folderId: String) {
-        // Xóa danh sách hiện tại
+    private fun loadNotesInFolder(folderId: String) {
+        binding.progressBar.visibility = View.VISIBLE
         notesList.clear()
 
-        // Tìm các note thuộc thư mục này
-        for (item in mainNotesList) {
-            if (item.id == folderId && item.isFolder) {
-                // Đây là thư mục cần tìm
-                // Thêm tất cả các note con vào danh sách
-                notesList.addAll(item.getChildNotes())
-                break
+        lifecycleScope.launch {
+            try {
+                val notesResult = repository.getNotes(folderId)
+
+                if (notesResult.isSuccess) {
+                    val notes = notesResult.getOrNull() ?: emptyList()
+
+                    // Convert to NoteItem objects
+                    val noteItems = notes.map { note ->
+                        NoteItem(
+                            id = note.id,
+                            title = note.title,
+                            date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                                .format(Date(note.createdAt)),
+                            isFolder = false
+                        )
+                    }
+
+                    notesList.addAll(noteItems)
+                    adapter.notifyDataSetChanged()
+                } else {
+                    Toast.makeText(this@NoteActivity, "Failed to load notes", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
             }
         }
+    }
 
-        // Thông báo adapter
-        adapter.notifyDataSetChanged()
+    private fun updateMenuForFolderView() {
+        // In folder view (top level), only show folder creation option
+        binding.noteButtonMenu.text = getString(R.string.create_new_folder)
+    }
+
+    private fun updateMenuForNoteView() {
+        // In note view (inside folder), show note creation options
+        binding.noteButtonMenu.text = getString(R.string.create_new_note)
     }
 
     private fun showNewItemOptions(anchorView: View?) {
         if (anchorView != null) {
-            // Hiển thị menu ngay dưới view đã nhấp
             val popupMenu = if (isInFolder) {
+                // Inside folder - show note creation options
                 PopupMenu(this, anchorView).apply {
                     menuInflater.inflate(R.menu.menu_folder_action, menu)
                 }
             } else {
+                // Top level - show folder creation option
                 PopupMenu(this, anchorView).apply {
                     menuInflater.inflate(R.menu.menu_note_action, menu)
                 }
             }
 
-            enablePopupIcons(popupMenu)
+            // Enable icons
+            try {
+                val menuField = PopupMenu::class.java.getDeclaredField("mPopup")
+                menuField.isAccessible = true
+                val menuPopupHelper = menuField.get(popupMenu)
+
+                val classPopupHelper = Class.forName(menuPopupHelper.javaClass.name)
+                val setForceIcons = classPopupHelper.getMethod("setForceShowIcon", Boolean::class.java)
+                setForceIcons.invoke(menuPopupHelper, true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
             popupMenu.setOnMenuItemClickListener { item ->
                 handleMenuItemClick(item.itemId)
@@ -413,52 +357,53 @@ class NoteActivity : AppCompatActivity() {
 
             popupMenu.show()
         } else {
-            // Nếu không có view nào được truyền, sử dụng nút menu mặc định
-            addNewButton.performClick()
+            binding.noteButtonMenu.performClick()
         }
     }
-    // Thêm vào NoteActivity.kt (trong onResume)
-    override fun onResume() {
-        super.onResume()
 
-        // Cập nhật lại adapter để hiển thị thumbnail mới
-        adapter.notifyDataSetChanged()
-
-        // Hoặc tải lại toàn bộ dữ liệu nếu cần
-        loadSavedNotes()
-        setupRecyclerView()
-    }
     private fun showItemOptions(anchorView: View, item: NoteItem) {
-        // Hiển thị menu tùy chọn cho item (note hoặc thư mục)
         val popupMenu = PopupMenu(this, anchorView)
         popupMenu.menuInflater.inflate(R.menu.menu_item_options, popupMenu.menu)
 
-        enablePopupIcons(popupMenu)
-
-        // Đặt màu đỏ cho văn bản Xóa
+        // Enable icons
         try {
-            val menu = popupMenu.menu
-            val deleteItem = menu.findItem(R.id.action_delete)
-            deleteItem?.let {
-                // Tạo SpannableString để đặt màu cho văn bản
-                val spannableString = SpannableString(it.title)
-                spannableString.setSpan(ForegroundColorSpan(getColor(R.color.delete_red)), 0, spannableString.length, 0)
-                it.title = spannableString
-            }
+            val menuField = PopupMenu::class.java.getDeclaredField("mPopup")
+            menuField.isAccessible = true
+            val menuPopupHelper = menuField.get(popupMenu)
+
+            val classPopupHelper = Class.forName(menuPopupHelper.javaClass.name)
+            val setForceIcons = classPopupHelper.getMethod("setForceShowIcon", Boolean::class.java)
+            setForceIcons.invoke(menuPopupHelper, true)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+
+        // Set color for delete option
+        val deleteItem = popupMenu.menu.findItem(R.id.action_delete)
+        val spanString = SpannableString(deleteItem.title.toString())
+        spanString.setSpan(ForegroundColorSpan(ContextCompat.getColor(this, R.color.delete_red)),
+            0, spanString.length, 0)
+        deleteItem.title = spanString
+
+        // Add share option for folders
+        if (item.isFolder) {
+            popupMenu.menu.add(0, R.id.action_share, 0, "Share").apply {
+                setIcon(R.drawable.ic_help)
+            }
         }
 
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_rename -> {
-                    // Hiển thị dialog đổi tên
                     showRenameDialog(item)
                     true
                 }
                 R.id.action_delete -> {
-                    // Hiển thị xác nhận xóa
                     showDeleteConfirmation(item)
+                    true
+                }
+                R.id.action_share -> {
+                    showShareOptions(item)
                     true
                 }
                 else -> false
@@ -468,73 +413,47 @@ class NoteActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
+    private fun showShareOptions(item: NoteItem) {
+        val qrCodeFragment = QRCodeFragment.newInstance(item.id, item.isFolder)
+        qrCodeFragment.show(supportFragmentManager, "qrcode_dialog")
+    }
+
     private fun handleMenuItemClick(itemId: Int): Boolean {
         return when (itemId) {
-            R.id.action_uploadfile -> {
-                // Mở file picker để chọn ảnh
-                openFilePicker()
-                true
-            }
-            R.id.action_createnote -> {
-                // Sử dụng camera để chụp ảnh mới
-                openCamera()
-                true
-            }
             R.id.action_createfolder -> {
-                // Hiển thị dialog tạo thư mục mới
                 showCreateFolderDialog()
                 true
             }
-            R.id.action_camera -> {
-                // Sử dụng camera để chụp ảnh mới (giống action_createnote)
-                openCamera()
+            R.id.action_createnote, R.id.action_camera -> {
+                if (isInFolder) {
+                    checkCameraPermission()
+                } else {
+                    Toast.makeText(this, "Please enter a folder to create notes", Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
+            R.id.action_uploadfile -> {
+                if (isInFolder) {
+                    checkStoragePermission()
+                } else {
+                    Toast.makeText(this, "Please enter a folder to upload notes", Toast.LENGTH_SHORT).show()
+                }
                 true
             }
             R.id.action_scan -> {
-                // Tính năng quét sẽ được phát triển sau
-                Toast.makeText(this, "Tính năng đang phát triển", Toast.LENGTH_SHORT).show()
+                if (isInFolder) {
+                    // Start QR code scanner
+                    startActivity(Intent(this, QRScannerActivity::class.java))
+                } else {
+                    Toast.makeText(this, "Please enter a folder to scan", Toast.LENGTH_SHORT).show()
+                }
                 true
             }
             else -> false
         }
     }
 
-    private fun setupMenuButton() {
-        addNewButton.setOnClickListener {
-            val menuRes = if (isInFolder) R.menu.menu_folder_action else R.menu.menu_note_action
-            val popupMenu = PopupMenu(this, addNewButton)
-            popupMenu.menuInflater.inflate(menuRes, popupMenu.menu)
-
-            enablePopupIcons(popupMenu)
-
-            popupMenu.setOnMenuItemClickListener { item ->
-                handleMenuItemClick(item.itemId)
-            }
-
-            popupMenu.show()
-        }
-    }
-
-    private fun enablePopupIcons(popupMenu: PopupMenu) {
-        try {
-            val fields = popupMenu.javaClass.declaredFields
-            for (field in fields) {
-                if (field.name == "mPopup") {
-                    field.isAccessible = true
-                    val menuPopupHelper = field.get(popupMenu)
-                    val classPopupHelper = Class.forName(menuPopupHelper.javaClass.name)
-                    val setForceIcons = classPopupHelper.getMethod("setForceShowIcon", Boolean::class.java)
-                    setForceIcons.invoke(menuPopupHelper, true)
-                    break
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     private fun showRenameDialog(item: NoteItem) {
-        // Tạo dialog để đổi tên
         val dialogView = layoutInflater.inflate(R.layout.dialog_rename, null)
         val editText = dialogView.findViewById<EditText>(R.id.edit_name)
         editText.setText(item.title)
@@ -545,7 +464,6 @@ class NoteActivity : AppCompatActivity() {
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val newName = editText.text.toString().trim()
                 if (newName.isNotEmpty()) {
-                    // Cập nhật tên
                     renameItem(item, newName)
                 }
             }
@@ -554,63 +472,170 @@ class NoteActivity : AppCompatActivity() {
     }
 
     private fun renameItem(item: NoteItem, newName: String) {
-        // Cập nhật tên item
-        item.title = newName
-        adapter.notifyDataSetChanged()
-        Toast.makeText(this, "Đã đổi tên thành: $newName", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
 
-        // Lưu thay đổi
-        saveNotes()
+            try {
+                val result = if (item.isFolder) {
+                    // Rename folder
+                    val folder = FolderFirebaseModel(
+                        id = item.id,
+                        title = newName,
+                        ownerId = currentUserId,
+                        // Keep other properties the same by getting current folder first
+                        createdAt = Date().time,
+                        updatedAt = Date().time
+                    )
+                    repository.updateFolder(folder)
+                } else {
+                    // Rename note - first get the current note
+                    val noteResult = repository.getNote(item.id)
+
+                    if (noteResult.isSuccess) {
+                        val currentNote = noteResult.getOrNull()!!
+                        val updatedNote = currentNote.copy(title = newName)
+                        repository.updateNote(updatedNote)
+                    } else {
+                        Result.failure(Exception("Failed to get note"))
+                    }
+                }
+
+                if (result.isSuccess) {
+                    // Update local data
+                    item.title = newName
+                    adapter.notifyDataSetChanged()
+                    Toast.makeText(this@NoteActivity, "Renamed successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@NoteActivity, "Failed to rename", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
     }
 
     private fun showDeleteConfirmation(item: NoteItem) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle(R.string.delete)
-        builder.setMessage("Bạn có chắc chắn muốn xóa ${item.title}?")
+        val itemType = if (item.isFolder) "folder" else "note"
 
-        // Đặt màu đỏ cho nút Xóa
-        builder.setPositiveButton(android.R.string.yes) { _, _ ->
-            deleteItem(item)
-        }
-        builder.setNegativeButton(android.R.string.no, null)
-
-        val dialog = builder.create()
-        dialog.show()
-
-        // Đặt màu đỏ cho nút tích cực (Xóa)
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(getColor(R.color.delete_red))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage("Are you sure you want to delete this $itemType? This action cannot be undone.")
+            .setPositiveButton(android.R.string.yes) { _, _ ->
+                deleteItem(item)
+            }
+            .setNegativeButton(android.R.string.no, null)
+            .show()
     }
 
     private fun deleteItem(item: NoteItem) {
-        // Nếu là note với ảnh, xóa ảnh từ bộ nhớ
-        if (!item.isFolder) {
-            storageManager.deleteNote(item.id)
+        lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
+
+            try {
+                val result = if (item.isFolder) {
+                    repository.deleteFolder(item.id)
+                } else {
+                    repository.deleteNote(item.id)
+                }
+
+                if (result.isSuccess) {
+                    // Remove from local list
+                    notesList.remove(item)
+                    adapter.notifyDataSetChanged()
+
+                    val itemType = if (item.isFolder) "folder" else "note"
+                    Toast.makeText(this@NoteActivity, "$itemType deleted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@NoteActivity, "Failed to delete", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
         }
+    }
 
-        // Xóa item từ danh sách hiển thị hiện tại
-        notesList.remove(item)
+    private fun showCreateFolderDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_rename, null)
+        val editText = dialogView.findViewById<EditText>(R.id.edit_name)
+        editText.hint = "Enter folder name"
 
-        // Nếu đang trong thư mục, cần xóa khỏi cấu trúc dữ liệu chính
-        if (isInFolder && currentFolderId != null) {
-            // Tìm thư mục cha chứa item này
-            for (mainItem in mainNotesList) {
-                if (mainItem.id == currentFolderId && mainItem.isFolder) {
-                    // Xóa item khỏi danh sách con của thư mục
-                    val children = mainItem.getChildNotes().toMutableList()
-                    children.remove(item)
-                    break
+        AlertDialog.Builder(this)
+            .setTitle("Create New Folder")
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val folderName = editText.text.toString().trim()
+                if (folderName.isNotEmpty()) {
+                    createNewFolder(folderName)
+                } else {
+                    Toast.makeText(this, "Folder name cannot be empty", Toast.LENGTH_SHORT).show()
                 }
             }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun createNewFolder(folderName: String) {
+        lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
+
+            try {
+                val result = repository.createFolder(folderName)
+
+                if (result.isSuccess) {
+                    val newFolder = result.getOrNull()!!
+
+                    // Add to local list
+                    val folderItem = NoteItem(
+                        id = newFolder.id,
+                        title = newFolder.title,
+                        date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                            .format(Date(newFolder.createdAt)),
+                        isFolder = true
+                    )
+
+                    notesList.add(0, folderItem) // Add at the top
+                    adapter.notifyDataSetChanged()
+
+                    Toast.makeText(this@NoteActivity, "Folder created", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@NoteActivity, "Failed to create folder", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            pendingAction = PendingAction.OPEN_CAMERA
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         } else {
-            // Nếu đang ở màn hình chính, xóa khỏi danh sách chính
-            mainNotesList.remove(item)
+            openCamera()
+        }
+    }
+
+    private fun checkStoragePermission() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
         }
 
-        adapter.notifyDataSetChanged()
-        Toast.makeText(this, "Đã xóa ${item.title}", Toast.LENGTH_SHORT).show()
-
-        // Lưu thay đổi
-        saveNotes()
+        if (ContextCompat.checkSelfPermission(this, permission)
+            != PackageManager.PERMISSION_GRANTED) {
+            pendingAction = PendingAction.OPEN_GALLERY
+            requestPermissionLauncher.launch(permission)
+        } else {
+            openFilePicker()
+        }
     }
 
     private fun openFilePicker() {
@@ -619,9 +644,9 @@ class NoteActivity : AppCompatActivity() {
             addCategory(Intent.CATEGORY_OPENABLE)
         }
         try {
-            startActivityForResult(Intent.createChooser(intent, "Chọn ảnh"), REQUEST_IMAGE_PICK)
+            startActivityForResult(Intent.createChooser(intent, "Select Image"), REQUEST_IMAGE_PICK)
         } catch (e: Exception) {
-            Toast.makeText(this, "Không thể mở trình chọn ảnh", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Cannot open file picker", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -641,23 +666,18 @@ class NoteActivity : AppCompatActivity() {
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
             } catch (e: Exception) {
-                Log.e(TAG, "Lỗi khi tạo file ảnh: ${e.message}")
-                Toast.makeText(this, "Không thể mở camera", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Cannot open camera", Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(this, "Không tìm thấy ứng dụng camera", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun createTempImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_${timeStamp}_"
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        return File.createTempFile(
-            imageFileName,
-            ".jpg",
-            storageDir
-        )
+        val storageDir = getExternalFilesDir(null)
+        return File.createTempFile(imageFileName, ".jpg", storageDir)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -666,164 +686,112 @@ class NoteActivity : AppCompatActivity() {
         if (resultCode == Activity.RESULT_OK) {
             when (requestCode) {
                 REQUEST_IMAGE_PICK -> {
-                    try {
-                        data?.data?.let { uri ->
-                            // Lưu URI tạm thời và hiện dialog đặt tên
-                            photoUri = uri
-                            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-                                .format(Date())
-                            showNoteNameDialog("Image_$timestamp")
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Lỗi khi xử lý ảnh từ gallery: ${e.message}")
-                        Toast.makeText(this, "Không thể xử lý ảnh đã chọn", Toast.LENGTH_SHORT).show()
+                    data?.data?.let { uri ->
+                        photoUri = uri
+                        showNoteNameDialog("Image_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}")
                     }
                 }
                 REQUEST_IMAGE_CAPTURE -> {
-                    try {
-                        // Ảnh đã được lưu vào photoUri
-                        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-                            .format(Date())
-                        showNoteNameDialog("Camera_$timestamp")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Lỗi khi xử lý ảnh từ camera: ${e.message}")
-                        Toast.makeText(this, "Không thể xử lý ảnh vừa chụp", Toast.LENGTH_SHORT).show()
-                    }
+                    showNoteNameDialog("Camera_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}")
                 }
             }
         }
     }
 
-    private fun showNoteNameDialog(defaultName: String = "") {
+    private fun showNoteNameDialog(defaultName: String) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_rename, null)
         val editText = dialogView.findViewById<EditText>(R.id.edit_name)
-
-        if (defaultName.isNotEmpty()) {
-            editText.setText(defaultName)
-        }
+        editText.setText(defaultName)
 
         AlertDialog.Builder(this)
-            .setTitle("Tên ghi chú")
+            .setTitle("Note Name")
             .setView(dialogView)
-            .setPositiveButton("Lưu") { _, _ ->
+            .setPositiveButton(android.R.string.ok) { _, _ ->
                 val noteName = editText.text.toString().trim()
                 if (noteName.isNotEmpty()) {
-                    createNoteFromImage(noteName)
-                }
-            }
-            .setNegativeButton("Hủy", null)
-            .show()
-    }
-
-    private fun createNoteFromImage(noteName: String) {
-        photoUri?.let { uri ->
-            // Hiển thị loading
-            val progressDialog = ProgressDialog(this)
-            progressDialog.setMessage("Đang xử lý ảnh...")
-            progressDialog.setCancelable(false)
-            progressDialog.show()
-
-            // Xử lý trên thread riêng
-            Thread {
-                val newNote = storageManager.createNoteFromUri(uri, noteName)
-
-                runOnUiThread {
-                    progressDialog.dismiss()
-
-                    if (newNote != null) {
-                        // Thêm note vào danh sách và cập nhật adapter
-                        if (isInFolder && currentFolderId != null) {
-                            // Thêm note vào CUỐI thư mục hiện tại
-                            notesList.add(newNote) // Thêm vào cuối danh sách
-
-                            // Tìm và cập nhật thư mục trong danh sách chính
-                            for (mainItem in mainNotesList) {
-                                if (mainItem.id == currentFolderId) {
-                                    mainItem.addChildNote(newNote) // Thêm vào cuối thư mục
-                                    break
-                                }
-                            }
-                        } else {
-                            // Thêm vào CUỐI danh sách chính
-                            notesList.add(newNote) // Thêm vào cuối danh sách
-                            mainNotesList.add(newNote) // Thêm vào cuối danh sách
-                        }
-
-                        adapter.notifyDataSetChanged()
-                        Toast.makeText(this, "Đã tạo ghi chú mới", Toast.LENGTH_SHORT).show()
-
-                        // Lưu thay đổi
-                        saveNotes()
-                    } else {
-                        Toast.makeText(this, "Không thể tạo ghi chú mới", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }.start()
-        }
-    }
-
-
-    private fun showCreateFolderDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_rename, null)
-        val editText = dialogView.findViewById<EditText>(R.id.edit_name)
-
-        AlertDialog.Builder(this)
-            .setTitle("Tạo thư mục mới")
-            .setView(dialogView)
-            .setPositiveButton("Tạo") { _, _ ->
-                val folderName = editText.text.toString().trim()
-                if (folderName.isNotEmpty()) {
-                    createNewFolder(folderName)
+                    createNote(noteName)
                 } else {
-                    Toast.makeText(this, "Vui lòng nhập tên thư mục", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Note name cannot be empty", Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Hủy", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
-    private fun createNewFolder(folderName: String) {
-        // Tạo ID duy nhất cho folder
-        val folderId = "folder_${System.currentTimeMillis()}"
-
-        // Định dạng ngày hiện tại
-        val dateFormat = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
-        val currentDate = dateFormat.format(Date())
-
-        // Tạo folder mới (đánh dấu isFolder=true)
-        val newFolder = NoteItem(folderId, folderName, currentDate, true)
-
-        if (isInFolder && currentFolderId != null) {
-            // Thêm folder mới vào CUỐI thư mục hiện tại
-            notesList.add(newFolder) // Thêm vào cuối danh sách
-
-            // Thêm folder mới vào thư mục cha trong danh sách chính
-            for (mainItem in mainNotesList) {
-                if (mainItem.id == currentFolderId) {
-                    mainItem.addChildNote(newFolder) // Thêm vào cuối thư mục con
-                    break
-                }
-            }
-        } else {
-            // Thêm folder mới vào CUỐI danh sách chính
-            notesList.add(newFolder) // Thêm vào cuối danh sách
-            mainNotesList.add(newFolder) // Thêm vào cuối danh sách
+    private fun createNote(noteName: String) {
+        if (currentFolderId == null) {
+            Toast.makeText(this, "Please enter a folder to create notes", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        adapter.notifyDataSetChanged()
-        Toast.makeText(this, "Đã tạo thư mục mới", Toast.LENGTH_SHORT).show()
+        binding.progressBar.visibility = View.VISIBLE
 
-        // Lưu thay đổi
-        saveNotes()
+        lifecycleScope.launch {
+            try {
+                val contentResolver = applicationContext.contentResolver
+                val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, photoUri)
+
+                val result = repository.createNote(noteName, currentFolderId!!, bitmap)
+
+                if (result.isSuccess) {
+                    val newNote = result.getOrNull()!!
+
+                    // Add to local list
+                    val noteItem = NoteItem(
+                        id = newNote.id,
+                        title = newNote.title,
+                        date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                            .format(Date(newNote.createdAt)),
+                        isFolder = false
+                    )
+
+                    notesList.add(0, noteItem) // Add at the top
+                    adapter.notifyDataSetChanged()
+
+                    Toast.makeText(this@NoteActivity, "Note created", Toast.LENGTH_SHORT).show()
+
+                    // Open the note detail activity
+                    val intent = Intent(this@NoteActivity, NoteDetailActivity::class.java).apply {
+                        putExtra("note_id", newNote.id)
+                        putExtra("note_title", newNote.title)
+                    }
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this@NoteActivity, "Failed to create note", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
     }
 
-    // Lớp helper để lưu trữ lịch sử thư mục
-    data class FolderHistoryItem(val folderId: String?, val folderTitle: String?)
+    private fun sortItemsByDate() {
+        notesList.sortByDescending {
+            try {
+                SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                    .parse(it.date)?.time ?: 0L
+            } catch (e: Exception) {
+                0L
+            }
+        }
+        adapter.notifyDataSetChanged()
+    }
 
-    // Xử lý nút back
+    private fun sortItemsByName() {
+        notesList.sortBy { it.title.lowercase() }
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun sortItemsByType() {
+        notesList.sortWith(compareBy({ !it.isFolder }, { it.title.lowercase() }))
+        adapter.notifyDataSetChanged()
+    }
+
     override fun onBackPressed() {
         if (isInFolder) {
-            navigateBack()
+            showFoldersView()
         } else {
             super.onBackPressed()
         }

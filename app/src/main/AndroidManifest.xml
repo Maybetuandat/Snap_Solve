@@ -17,6 +17,9 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".presentation.feature.QRScanner"
+            android:exported="false" />
+        <activity
             android:name=".presentation.feature.auth.UpdateProfileActivity"
             android:exported="false" />
         <activity

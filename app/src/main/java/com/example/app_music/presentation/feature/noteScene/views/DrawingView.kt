@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.noteScene.views
+package com.example.app_music.presentation.feature.noteScene.views
 
 import android.content.Context
 import android.graphics.Bitmap
