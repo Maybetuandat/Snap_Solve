@@ -4,6 +4,7 @@ import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.storage.FirebaseStorage
 
 class SnapSolveApplication : Application() {
     override fun onCreate() {
@@ -21,5 +22,6 @@ class SnapSolveApplication : Application() {
                 .setPersistenceEnabled(true)
                 .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
                 .build()
+        FirebaseStorage.getInstance()
     }
 }

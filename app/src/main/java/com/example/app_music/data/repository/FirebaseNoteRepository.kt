@@ -298,14 +298,22 @@ class FirebaseNoteRepository {
         // Generate a shareable URL with the noteId
         return "snapsolve://notes/$noteId"
     }
-    
+
     suspend fun getImageBitmap(imagePath: String): Result<Uri> {
         return try {
-            val imageRef = storage.reference.child(imagePath)
+            // Đầu tiên kiểm tra xem đường dẫn đã có "images/" chưa
+            val fullPath = if (!imagePath.startsWith("images/")) {
+                "images/$imagePath"
+            } else {
+                imagePath
+            }
+
+            Log.d(TAG, "Đang tải ảnh từ: $fullPath")
+            val imageRef = storage.reference.child(fullPath)
             val uri = imageRef.downloadUrl.await()
             Result.success(uri)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting image", e)
+            Log.e(TAG, "Lỗi tải ảnh từ đường dẫn: $imagePath", e)
             Result.failure(e)
         }
     }
