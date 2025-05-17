@@ -131,7 +131,16 @@ class CollaborationManager(private val noteId: String) {
     fun removeUserPresence() {
         userPresenceRef.removeValue()
     }
-    
+    fun cleanup() {
+        // Hủy đăng ký tất cả các listener
+        try {
+            userPresenceRef.removeValue()
+            // Hủy các listener khác nếu cần
+        } catch (e: Exception) {
+            Log.e(TAG, "Lỗi khi dọn dẹp CollaborationManager", e)
+        }
+    }
+
     /**
      * Get active users as a flow
      */

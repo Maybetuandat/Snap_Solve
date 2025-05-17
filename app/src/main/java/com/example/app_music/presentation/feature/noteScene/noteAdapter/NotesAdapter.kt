@@ -11,6 +11,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
 import com.example.app_music.presentation.feature.noteScene.NoteDetailActivity
@@ -68,7 +69,21 @@ class NotesAdapter(
     }
 
     override fun getItemCount(): Int = notesList.size + 1 // +1 for the NEW item
+    class NotesDiffCallback(
+        private val oldList: List<NoteItem>,
+        private val newList: List<NoteItem>
+    ) : DiffUtil.Callback() {
+        override fun getOldListSize() = oldList.size
+        override fun getNewListSize() = newList.size
 
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition].id == newList[newItemPosition].id
+        }
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition] == newList[newItemPosition]
+        }
+    }
     inner class NewItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val newFolderButton: LinearLayout = itemView.findViewById(R.id.newFolderButton)
         private val textNewTitle: TextView = itemView.findViewById(R.id.textNewTitle)
