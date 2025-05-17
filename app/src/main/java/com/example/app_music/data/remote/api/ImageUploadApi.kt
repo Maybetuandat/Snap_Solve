@@ -1,6 +1,6 @@
 package com.example.app_music.data.remote.api
 
-import okhttp3.MediaType
+import com.example.app_music.domain.model.ImageUploadResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -20,12 +20,3 @@ interface ImageUploadApi {
     ): Response<ImageUploadResponse>
 }
 
-/**
- * Response data class for image upload
- */
-data class ImageUploadResponse(
-    val success: Boolean,
-    val message: String,
-    val imageUrl: String? = null,
-    val imageId: String? = null
-)

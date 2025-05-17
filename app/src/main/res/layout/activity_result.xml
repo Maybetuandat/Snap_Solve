@@ -83,8 +83,9 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Results Pagination - Using TextView circles instead of Chips -->
+            <!-- Results Pagination - Using TextView circles as indicators -->
             <LinearLayout
+                android:id="@+id/paginationContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="8dp"
@@ -100,6 +101,7 @@
                     android:textSize="14sp" />
 
                 <TextView
+                    android:id="@+id/pageIndicator1"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_marginHorizontal="4dp"
@@ -111,6 +113,7 @@
                     android:textSize="12sp" />
 
                 <TextView
+                    android:id="@+id/pageIndicator2"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_marginHorizontal="4dp"
@@ -122,6 +125,7 @@
                     android:textSize="12sp" />
 
                 <TextView
+                    android:id="@+id/pageIndicator3"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_marginHorizontal="4dp"
@@ -133,6 +137,7 @@
                     android:textSize="12sp" />
 
                 <TextView
+                    android:id="@+id/pageIndicator4"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_marginHorizontal="4dp"
@@ -144,6 +149,7 @@
                     android:textSize="12sp" />
 
                 <TextView
+                    android:id="@+id/pageIndicator5"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_marginHorizontal="4dp"
@@ -177,41 +183,6 @@
                 android:padding="16dp"
                 android:visibility="gone"
                 tools:visibility="visible">
-
-<!--                <TextView-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:text="Question:"-->
-<!--                    android:textColor="@color/black"-->
-<!--                    android:textSize="16sp"-->
-<!--                    android:textStyle="bold" />-->
-
-<!--                <TextView-->
-<!--                    android:id="@+id/tvQuestion"-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_marginTop="4dp"-->
-<!--                    android:textColor="@color/black"-->
-<!--                    android:textSize="14sp"-->
-<!--                    tools:text="Tìm hệ số a,b,c để y sau có cực trị: y = a·x² + b·x + c·y + x²" />-->
-
-<!--                <TextView-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_marginTop="16dp"-->
-<!--                    android:text="Answer:"-->
-<!--                    android:textColor="@color/black"-->
-<!--                    android:textSize="16sp"-->
-<!--                    android:textStyle="bold" />-->
-
-<!--                <TextView-->
-<!--                    android:id="@+id/tvAnswer"-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_marginTop="4dp"-->
-<!--                    android:textColor="@color/black"-->
-<!--                    android:textSize="14sp"-->
-<!--                    tools:text="Để có cực trị, y' = 0: 2a·x + b + 2x = 0\nSắp xếp: (2a+2)x + b = 0\nVì phương trình này có nghiệm với mọi x, nên:\n2a+2 = 0 → a = -1\nb = 0\nDo đó (a,b,c) = (-1, 0, c) với c bất kỳ." />-->
 
                 <WebView
                     android:id="@+id/webViewResult"

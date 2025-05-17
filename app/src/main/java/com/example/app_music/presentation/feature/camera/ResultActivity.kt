@@ -3,9 +3,13 @@ package com.example.app_music.presentation.feature.camera
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.example.app_music.R
 import com.example.app_music.databinding.ActivityResultBinding
+import com.example.app_music.domain.model.Assignment
 import com.example.app_music.presentation.feature.common.BaseActivity
 import java.io.File
 
@@ -15,6 +19,7 @@ class ResultActivity : BaseActivity() {
     private lateinit var binding: ActivityResultBinding
     private lateinit var viewModel: ResultViewModel
     private var imagePath: String? = null
+    private lateinit var pageIndicators: List<TextView>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +32,22 @@ class ResultActivity : BaseActivity() {
         // Set toolbar back button
         binding.btnBack.setOnClickListener {
             finish()
+        }
+
+        // Initialize page indicators
+        pageIndicators = listOf(
+            binding.pageIndicator1,
+            binding.pageIndicator2,
+            binding.pageIndicator3,
+            binding.pageIndicator4,
+            binding.pageIndicator5
+        )
+
+        // Set up click listeners for indicators
+        pageIndicators.forEachIndexed { index, indicator ->
+            indicator.setOnClickListener {
+                viewModel.goToAssignment(index)
+            }
         }
 
         // Get the cropped image path from intent
@@ -44,7 +65,6 @@ class ResultActivity : BaseActivity() {
 
             // Upload to server automatically
             uploadImageToServer()
-
         } else {
             // Handle error case - no image
             Toast.makeText(this, "No image found", Toast.LENGTH_SHORT).show()
@@ -72,112 +92,170 @@ class ResultActivity : BaseActivity() {
                     showLoadingState()
                 }
                 is ResultViewModel.UploadStatus.Success -> {
-                    // If we get a success but no analysis results yet, keep showing loading
-                    // The analysis results observer will handle showing results
+                    // If we have assignments, they'll be shown by the assignments observer
+                    // Otherwise, keep showing loading
                     if (binding.linearResults.visibility != View.VISIBLE) {
                         binding.progressBar.visibility = View.VISIBLE
                     }
-
-                    // Log success
-                    val message = "Image uploaded successfully" +
-                            if (status.imageUrl != null) ", URL: ${status.imageUrl}" else ""
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 }
                 is ResultViewModel.UploadStatus.Error -> {
-                    // Show error but still display the image
+                    // Show error
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this, "Upload error: ${status.message}", Toast.LENGTH_LONG).show()
-
-                    // Show an empty result with only the cropped image
+                    Toast.makeText(this, status.message, Toast.LENGTH_LONG).show()
+                    // Still show the image
                     binding.linearResults.visibility = View.VISIBLE
                 }
             }
         }
 
-        // Observe analysis results
-        viewModel.analyzeResult.observe(this) { result ->
-            when (result) {
-                is ResultViewModel.AnalyzeResult.Loading -> {
-                    // Just keep the loading indicator visible
-                    binding.progressBar.visibility = View.VISIBLE
-                    binding.linearResults.visibility = View.GONE
-                }
-                is ResultViewModel.AnalyzeResult.Success -> {
-                    // Hide loading
+        // Observe assignments
+        viewModel.assignments.observe(this) { assignments ->
+            if (!assignments.isNullOrEmpty()) {
+                // Update pagination visibility
+                updatePaginationVisibility(assignments.size)
+
+                // Current assignment will be shown by the currentAssignmentIndex observer
+                binding.progressBar.visibility = View.GONE
+                binding.linearResults.visibility = View.VISIBLE
+            } else {
+                // Hide pagination if no assignments
+                updatePaginationVisibility(0)
+
+                if (viewModel.uploadStatus.value is ResultViewModel.UploadStatus.Success) {
+                    // Show empty state if upload was successful
                     binding.progressBar.visibility = View.GONE
                     binding.linearResults.visibility = View.VISIBLE
-
-                    // Hide text views and show WebView
-//                    binding.tvQuestion.visibility = View.GONE
-//                    binding.tvAnswer.visibility = View.GONE
-                    binding.webViewResult.visibility = View.VISIBLE
-
-                    // Configure WebView
-                    binding.webViewResult.settings.javaScriptEnabled = true
-
-                    // Create properly formatted content for MathJax
-                    val htmlContent = """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-                    <script type="text/x-mathjax-config">
-                        MathJax.Hub.Config({
-                            tex2jax: {
-                                inlineMath: [['$$','$$']],
-                                displayMath: [['\\[','\\]']]
-                            }
-                        });
-                    </script>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            line-height: 1.4;
-                            font-size: 14px;
-                            color: #333;
-                        }
-                        h3 { 
-                            margin-top: 8px; 
-                            margin-bottom: 12px; 
-                            color: #000;
-                            font-size: 16px;
-                        }
-                        p { margin-bottom: 16px; }
-                        .formula { 
-                            display: block;
-                            margin: 12px 0;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h3>Question:</h3>
-                    ${formatContentForWebView(result.question)}
-                    
-                    <h3>Answer:</h3>
-                    ${formatContentForWebView(result.answer)}
-                </body>
-                </html>
-            """.trimIndent()
-
-                    // Load content into WebView
-                    binding.webViewResult.loadDataWithBaseURL(
-                        null,
-                        htmlContent,
+                    binding.webViewResult.loadData(
+                        "<html><body><h3>No matching assignments found</h3></body></html>",
                         "text/html",
-                        "UTF-8",
-                        null
+                        "UTF-8"
                     )
                 }
-                is ResultViewModel.AnalyzeResult.Error -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.linearResults.visibility = View.VISIBLE
+            }
+        }
 
-                    Toast.makeText(this, "Analysis error: ${result.message}", Toast.LENGTH_LONG).show()
+        // Observe current assignment index
+        viewModel.currentAssignmentIndex.observe(this) { index ->
+            val assignments = viewModel.assignments.value ?: emptyList()
+            if (assignments.isNotEmpty() && index < assignments.size) {
+                // Update pagination indicators
+                updatePaginationIndicators(index, assignments.size)
+
+                // Display the current assignment
+                displayAssignment(assignments[index])
+            }
+        }
+    }
+
+    private fun updatePaginationVisibility(count: Int) {
+        // Show/hide pagination based on assignment count
+        val paginationContainer = binding.paginationContainer
+        paginationContainer.visibility = if (count > 0) View.VISIBLE else View.GONE
+
+        // Update which indicators are visible
+        pageIndicators.forEachIndexed { i, indicator ->
+            indicator.visibility = if (i < count) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun updatePaginationIndicators(currentIndex: Int, totalCount: Int) {
+        // Update styling of indicators
+        pageIndicators.forEachIndexed { index, indicator ->
+            if (index < totalCount) {
+                if (index == currentIndex) {
+                    indicator.background = ContextCompat.getDrawable(this, R.drawable.circle_selected)
+                    indicator.setTextColor(ContextCompat.getColor(this, R.color.white))
+                } else {
+                    indicator.background = ContextCompat.getDrawable(this, R.drawable.circle_unselected)
+                    indicator.setTextColor(ContextCompat.getColor(this, R.color.black))
                 }
             }
         }
+    }
+
+    private fun displayAssignment(assignment: Assignment) {
+        // Configure WebView
+        binding.webViewResult.visibility = View.VISIBLE
+        binding.webViewResult.settings.javaScriptEnabled = true
+
+        // Preprocess question and answer to handle LaTeX syntax
+        // Note: The server response has double backslashes which we need to handle
+        val processedQuestion = preprocessLatex(assignment.question)
+        val processedAnswer = preprocessLatex(assignment.answer)
+
+        // Create HTML content with MathJax for rendering LaTeX
+        val htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+            <script type="text/x-mathjax-config">
+                MathJax.Hub.Config({
+                    tex2jax: {
+                        inlineMath: [['\\(','\\)']],
+                        displayMath: [['\\[','\\]']]
+                    }
+                });
+            </script>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    line-height: 1.4;
+                    font-size: 14px;
+                    color: #333;
+                    padding: 8px;
+                }
+                h3 { 
+                    margin-top: 8px; 
+                    margin-bottom: 12px; 
+                    color: #000;
+                    font-size: 16px;
+                }
+                p { margin-bottom: 16px; }
+                br { 
+                    display: block;
+                    margin-top: 8px; 
+                }
+            </style>
+        </head>
+        <body>
+            <h3>Question:</h3>
+            <p>${processedQuestion}</p>
+            
+            <h3>Answer:</h3>
+            <p>${processedAnswer}</p>
+        </body>
+        </html>
+        """.trimIndent()
+
+        // Load content into WebView
+        binding.webViewResult.loadDataWithBaseURL(
+            null,
+            htmlContent,
+            "text/html",
+            "UTF-8",
+            null
+        )
+    }
+
+    // Function to handle LaTeX formatting
+    private fun preprocessLatex(text: String): String {
+
+        // Thử nhiều phương pháp thay thế khác nhau
+        var processed = text
+
+        // 1. Thay thế ký tự xuống dòng thực sự (ASCII 10)
+        processed = processed.replace("\n", "<br>")
+
+        // 2. Thay thế chuỗi "\n" (gồm 2 ký tự)
+        processed = processed.replace("\\n", "<br>")
+
+        // 3. Xử lý các dấu gạch chéo ngược của LaTeX
+        processed = processed.replace("\\\\", "\\")
+
+        return processed
     }
 
     private fun showLoadingState() {
@@ -201,32 +279,5 @@ class ResultActivity : BaseActivity() {
                 Toast.makeText(this, "Your question has been posted to the community", Toast.LENGTH_SHORT).show()
             }
         }
-
-        // If we need to manually retry upload
-//        binding.btnRetry.setOnClickListener {
-//            // Get the file and manually upload
-//            imagePath?.let { path ->
-//                viewModel.manuallyUploadImage(File(path))
-//            }
-//        }
-    }
-
-    private fun formatContentForWebView(content: String): String {
-        // Split the content by lines
-        val lines = content.lines()
-
-        // Format each line
-        val formattedLines = lines.map { line ->
-            // If the line is empty, just return a paragraph break
-            if (line.trim().isEmpty()) {
-                return@map "<br>"
-            }
-
-            // Wrap each line in a paragraph tag
-            "<p>${line}</p>"
-        }
-
-        // Join the formatted lines
-        return formattedLines.joinToString("\n")
     }
 }
