@@ -9,7 +9,7 @@
     android:fitsSystemWindows="true"
     tools:context=".presentation.feature.menu.premiumuser.PremiumUser">
 
-    <!-- Top Bar -->
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/top_bar"
         android:layout_width="0dp"
