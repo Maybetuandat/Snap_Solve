@@ -59,17 +59,15 @@
             android:textSize="14sp"
             android:layout_marginTop="4dp" />
 
-        <ImageView
-            android:id="@+id/ivCommentImage"
+        <!-- RecyclerView cho ảnh comment -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvCommentImages"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:scaleType="fitStart"
-            android:maxHeight="200dp"
             android:layout_marginTop="8dp"
             android:visibility="gone"
             tools:visibility="visible"
-            tools:src="@drawable/lorem" />
+            tools:listitem="@layout/item_comment_image" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -78,24 +76,12 @@
             android:layout_marginTop="8dp">
 
             <TextView
-                android:id="@+id/tvCommentLike"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Like"
-                android:textColor="@color/selectedicon"
-                android:textSize="12sp"
-                android:paddingVertical="4dp"
-                android:paddingHorizontal="8dp"
-                android:background="?attr/selectableItemBackground" />
-
-            <TextView
                 android:id="@+id/tvCommentReply"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Reply"
+                android:text="Trả lời"
                 android:textColor="@color/selectedicon"
                 android:textSize="12sp"
-                android:layout_marginStart="16dp"
                 android:paddingVertical="4dp"
                 android:paddingHorizontal="8dp"
                 android:background="?attr/selectableItemBackground" />

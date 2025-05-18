@@ -1,8 +1,10 @@
 package com.example.app_music.presentation.feature.community.communityPostDetail
 
-import android.app.Activity
+import android.Manifest
 import android.app.Dialog
-import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
@@ -10,9 +12,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.app_music.R
@@ -20,6 +24,7 @@ import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.domain.model.Post
 import com.example.app_music.domain.utils.UrlUtils
 import com.example.app_music.presentation.feature.community.adapter.CommentAdapter
+import com.example.app_music.presentation.feature.community.communityPosting.SelectedImagesAdapter
 import com.google.android.material.snackbar.Snackbar
 import de.hdodenhof.circleimageview.CircleImageView
 
@@ -27,6 +32,7 @@ class PostDetailFragment : Fragment() {
 
     private lateinit var viewModel: PostDetailViewModel
     private lateinit var commentAdapter: CommentAdapter
+    private lateinit var selectedImagesAdapter: SelectedImagesAdapter
     private var currentUserId: Long = 0
 
     // Các thành phần UI
@@ -45,22 +51,32 @@ class PostDetailFragment : Fragment() {
     private lateinit var topicTagsContainer: LinearLayout
     private lateinit var btnBack: ImageButton
     private lateinit var btnLike: LinearLayout
-    private lateinit var ivLike: ImageView // Thêm biến này để tham chiếu đến biểu tượng trái tim
+    private lateinit var ivLike: ImageView
     private lateinit var progressBar: ProgressBar
     private lateinit var rvPostImages: RecyclerView
     private lateinit var tvImagesLabel: TextView
+    private lateinit var rvSelectedCommentImages: RecyclerView
+    private lateinit var tvCommentImageCount: TextView
+
     private val imagesAdapter = PostImagesAdapter()
+    private val maxCommentImageCount = 10
 
     // Biến theo dõi trạng thái thích cục bộ
     private var isLikedLocally = false
 
-    // Chọn ảnh từ thư viện
-    private val getContent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val imageUri = result.data?.data
-            if (imageUri != null) {
-                viewModel.setCommentImage(imageUri)
-            }
+    // Chọn nhiều ảnh từ thư viện cho comment
+    private val getMultipleContent = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            handleSelectedCommentImages(uris)
+        }
+    }
+
+    // Yêu cầu quyền truy cập
+    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            openGalleryForComment()
+        } else {
+            Snackbar.make(requireView(), "Cần quyền truy cập hình ảnh để tải lên", Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -69,7 +85,6 @@ class PostDetailFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Sử dụng layout mới đã được điều chỉnh
         return inflater.inflate(R.layout.fragment_community_post_detail, container, false)
     }
 
@@ -86,7 +101,7 @@ class PostDetailFragment : Fragment() {
         findViews(view)
 
         // Thiết lập RecyclerView & Adapter
-        setupRecyclerView()
+        setupRecyclerViews()
 
         // Thiết lập các sự kiện click
         setupListeners()
@@ -97,10 +112,9 @@ class PostDetailFragment : Fragment() {
         // Tải dữ liệu bài viết
         loadPostData()
 
+        // Thiết lập post images adapter
         rvPostImages.adapter = imagesAdapter
         imagesAdapter.setOnImageClickListener { imageUrl, position ->
-            // Xử lý khi người dùng nhấn vào ảnh, có thể hiển thị ảnh ở chế độ toàn màn hình
-            // Ví dụ: mở dialog hiển thị ảnh
             showFullscreenImage(imageUrl)
         }
     }
@@ -121,9 +135,41 @@ class PostDetailFragment : Fragment() {
         topicTagsContainer = view.findViewById(R.id.topicTagsContainer)
         btnBack = view.findViewById(R.id.btnBack)
         btnLike = view.findViewById(R.id.btnLike)
-        ivLike = view.findViewById(R.id.ivLike) // Lấy tham chiếu đến ImageView trong btnLike
+        ivLike = view.findViewById(R.id.ivLike)
         rvPostImages = view.findViewById(R.id.rvPostImages)
         tvImagesLabel = view.findViewById(R.id.tvImagesLabel)
+
+        // Tìm hoặc tạo các view cho comment images
+        rvSelectedCommentImages = view.findViewById(R.id.rvSelectedCommentImages) ?: run {
+            // Nếu không có trong layout, tạo mới và thêm vào
+            val recyclerView = RecyclerView(requireContext())
+            recyclerView.id = View.generateViewId()
+            val commentInputArea = view.findViewById<LinearLayout>(R.id.commentInputArea)
+
+            val imageCountText = TextView(requireContext()).apply {
+                id = View.generateViewId()
+                text = "0/$maxCommentImageCount"
+                textSize = 12f
+                setTextColor(resources.getColor(android.R.color.darker_gray, null))
+                visibility = View.GONE
+            }
+            tvCommentImageCount = imageCountText
+
+            // Thêm vào comment input area (trước LinearLayout controls)
+            commentInputArea.addView(imageCountText, commentInputArea.childCount - 1)
+            commentInputArea.addView(recyclerView, commentInputArea.childCount - 1)
+
+            recyclerView
+        }
+
+        tvCommentImageCount = view.findViewById<TextView?>(R.id.tvCommentImageCount) ?: run {
+            val textView = TextView(requireContext())
+            textView.text = "0/$maxCommentImageCount"
+            textView.textSize = 12f
+            textView.setTextColor(resources.getColor(android.R.color.darker_gray, null))
+            textView.visibility = View.GONE
+            textView
+        }
 
         // Thêm progress bar nếu chưa có
         progressBar = ProgressBar(requireContext(), null, android.R.attr.progressBarStyleLarge)
@@ -135,19 +181,36 @@ class PostDetailFragment : Fragment() {
         progressBar.visibility = View.GONE
     }
 
-    private fun setupRecyclerView() {
+    private fun setupRecyclerViews() {
+        // Comment adapter
         commentAdapter = CommentAdapter()
         recyclerViewComments.adapter = commentAdapter
 
-        // Thiết lập sự kiện tương tác với comment
-        commentAdapter.setOnCommentLikeListener { comment ->
-            viewModel.likeComment(comment)
+        // Thiết lập sự kiện cho comment adapter
+        commentAdapter.setOnCommentReplyListener { comment ->
+            // Điều hướng đến reply fragment với commentId
+            val bundle = Bundle().apply {
+                putLong("commentId", comment.id)
+            }
+            findNavController().navigate(R.id.action_postDetailFragment_to_commentReplyFragment, bundle)
         }
 
-        commentAdapter.setOnCommentReplyListener { comment ->
-            etAddComment.requestFocus()
-            etAddComment.setText("@${comment.user.username} ")
-            etAddComment.setSelection(etAddComment.text.length)
+        commentAdapter.setOnViewRepliesListener { comment ->
+            // Điều hướng đến reply fragment để xem replies
+            val bundle = Bundle().apply {
+                putLong("commentId", comment.id)
+            }
+            findNavController().navigate(R.id.action_postDetailFragment_to_commentReplyFragment, bundle)
+        }
+
+        // Selected comment images adapter
+        selectedImagesAdapter = SelectedImagesAdapter()
+        rvSelectedCommentImages.layoutManager = GridLayoutManager(requireContext(), 3)
+        rvSelectedCommentImages.adapter = selectedImagesAdapter
+
+        // Xử lý sự kiện xóa ảnh comment
+        selectedImagesAdapter.setOnImageRemoveListener { position ->
+            viewModel.removeCommentImage(position)
         }
     }
 
@@ -171,21 +234,31 @@ class PostDetailFragment : Fragment() {
 
         // Thêm ảnh vào comment
         btnAddImage.setOnClickListener {
-            openGallery()
+            checkPermissionAndOpenGallery()
         }
 
         // Gửi comment
         btnSendComment.setOnClickListener {
             val commentText = etAddComment.text.toString().trim()
-            viewModel.postComment(commentText, viewModel.commentImageUri.value)
-            etAddComment.text.clear()
+            val selectedImages = viewModel.commentImageUris.value ?: emptyList()
+
+            if (commentText.isNotEmpty() || selectedImages.isNotEmpty()) {
+                // Chuyển đổi URI thành đường dẫn file
+                val imagePaths = selectedImages.mapNotNull { uri ->
+                    getPathFromUri(uri)
+                }
+
+                viewModel.postComment(commentText, currentUserId, imagePaths)
+                etAddComment.text.clear()
+            } else {
+                Toast.makeText(requireContext(), "Vui lòng nhập nội dung hoặc chọn ảnh", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun observeViewModel() {
         // Quan sát dữ liệu bài viết
         viewModel.post.observe(viewLifecycleOwner) { post ->
-            // Kiểm tra null trước khi sử dụng
             post?.let {
                 updateUI(it)
             }
@@ -210,9 +283,15 @@ class PostDetailFragment : Fragment() {
         }
 
         // Quan sát ảnh comment
-        viewModel.commentImageUri.observe(viewLifecycleOwner) { uri ->
-            if (uri != null) {
-                Snackbar.make(requireView(), "Đã đính kèm ảnh", Snackbar.LENGTH_SHORT).show()
+        viewModel.commentImageUris.observe(viewLifecycleOwner) { uris ->
+            selectedImagesAdapter.submitList(uris)
+            updateCommentImageUI(uris)
+        }
+
+        // Quan sát kết quả đăng comment
+        viewModel.commentResult.observe(viewLifecycleOwner) { success ->
+            if (success) {
+                Toast.makeText(requireContext(), "Đăng bình luận thành công", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -280,9 +359,6 @@ class PostDetailFragment : Fragment() {
             }
         }
 
-        // Hiển thị số lượng comments
-        tvCommentsCount.text = "${post.comment.size} bình luận"
-
         // Hiển thị các tag chủ đề
         setupTopicTags(post)
     }
@@ -292,7 +368,6 @@ class PostDetailFragment : Fragment() {
         if (isLiked) {
             // Đã thích - trái tim đỏ
             ivLike.setImageResource(R.drawable.ic_liked_red)
-
         } else {
             // Chưa thích - trái tim mặc định
             ivLike.setImageResource(R.drawable.ic_liked)
@@ -329,9 +404,102 @@ class PostDetailFragment : Fragment() {
         topicTagsContainer.visibility = View.VISIBLE
     }
 
-    private fun openGallery() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        getContent.launch(intent)
+    private fun checkPermissionAndOpenGallery() {
+        val currentImageCount = viewModel.commentImageUris.value?.size ?: 0
+        if (currentImageCount >= maxCommentImageCount) {
+            Toast.makeText(requireContext(), "Chỉ được chọn tối đa $maxCommentImageCount ảnh", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        when {
+            ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED -> {
+                openGalleryForComment()
+            }
+            shouldShowRequestPermissionRationale(permission) -> {
+                Snackbar.make(requireView(), "Cần quyền truy cập hình ảnh để đăng ảnh", Snackbar.LENGTH_LONG)
+                    .setAction("Cấp quyền") {
+                        requestPermissionLauncher.launch(permission)
+                    }
+                    .show()
+            }
+            else -> {
+                requestPermissionLauncher.launch(permission)
+            }
+        }
+    }
+
+    private fun openGalleryForComment() {
+        val currentImageCount = viewModel.commentImageUris.value?.size ?: 0
+        val remainingSlots = maxCommentImageCount - currentImageCount
+
+        if (remainingSlots <= 0) {
+            Toast.makeText(requireContext(), "Đã đạt giới hạn số lượng ảnh", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        getMultipleContent.launch("image/*")
+    }
+
+    private fun handleSelectedCommentImages(uris: List<Uri>) {
+        val currentImages = viewModel.commentImageUris.value ?: emptyList()
+        val currentCount = currentImages.size
+        val newCount = currentCount + uris.size
+
+        if (newCount > maxCommentImageCount) {
+            val canAdd = maxCommentImageCount - currentCount
+            val message = "Chỉ có thể thêm $canAdd ảnh nữa. Đã đạt giới hạn $maxCommentImageCount ảnh."
+            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+
+            val limitedUris = uris.take(canAdd)
+            viewModel.addCommentImages(limitedUris)
+        } else {
+            viewModel.addCommentImages(uris)
+        }
+    }
+
+    private fun updateCommentImageUI(uris: List<Uri>) {
+        val count = uris.size
+        tvCommentImageCount.text = "$count/$maxCommentImageCount"
+
+        if (count >= maxCommentImageCount) {
+            btnAddImage.alpha = 0.5f
+            tvCommentImageCount.setTextColor(resources.getColor(android.R.color.holo_red_light, null))
+        } else {
+            btnAddImage.alpha = 1.0f
+            tvCommentImageCount.setTextColor(resources.getColor(android.R.color.darker_gray, null))
+        }
+
+        if (count > 0) {
+            rvSelectedCommentImages.visibility = View.VISIBLE
+            tvCommentImageCount.visibility = View.VISIBLE
+        } else {
+            rvSelectedCommentImages.visibility = View.GONE
+            tvCommentImageCount.visibility = View.GONE
+        }
+    }
+
+    private fun getPathFromUri(uri: Uri): String? {
+        if (uri.scheme == "file") {
+            return uri.path
+        }
+
+        val projection = arrayOf(MediaStore.Images.Media.DATA)
+        val cursor = requireContext().contentResolver.query(uri, projection, null, null, null)
+
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val columnIndex = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                return it.getString(columnIndex)
+            }
+        }
+
+        return null
     }
 
     private fun tinhThoiGianTruocDay(ngay: java.time.LocalDate): String {

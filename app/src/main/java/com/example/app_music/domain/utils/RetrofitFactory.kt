@@ -1,9 +1,11 @@
 package com.example.app_music.domain.utils
 
 import com.example.app_music.data.remote.api.AuthApi
+import com.example.app_music.data.remote.api.CommentApi
 import com.example.app_music.data.remote.api.PostApi
 import com.example.app_music.data.remote.api.TopicApi
 import com.example.app_music.data.remote.api.UserApi
+import com.example.app_music.domain.model.Comment
 import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -13,6 +15,7 @@ object RetrofitFactory {
     private val retrofit by lazy {
         val gson = GsonBuilder()
             .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
+            .registerTypeAdapter(Comment::class.java, CommentDeserializer())
             .create()
 
         Retrofit.Builder()
@@ -38,4 +41,7 @@ object RetrofitFactory {
         retrofit.create(TopicApi::class.java)
     }
 
+    val commentApi: CommentApi by lazy {
+        retrofit.create(CommentApi::class.java)
+    }
 }

@@ -1,33 +1,37 @@
 package com.example.app_music.presentation.feature.community.adapter
 
+import android.app.Dialog
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.app_music.R
 import com.example.app_music.domain.model.Comment
+import com.example.app_music.domain.utils.UrlUtils
 import de.hdodenhof.circleimageview.CircleImageView
 
 class CommentAdapter : RecyclerView.Adapter<CommentAdapter.CommentViewHolder>() {
 
     private var comments = listOf<Comment>()
-    private var onCommentLikeListener: ((Comment) -> Unit)? = null
     private var onCommentReplyListener: ((Comment) -> Unit)? = null
+    private var onViewRepliesListener: ((Comment) -> Unit)? = null
 
     fun submitList(newComments: List<Comment>) {
         comments = newComments
         notifyDataSetChanged()
     }
 
-    fun setOnCommentLikeListener(listener: (Comment) -> Unit) {
-        onCommentLikeListener = listener
-    }
-
     fun setOnCommentReplyListener(listener: (Comment) -> Unit) {
         onCommentReplyListener = listener
+    }
+
+    fun setOnViewRepliesListener(listener: (Comment) -> Unit) {
+        onViewRepliesListener = listener
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentViewHolder {
@@ -46,41 +50,83 @@ class CommentAdapter : RecyclerView.Adapter<CommentAdapter.CommentViewHolder>() 
         private val tvUserName: TextView = itemView.findViewById(R.id.tvCommentUserName)
         private val tvTimeAgo: TextView = itemView.findViewById(R.id.tvCommentTimeAgo)
         private val tvContent: TextView = itemView.findViewById(R.id.tvCommentContent)
-        private val ivImage: ImageView = itemView.findViewById(R.id.ivCommentImage)
-        private val tvLike: TextView = itemView.findViewById(R.id.tvCommentLike)
-        private val tvReply: TextView = itemView.findViewById(R.id.tvCommentReply)
+        private val rvCommentImages: RecyclerView = itemView.findViewById(R.id.rvCommentImages)
+        private val tvCommentReply: TextView = itemView.findViewById(R.id.tvCommentReply)
+
+        private val commentImagesAdapter = CommentImagesAdapter()
+
 
         fun bind(comment: Comment) {
+            Log.d("CommentAdapter", "Binding comment:")
+            Log.d("CommentAdapter", "  ID: ${comment.id}")
+            Log.d("CommentAdapter", "  Content: ${comment.content}")
+            Log.d("CommentAdapter", "  ReplyCount: ${comment.replyCount}")
+            Log.d("CommentAdapter", "  User: ${comment.user.username}")
             tvUserName.text = comment.user.username
             tvTimeAgo.text = comment.getTimeAgo()
             tvContent.text = comment.content
 
             // Load user avatar
-            if (!comment.user.avatarUrl.isNullOrEmpty()) {
+            val avatarUrl = UrlUtils.getAbsoluteUrl(comment.user.avatarUrl)
+            if (avatarUrl.isNotEmpty()) {
                 Glide.with(itemView.context)
-                    .load(comment.user.avatarUrl)
+                    .load(avatarUrl)
                     .placeholder(R.drawable.avatar)
                     .into(ivUserAvatar)
             }
 
-            // Load comment image if present
-            if (!comment.image.isNullOrEmpty()) {
-                ivImage.visibility = View.VISIBLE
-                Glide.with(itemView.context)
-                    .load(comment.image)
-                    .into(ivImage)
+            // Hiển thị ảnh của comment nếu có
+            if (comment.images.isNotEmpty()) {
+                rvCommentImages.visibility = View.VISIBLE
+                rvCommentImages.layoutManager = GridLayoutManager(itemView.context, 2)
+                rvCommentImages.adapter = commentImagesAdapter
+                commentImagesAdapter.submitList(comment.images)
             } else {
-                ivImage.visibility = View.GONE
+                rvCommentImages.visibility = View.GONE
             }
 
-            // Set click listeners
-            tvLike.setOnClickListener {
-                onCommentLikeListener?.invoke(comment)
+            // Xử lý hiển thị nút trả lời/xem trả lời
+            if (comment.replyCount > 0) {
+                tvCommentReply.text = "Xem ${comment.replyCount} trả lời"
+                tvCommentReply.setOnClickListener {
+                    onViewRepliesListener?.invoke(comment)
+                }
+            } else {
+                tvCommentReply.text = "Trả lời"
+                tvCommentReply.setOnClickListener {
+                    onCommentReplyListener?.invoke(comment)
+                }
+            }
+            commentImagesAdapter.setOnImageClickListener { imageUrl, position ->
+                showFullscreenImage(imageUrl)
+            }
+        }
+
+        private fun showFullscreenImage(imageUrl: String) {
+            // Tạo một dialog hiển thị ảnh toàn màn hình
+            val dialog = Dialog(itemView.context, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+            val imageView = ImageView(itemView.context)
+
+            // Thiết lập thuộc tính cho ImageView
+            imageView.layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            imageView.scaleType = ImageView.ScaleType.FIT_CENTER
+
+            // Tải ảnh vào ImageView
+            Glide.with(itemView.context)
+                .load(imageUrl)
+                .into(imageView)
+
+            // Thiết lập sự kiện click để đóng dialog
+            imageView.setOnClickListener {
+                dialog.dismiss()
             }
 
-            tvReply.setOnClickListener {
-                onCommentReplyListener?.invoke(comment)
-            }
+            // Hiển thị dialog
+            dialog.setContentView(imageView)
+            dialog.show()
         }
     }
 }

@@ -12,6 +12,7 @@
         android:id="@+id/trendFragment"
         android:name="com.example.app_music.presentation.trend.TrendFragment"
         android:label="Trend" />
+
     <fragment
         android:id="@+id/communityFragment"
         android:name="com.example.app_music.presentation.feature.community.CommunityFragment"
@@ -44,7 +45,6 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
-
     </fragment>
 
     <fragment
@@ -84,8 +84,7 @@
     <fragment
         android:id="@+id/communityProfileFragment"
         android:name="com.example.app_music.presentation.feature.community.communityProfile.CommunityProfileFragment"
-        android:label="Profile"
-        >
+        android:label="Profile">
         <action
             android:id="@+id/action_communityProfileFragment_to_postDetailFragment"
             app:destination="@id/postDetailFragment"
@@ -94,7 +93,6 @@
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
-
 
     <fragment
         android:id="@+id/communityPostingFragment"
@@ -108,5 +106,22 @@
         <argument
             android:name="postId"
             app:argType="long" />
+        <action
+            android:id="@+id/action_postDetailFragment_to_commentReplyFragment"
+            app:destination="@id/replyCommentFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+
+    <fragment
+        android:id="@+id/replyCommentFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityPostDetail.CommentReplyFragment"
+        android:label="Reply Comments">
+        <argument
+            android:name="commentId"
+            app:argType="long" />
+    </fragment>
+
 </navigation>

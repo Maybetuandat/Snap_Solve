@@ -9,14 +9,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.app_music.domain.model.Comment
 import com.example.app_music.domain.model.Post
 import com.example.app_music.data.repository.PostRepositoryImpl
+import com.example.app_music.data.repository.CommentRepositoryImpl
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 class PostDetailViewModel : ViewModel() {
-    private val repository = PostRepositoryImpl()
-    private var postId: Long = 0 // Thêm biến để lưu ID bài viết
+    private val postRepository = PostRepositoryImpl()
+    private val commentRepository = CommentRepositoryImpl()
+    private var postId: Long = 0
 
-    // Thay đổi kiểu dữ liệu để chấp nhận null
     private val _post = MutableLiveData<Post?>()
     val post: LiveData<Post?> = _post
 
@@ -29,22 +29,25 @@ class PostDetailViewModel : ViewModel() {
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
-    private val _commentImageUri = MutableLiveData<Uri?>()
-    val commentImageUri: LiveData<Uri?> = _commentImageUri
+    private val _commentImageUris = MutableLiveData<List<Uri>>()
+    val commentImageUris: LiveData<List<Uri>> = _commentImageUris
+
+    private val _commentResult = MutableLiveData<Boolean>()
+    val commentResult: LiveData<Boolean> = _commentResult
 
     // Load post details by ID
     fun loadPostDetails(postId: Long) {
-        this.postId = postId // Lưu ID bài viết
+        this.postId = postId
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val response = repository.getPostById(postId)
+                val response = postRepository.getPostById(postId)
                 if (response.isSuccessful) {
                     val postData = response.body()
-                    // Kiểm tra null trước khi gán
                     if (postData != null) {
                         _post.value = postData
-                        _comments.value = postData.comment ?: emptyList()
+                        // Tải comment riêng biệt
+                        loadComments(postId)
                     } else {
                         _error.value = "Post data is empty"
                     }
@@ -60,6 +63,36 @@ class PostDetailViewModel : ViewModel() {
         }
     }
 
+    // Tải danh sách comment gốc của bài viết
+    private fun loadComments(postId: Long) {
+        viewModelScope.launch {
+            try {
+                val response = commentRepository.getRootCommentsByPostId(postId)
+                if (response.isSuccessful) {
+
+                    val comments = response.body() ?: emptyList()
+
+                    // Debug: Log toàn bộ response
+                    Log.d("PostDetailViewModel", "Raw response: ${response.raw()}")
+                    Log.d("PostDetailViewModel", "Comments received: ${comments.size}")
+
+                    // Debug: Log từng comment
+                    comments.forEach { comment ->
+                        Log.d("PostDetailViewModel",
+                            "Comment ID: ${comment.id}, replyCount: ${comment.replyCount}, content: ${comment.content}")
+                    }
+                    _comments.value = response.body() ?: emptyList()
+
+                } else {
+                    _error.value = "Error loading comments: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                Log.e("PostDetailViewModel", "Error loading comments", e)
+                _error.value = "Error: ${e.message}"
+            }
+        }
+    }
+
     // Thêm phương thức để xử lý thích/bỏ thích bài viết
     fun toggleLikePost(userId: Long) {
         if (postId <= 0) {
@@ -69,24 +102,17 @@ class PostDetailViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                _isLoading.value = true
-
-                // Kiểm tra xem người dùng đã thích bài viết này chưa
                 val currentPost = _post.value
                 val hasUserLiked = currentPost?.react?.any { it.user.id == userId } ?: false
 
                 val response = if (hasUserLiked) {
-                    // Nếu đã thích, gọi API để bỏ thích
-                    repository.unlikePost(postId, userId)
+                    postRepository.unlikePost(postId, userId)
                 } else {
-                    // Nếu chưa thích, gọi API để thích
-                    repository.likePost(postId, userId)
+                    postRepository.likePost(postId, userId)
                 }
 
                 if (response.isSuccessful) {
-                    // Cập nhật bài viết với dữ liệu mới từ server
                     val updatedPost = response.body()
-                    // Kiểm tra null trước khi gán
                     if (updatedPost != null) {
                         _post.postValue(updatedPost)
                     } else {
@@ -98,20 +124,18 @@ class PostDetailViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("PostDetailViewModel", "Error toggling like", e)
                 _error.value = "Error: ${e.message}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
-    // Set selected image for comment
-    fun setCommentImage(uri: Uri?) {
-        _commentImageUri.value = uri
+    // Set selected images for comment
+    fun setCommentImages(uris: List<Uri>) {
+        _commentImageUris.value = uris
     }
 
     // Post a new comment
-    fun postComment(content: String, imageUri: Uri?) {
-        if (content.isBlank() && imageUri == null) {
+    fun postComment(content: String, userId: Long, imagePaths: List<String>) {
+        if (content.isBlank() && imagePaths.isEmpty()) {
             _error.value = "Comment cannot be empty"
             return
         }
@@ -119,56 +143,40 @@ class PostDetailViewModel : ViewModel() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val currentPost = _post.value
-                if (currentPost == null) {
-                    _error.value = "Post is not loaded"
-                    return@launch
+                val response = commentRepository.createComment(content, userId, postId, imagePaths)
+                if (response.isSuccessful) {
+                    _commentResult.value = true
+                    // Tải lại danh sách comment sau khi đăng thành công
+                    loadComments(postId)
+                    // Xóa danh sách ảnh đã chọn
+                    _commentImageUris.value = emptyList()
+                } else {
+                    _error.value = "Error posting comment: ${response.code()} - ${response.message()}"
+                    _commentResult.value = false
                 }
-
-                // In a real app, you would upload the image first if imageUri is not null
-                // Then send the comment with image URL to the server
-
-                // For now, we'll simulate adding a comment locally
-                val currentComments = _comments.value?.toMutableList() ?: mutableListOf()
-
-                // Create a new comment (in a real app this would come from the API response)
-                val newComment = Comment(
-                    id = System.currentTimeMillis(), // Fake ID
-                    content = content,
-                    image = imageUri?.toString(), // In a real app this would be the uploaded image URL
-                    createDate = LocalDate.now(),
-                    user = currentPost.user // Use the current user
-                )
-
-                // Add to the list
-                currentComments.add(0, newComment)
-                _comments.postValue(currentComments)
-
-                // Clear the comment image
-                _commentImageUri.postValue(null)
-
-                // In a real app, you would call the repository method here
-                // val response = repository.addComment(postId, content, imageUrl)
             } catch (e: Exception) {
                 Log.e("PostDetailViewModel", "Error posting comment", e)
                 _error.value = "Error: ${e.message}"
+                _commentResult.value = false
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    // Like a comment
-    fun likeComment(comment: Comment) {
-        // In a real app, you would call the repository
-        // For now, just log the action
-        Log.d("PostDetailViewModel", "Like comment: ${comment.id}")
+    // Xóa ảnh khỏi danh sách ảnh comment
+    fun removeCommentImage(index: Int) {
+        val currentImages = _commentImageUris.value?.toMutableList() ?: mutableListOf()
+        if (index >= 0 && index < currentImages.size) {
+            currentImages.removeAt(index)
+            _commentImageUris.value = currentImages
+        }
     }
 
-    // Reply to a comment
-    fun replyToComment(comment: Comment) {
-        // In a real app, you would handle this accordingly
-        // For now, just log the action
-        Log.d("PostDetailViewModel", "Reply to comment: ${comment.id}")
+    // Thêm ảnh vào danh sách ảnh comment
+    fun addCommentImages(uris: List<Uri>) {
+        val currentImages = _commentImageUris.value?.toMutableList() ?: mutableListOf()
+        currentImages.addAll(uris)
+        _commentImageUris.value = currentImages
     }
 }
