@@ -66,6 +66,9 @@ class DrawingView @JvmOverloads constructor(
     private var mBackgroundBitmap: Bitmap? = null
     private val mBackgroundPaint = Paint()
 
+    // Document bounds
+    private var mDocumentBounds = RectF()
+
     // Flag to track if drawing started outside document bounds
     private var mStartedOutsideBounds = false
 
@@ -89,7 +92,6 @@ class DrawingView @JvmOverloads constructor(
             Log.e("DrawingView", "Error notifying draw completed", e)
         }
     }
-
 
     init {
         // Initialize the paint with default values
@@ -124,10 +126,26 @@ class DrawingView @JvmOverloads constructor(
         // Center the view position
         mPosX = 0f
         mPosY = 0f
+
+        // Initialize document bounds based on view size
+        mDocumentBounds.set(0f, 0f, w.toFloat(), h.toFloat())
     }
 
     fun setBackgroundImage(bitmap: Bitmap) {
         mBackgroundBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+
+        // Update document bounds based on background image
+        if (mBackgroundBitmap != null) {
+            val left = (width - mBackgroundBitmap!!.width) / 2f
+            val top = (height - mBackgroundBitmap!!.height) / 2f
+            mDocumentBounds.set(
+                left,
+                top,
+                left + mBackgroundBitmap!!.width,
+                top + mBackgroundBitmap!!.height
+            )
+        }
+
         invalidate()
     }
 
@@ -201,50 +219,71 @@ class DrawingView @JvmOverloads constructor(
         val rawX = (event.x - mPosX) / mScaleFactor
         val rawY = (event.y - mPosY) / mScaleFactor
 
+        // For ink mode, we want to directly draw on the canvas without transformation
+        val drawX = rawX
+        val drawY = rawY
+
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // Start a new stroke
-                mPath.reset()
-                mPath.moveTo(rawX, rawY)
-                mX = rawX
-                mY = rawY
+                // Only start drawing if inside the document bounds
+                if (isInsideDocumentBounds(drawX, drawY)) {
+                    // Start a new stroke
+                    mPath.reset()
+                    mPath.moveTo(drawX, drawY)
+                    mX = drawX
+                    mY = drawY
+                    mStartedOutsideBounds = false
 
-                if (mCurrentMode == DrawMode.ERASE) {
-                    // Create a temporary eraser path for visual feedback
-                    mTempEraserPath = Path()
-                    mTempEraserPath?.moveTo(rawX, rawY)
+                    if (mCurrentMode == DrawMode.ERASE) {
+                        // Create a temporary eraser path for visual feedback
+                        mTempEraserPath = Path()
+                        mTempEraserPath?.moveTo(drawX, drawY)
+                    } else {
+                        // For normal drawing, create a new draw action
+                        mCurrentDrawAction = DrawAction(Path(), Paint(mPaint), false)
+                        mCurrentDrawAction?.path?.moveTo(drawX, drawY)
+                    }
                 } else {
-                    // For normal drawing, create a new draw action
-                    mCurrentDrawAction = DrawAction(Path(), Paint(mPaint), false)
-                    mCurrentDrawAction?.path?.moveTo(rawX, rawY)
+                    mStartedOutsideBounds = true
                 }
             }
 
             MotionEvent.ACTION_MOVE -> {
+                // Skip if started outside document bounds
+                if (mStartedOutsideBounds) {
+                    return
+                }
+
                 // Calculate the distance moved
-                val dx = Math.abs(rawX - mX)
-                val dy = Math.abs(rawY - mY)
+                val dx = Math.abs(drawX - mX)
+                val dy = Math.abs(drawY - mY)
 
                 // If the distance is significant enough
                 if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
                     // Create a bezier curve from the previous point to the current point
-                    mPath.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
+                    mPath.quadTo(mX, mY, (drawX + mX) / 2, (drawY + mY) / 2)
 
                     if (mCurrentMode == DrawMode.ERASE) {
                         // Update temporary eraser path
-                        mTempEraserPath?.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
+                        mTempEraserPath?.quadTo(mX, mY, (drawX + mX) / 2, (drawY + mY) / 2)
                     } else {
                         // Update the drawing path
-                        mCurrentDrawAction?.path?.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
+                        mCurrentDrawAction?.path?.quadTo(mX, mY, (drawX + mX) / 2, (drawY + mY) / 2)
                     }
 
                     // Update the last point
-                    mX = rawX
-                    mY = rawY
+                    mX = drawX
+                    mY = drawY
                 }
             }
-            // Trong phần xử lý ACTION_UP trong handleDrawingTouch
+
             MotionEvent.ACTION_UP -> {
+                // Skip if started outside document bounds
+                if (mStartedOutsideBounds) {
+                    mStartedOutsideBounds = false
+                    return
+                }
+
                 // Complete the path
                 mPath.lineTo(mX, mY)
 
@@ -258,7 +297,7 @@ class DrawingView @JvmOverloads constructor(
                         mUndoActions.add(EraseAction(ArrayList(pathsRemoved)))
                         mRedoActions.clear()
                         Log.d("DrawingView", "Added erase action with ${pathsRemoved.size} paths")
-                        // Thông báo hoàn thành vẽ để lưu ngay lập tức
+                        // Notify draw completion to save immediately
                         notifyDrawCompleted()
                     }
                     // Clear temporary eraser path
@@ -273,7 +312,7 @@ class DrawingView @JvmOverloads constructor(
                             mUndoActions.add(DrawPathAction(it))
                             mRedoActions.clear()
                             Log.d("DrawingView", "Added draw action")
-                            // Thông báo hoàn thành vẽ để lưu ngay lập tức
+                            // Notify draw completion to save immediately
                             notifyDrawCompleted()
                         }
                     }
@@ -291,6 +330,12 @@ class DrawingView @JvmOverloads constructor(
             }
         }
     }
+
+    private fun isInsideDocumentBounds(x: Float, y: Float): Boolean {
+        // If we have a background image, check against its bounds
+        return mDocumentBounds.contains(x, y)
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
 
@@ -301,6 +346,7 @@ class DrawingView @JvmOverloads constructor(
         mBackgroundBitmap?.recycle()
         mBackgroundBitmap = null
     }
+
     private fun erasePaths(): List<DrawAction> {
         val pathsToRemove = mutableListOf<DrawAction>()
 
@@ -351,6 +397,10 @@ class DrawingView @JvmOverloads constructor(
     /**
      * Set the color for drawing
      */
+    fun setColor(color: Int) {
+        mPaint.color = color
+    }
+
     /**
      * Get the current drawing path for collaboration
      */
@@ -361,14 +411,10 @@ class DrawingView @JvmOverloads constructor(
             null
         }
     }
-    fun setColor(color: Int) {
-        mPaint.color = color
-    }
 
     /**
      * Set the stroke width for drawing
      */
-
     fun setStrokeWidth(width: Float) {
         mPaint.strokeWidth = width
     }
@@ -378,6 +424,11 @@ class DrawingView @JvmOverloads constructor(
      */
     fun setMode(mode: DrawMode) {
         mCurrentMode = mode
+
+        // In ink mode, we need to save the current state immediately
+        if (mode == DrawMode.DRAW) {
+            // Update document state if needed
+        }
     }
 
     /**
@@ -488,7 +539,6 @@ class DrawingView @JvmOverloads constructor(
     /**
      * Redraw all paths
      */
-    // Add this to ensure we're not losing drawing history
     private fun redrawPaths() {
         // Clear the canvas
         mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
