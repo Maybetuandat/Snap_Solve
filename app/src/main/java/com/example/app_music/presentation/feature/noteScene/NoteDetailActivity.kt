@@ -29,9 +29,11 @@ import com.example.app_music.presentation.noteScene.ColorPickerDialog
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
@@ -214,143 +216,181 @@ class NoteDetailActivity : BaseActivity() {
     private fun loadNote() {
         binding.progressBar.visibility = View.VISIBLE
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch {
             try {
-                val noteResult = repository.getNote(noteId)
+                // Fetch note data in background thread
+                val noteResult = withContext(Dispatchers.IO) {
+                    repository.getNote(noteId)
+                }
 
                 if (noteResult.isSuccess) {
                     val note = noteResult.getOrNull()!!
 
-                    withContext(Dispatchers.Main) {
-                        // Update title if needed
-                        if (noteTitle.isEmpty()) {
-                            noteTitle = note.title
-                            supportActionBar?.title = noteTitle
-                        }
+                    // Update title if needed (UI update on main thread)
+                    if (noteTitle.isEmpty()) {
+                        noteTitle = note.title
+                        supportActionBar?.title = noteTitle
                     }
 
                     // Load image if available
                     note.imagePath?.let { path ->
                         try {
-                            // Thêm retry logic cho việc tải ảnh
+                            // Use retry pattern for loading images
                             var retryCount = 0
-                            var imageUriResult: Result<Uri>? = null
+                            var imageLoaded = false
+                            var bitmap: Bitmap? = null
 
-                            while (retryCount < 3 && (imageUriResult == null || imageUriResult.isFailure)) {
-                                imageUriResult = repository.getImageBitmap(path)
-                                retryCount++
-                                if (imageUriResult.isFailure && retryCount < 3) {
-                                    delay(1000) // Đợi 1 giây trước khi thử lại
+                            while (retryCount < 3 && !imageLoaded) {
+                                try {
+                                    val imageUriResult = withContext(Dispatchers.IO) {
+                                        repository.getImageBitmap(path)
+                                    }
+
+                                    if (imageUriResult.isSuccess) {
+                                        val uri = imageUriResult.getOrNull()
+
+                                        // Use Glide on the main thread
+                                        Glide.with(this@NoteDetailActivity)
+                                            .load(uri)
+                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                            .timeout(20000) // 20 second timeout
+                                            .into(binding.imageNote)
+
+                                        imageLoaded = true
+                                    } else {
+                                        retryCount++
+                                        if (retryCount < 3) {
+                                            delay(1000) // Wait a second before retrying
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("NoteDetailActivity", "Error loading image (attempt $retryCount): ${e.message}")
+                                    retryCount++
+                                    if (retryCount < 3) {
+                                        delay(1000)
+                                    }
                                 }
                             }
 
-                            if (imageUriResult != null && imageUriResult.isSuccess) {
-                                val uri = imageUriResult.getOrNull()!!
-                                withContext(Dispatchers.Main) {
-                                    Glide.with(this@NoteDetailActivity)
-                                        .load(uri)
-                                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                        .timeout(20000) // 20 giây timeout
-                                        .error(R.drawable.ic_note) // Hình lỗi
-                                        .into(binding.imageNote)
-                                }
-                            } else {
-                                withContext(Dispatchers.Main) {
-                                    binding.imageNote.setImageResource(R.drawable.ic_note)
-                                    Toast.makeText(this@NoteDetailActivity,
-                                        "Không tải được ảnh", Toast.LENGTH_SHORT).show()
-                                }
+                            if (!imageLoaded) {
+                                binding.imageNote.setImageResource(R.drawable.ic_note)
+                                Log.w("NoteDetailActivity", "Could not load image after 3 attempts")
                             }
                         } catch (e: Exception) {
-                            withContext(Dispatchers.Main) {
-                                binding.imageNote.setImageResource(R.drawable.ic_note)
-                                Toast.makeText(this@NoteDetailActivity,
-                                    "Lỗi tải ảnh: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
+                            Log.e("NoteDetailActivity", "Error loading image: ${e.message}")
+                            binding.imageNote.setImageResource(R.drawable.ic_note)
                         }
                     }
+
+                    // Load drawing data if available
+                    note.drawingData?.let { drawingData ->
+                        try {
+                            Log.d("NoteDetailActivity", "Found drawing data, length: ${drawingData.length}")
+
+                            // Convert base64 string back to bitmap
+                            val decodedBytes = withContext(Dispatchers.Default) {
+                                android.util.Base64.decode(drawingData, android.util.Base64.DEFAULT)
+                            }
+
+                            // Create bitmap from bytes
+                            val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+
+                            if (bitmap != null) {
+                                // We have a valid bitmap to display in the drawing view
+                                binding.drawingView.setBackgroundImage(bitmap)
+                                Log.d("NoteDetailActivity", "Successfully loaded drawing: ${bitmap.width}x${bitmap.height}")
+                            } else {
+                                Log.e("NoteDetailActivity", "Failed to decode drawing data")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("NoteDetailActivity", "Error processing drawing data: ${e.message}")
+                        }
+                    }
+                } else {
+                    // Handle note fetch failure
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Could not load note: ${noteResult.exceptionOrNull()?.message}",
+                        Toast.LENGTH_SHORT).show()
+                    Log.e("NoteDetailActivity", "Failed to fetch note: ${noteResult.exceptionOrNull()}")
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@NoteDetailActivity,
-                        "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+                // Handle any other exceptions
+                Toast.makeText(this@NoteDetailActivity,
+                    "Error loading note: ${e.message}",
+                    Toast.LENGTH_SHORT).show()
+                Log.e("NoteDetailActivity", "Error in loadNote", e)
             } finally {
-                withContext(Dispatchers.Main) {
-                    binding.progressBar.visibility = View.GONE
-                }
+                // Always hide progress indicator on main thread
+                binding.progressBar.visibility = View.GONE
             }
         }
     }
 
     private fun saveDrawing(showToast: Boolean = true) {
-        lifecycleScope.launch(Dispatchers.IO) { // Lưu ý: Dispatchers.IO là thread nền
-            binding.saveProgressBar.visibility = View.VISIBLE
+        // Using SupervisorJob() to prevent cancellation from propagating to children
+        val job = SupervisorJob()
 
+        lifecycleScope.launch(job + Dispatchers.Main) {
             try {
-                // Get the note first
-                val noteResult = repository.getNote(noteId)
+                binding.saveProgressBar.visibility = View.VISIBLE
 
-                if (noteResult.isSuccess) {
-                    val note = noteResult.getOrNull()!!
+                // Use withContext for IO operations but keep the job context
+                val result = withContext(Dispatchers.IO) {
+                    try {
+                        // Get the note first
+                        val noteResult = repository.getNote(noteId)
 
-                    // Get combined bitmap (background + drawing)
-                    val combinedBitmap = binding.drawingView.getCombinedBitmap()
+                        if (noteResult.isSuccess) {
+                            val note = noteResult.getOrNull()!!
 
-                    // Convert bitmap to base64 string
-                    val baos = ByteArrayOutputStream()
-                    combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                    val imageBytes = baos.toByteArray()
-                    val drawingData = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT)
+                            // Get combined bitmap (background + drawing)
+                            val combinedBitmap = binding.drawingView.getCombinedBitmap()
 
-                    Log.d("NoteDetailActivity", "Drawing data length: ${drawingData.length}")
+                            // Convert bitmap to base64 string
+                            val baos = ByteArrayOutputStream()
+                            combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                            val imageBytes = baos.toByteArray()
+                            val drawingData = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT)
 
-                    // Update note with drawing data
-                    val updatedNote = note.copy(
-                        drawingData = drawingData,
-                        updatedAt = System.currentTimeMillis()
-                    )
+                            Log.d("NoteDetailActivity", "Drawing data length: ${drawingData.length}")
 
-                    val result = repository.updateNote(updatedNote)
+                            // Only update the drawingData field, preserve other fields
+                            val updatedNote = note.copy(
+                                drawingData = drawingData,
+                                updatedAt = System.currentTimeMillis()
+                            )
 
-                    // Chuyển sang main thread để hiển thị Toast và cập nhật UI
-                    withContext(Dispatchers.Main) {
-                        if (result.isSuccess) {
-                            if (showToast) {
-                                Toast.makeText(this@NoteDetailActivity, "Drawing saved", Toast.LENGTH_SHORT).show()
-                            }
-                            Log.d("NoteDetailActivity", "Drawing saved successfully")
+                            repository.updateNote(updatedNote)
                         } else {
-                            if (showToast) {
-                                Toast.makeText(this@NoteDetailActivity, "Failed to save drawing", Toast.LENGTH_SHORT).show()
-                            }
-                            Log.e("NoteDetailActivity", "Failed to save drawing: ${result.exceptionOrNull()?.message}")
+                            Result.failure(Exception("Failed to get note"))
                         }
-
-                        // Cập nhật UI cũng phải trên main thread
-                        binding.saveProgressBar.visibility = View.GONE
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error saving drawing", e)
+                        Result.failure(e)
                     }
+                }
+
+                // Now back on the main thread
+                binding.saveProgressBar.visibility = View.GONE
+
+                if (result.isSuccess) {
+                    if (showToast) {
+                        Toast.makeText(this@NoteDetailActivity, "Drawing saved", Toast.LENGTH_SHORT).show()
+                    }
+                    Log.d("NoteDetailActivity", "Drawing saved successfully")
                 } else {
-                    Log.e("NoteDetailActivity", "Failed to get note: ${noteResult.exceptionOrNull()?.message}")
-
-                    // Chuyển sang main thread để hiển thị Toast và cập nhật UI
-                    withContext(Dispatchers.Main) {
-                        if (showToast) {
-                            Toast.makeText(this@NoteDetailActivity, "Failed to get note", Toast.LENGTH_SHORT).show()
-                        }
-                        binding.saveProgressBar.visibility = View.GONE
+                    if (showToast) {
+                        Toast.makeText(this@NoteDetailActivity, "Failed to save drawing: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
                     }
+                    Log.e("NoteDetailActivity", "Failed to save drawing: ${result.exceptionOrNull()}")
                 }
             } catch (e: Exception) {
-                Log.e("NoteDetailActivity", "Error saving drawing", e)
-
-                // Chuyển sang main thread để hiển thị Toast và cập nhật UI
-                withContext(Dispatchers.Main) {
-                    if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                    binding.saveProgressBar.visibility = View.GONE
+                // Handle exceptions from the main thread
+                binding.saveProgressBar.visibility = View.GONE
+                if (showToast) {
+                    Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
+                Log.e("NoteDetailActivity", "Error in saveDrawing", e)
             }
         }
     }
@@ -494,20 +534,36 @@ class NoteDetailActivity : BaseActivity() {
     override fun onPause() {
         super.onPause()
 
-        // Save drawing state
-        saveDrawing(false)
+        // Save drawing state - use a specific job that won't be cancelled
+        val saveJob = lifecycleScope.launch {
+            try {
+                saveDrawing(false)
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error saving drawing in onPause", e)
+            }
+        }
+
+        // Wait for the save to complete (optional)
+        runBlocking {
+            try {
+                saveJob.join()
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error waiting for save job", e)
+            }
+        }
 
         // Update user typing status
         collaborationManager.setUserTyping(false)
     }
 
+
     override fun onDestroy() {
         try {
-            // Đảm bảo hoàn thành các tác vụ đang chạy
+            // Ensure we clean up properly
             binding.saveProgressBar.visibility = View.GONE
             binding.progressBar.visibility = View.GONE
 
-            // Cleanup các resource
+            // Cleanup resources
             collaborationManager.cleanup()
         } catch (e: Exception) {
             Log.e("NoteDetailActivity", "Error during cleanup", e)

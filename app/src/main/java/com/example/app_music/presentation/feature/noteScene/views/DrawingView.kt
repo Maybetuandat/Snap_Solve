@@ -368,6 +368,7 @@ class DrawingView @JvmOverloads constructor(
     /**
      * Set the stroke width for drawing
      */
+
     fun setStrokeWidth(width: Float) {
         mPaint.strokeWidth = width
     }
@@ -487,6 +488,7 @@ class DrawingView @JvmOverloads constructor(
     /**
      * Redraw all paths
      */
+    // Add this to ensure we're not losing drawing history
     private fun redrawPaths() {
         // Clear the canvas
         mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
