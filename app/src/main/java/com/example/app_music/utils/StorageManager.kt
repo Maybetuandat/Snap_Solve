@@ -3,7 +3,6 @@ package com.example.app_music.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.net.Uri
 import android.util.Log
 import com.google.firebase.storage.FirebaseStorage
@@ -19,23 +18,23 @@ import java.io.FileOutputStream
  * Utility class for managing storage of note thumbnails and images using Firebase Storage
  */
 class StorageManager(private val context: Context) {
-
+    
     private val TAG = "StorageManager"
     private val storage = FirebaseStorage.getInstance()
     private val storageRef = storage.reference
-
+    
     // Path constants
     private val THUMBNAILS_PATH = "thumbnails"
     private val IMAGES_PATH = "images"
     private val DRAWINGS_PATH = "drawings"
-
+    
     /**
-     * Save a thumbnail to Firebase Storage including drawing content
+     * Save a thumbnail to Firebase Storage
      */
-    suspend fun saveThumbnail(noteId: String, thumbnail: Bitmap, includingDrawing: Boolean = false): Boolean {
+    suspend fun saveThumbnail(noteId: String, thumbnail: Bitmap): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Saving thumbnail for note: $noteId, includingDrawing: $includingDrawing")
+                Log.d(TAG, "Saving thumbnail for note: $noteId")
                 val thumbnailRef = storageRef.child("$THUMBNAILS_PATH/$noteId.jpg")
 
                 // Convert bitmap to byte array
@@ -57,48 +56,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
-    /**
-     * Update thumbnail with drawing content
-     */
-    suspend fun updateThumbnailWithDrawing(noteId: String, combinedBitmap: Bitmap): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                Log.d(TAG, "Updating thumbnail with drawing for note: $noteId")
-
-                // First resize the bitmap to thumbnail size if needed
-                val maxSize = 200
-                val width = combinedBitmap.width
-                val height = combinedBitmap.height
-
-                val scale = Math.min(
-                    maxSize.toFloat() / width.toFloat(),
-                    maxSize.toFloat() / height.toFloat()
-                )
-
-                val thumbnailBitmap = if (scale < 1) {
-                    val scaledWidth = (width * scale).toInt()
-                    val scaledHeight = (height * scale).toInt()
-                    Bitmap.createScaledBitmap(combinedBitmap, scaledWidth, scaledHeight, true)
-                } else {
-                    combinedBitmap.copy(combinedBitmap.config ?: Bitmap.Config.ARGB_8888, true)
-                }
-
-                // Save the updated thumbnail
-                val result = saveThumbnail(noteId, thumbnailBitmap, true)
-
-                if (!result) {
-                    Log.e(TAG, "Failed to update thumbnail with drawing")
-                }
-
-                result
-            } catch (e: Exception) {
-                Log.e(TAG, "Error updating thumbnail with drawing: ${e.message}", e)
-                false
-            }
-        }
-    }
-
+    
     /**
      * Load a thumbnail from Firebase Storage
      */
@@ -111,27 +69,27 @@ class StorageManager(private val context: Context) {
                     Log.d(TAG, "Loaded thumbnail for note $noteId from local cache")
                     return@withContext localThumbnail
                 }
-
+                
                 // If not in cache, download from Firebase
                 val thumbnailRef = storageRef.child("$THUMBNAILS_PATH/$noteId.jpg")
-
+                
                 // Create a temporary file to store the downloaded image
                 val localFile = File.createTempFile("thumbnail", "jpg")
-
+                
                 // Download to the local file
                 thumbnailRef.getFile(localFile).await()
-
+                
                 // Decode the file into a bitmap
                 val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
-
+                
                 // Save to local cache for faster access next time
                 if (bitmap != null) {
                     saveThumbnailLocally(noteId, bitmap)
                 }
-
+                
                 // Delete the temporary file
                 localFile.delete()
-
+                
                 Log.d(TAG, "Loaded thumbnail for note $noteId from Firebase")
                 bitmap
             } catch (e: Exception) {
@@ -140,7 +98,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Delete a thumbnail from Firebase Storage
      */
@@ -149,10 +107,10 @@ class StorageManager(private val context: Context) {
             try {
                 val thumbnailRef = storageRef.child("$THUMBNAILS_PATH/$noteId.jpg")
                 thumbnailRef.delete().await()
-
+                
                 // Also delete from local cache
                 deleteThumbnailLocally(noteId)
-
+                
                 Log.d(TAG, "Deleted thumbnail for note $noteId from Firebase")
                 true
             } catch (e: Exception) {
@@ -161,7 +119,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Save a full-size image to Firebase Storage
      */
@@ -196,7 +154,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Load a full-size image from Firebase Storage
      */
@@ -209,27 +167,27 @@ class StorageManager(private val context: Context) {
                     Log.d(TAG, "Loaded image for note $noteId from local cache")
                     return@withContext localImage
                 }
-
+                
                 // If not in cache, download from Firebase
                 val imageRef = storageRef.child("$IMAGES_PATH/$noteId.jpg")
-
+                
                 // Create a temporary file to store the downloaded image
                 val localFile = File.createTempFile("image", "jpg")
-
+                
                 // Download to the local file
                 imageRef.getFile(localFile).await()
-
+                
                 // Decode the file into a bitmap
                 val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
-
+                
                 // Save to local cache for faster access next time
                 if (bitmap != null) {
                     saveImageLocally(noteId, bitmap)
                 }
-
+                
                 // Delete the temporary file
                 localFile.delete()
-
+                
                 Log.d(TAG, "Loaded image for note $noteId from Firebase")
                 bitmap
             } catch (e: Exception) {
@@ -238,7 +196,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Delete a full-size image from Firebase Storage
      */
@@ -247,10 +205,10 @@ class StorageManager(private val context: Context) {
             try {
                 val imageRef = storageRef.child("$IMAGES_PATH/$noteId.jpg")
                 imageRef.delete().await()
-
+                
                 // Also delete from local cache
                 deleteImageLocally(noteId)
-
+                
                 Log.d(TAG, "Deleted image for note $noteId from Firebase")
                 true
             } catch (e: Exception) {
@@ -259,7 +217,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Save drawing data to Firebase Storage
      */
@@ -267,10 +225,10 @@ class StorageManager(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val drawingRef = storageRef.child("$DRAWINGS_PATH/$noteId.png")
-
+                
                 // Upload to Firebase
                 val uploadTask = drawingRef.putBytes(drawingData).await()
-
+                
                 Log.d(TAG, "Saved drawing for note $noteId to Firebase")
                 true
             } catch (e: Exception) {
@@ -279,7 +237,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Load drawing data from Firebase Storage
      */
@@ -287,11 +245,11 @@ class StorageManager(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val drawingRef = storageRef.child("$DRAWINGS_PATH/$noteId.png")
-
+                
                 // Download as bytes
                 val maxSize = 10 * 1024 * 1024 // 10MB max
                 val bytes = drawingRef.getBytes(maxSize.toLong()).await()
-
+                
                 Log.d(TAG, "Loaded drawing for note $noteId from Firebase")
                 bytes
             } catch (e: Exception) {
@@ -300,7 +258,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Get a download URL for sharing
      */
@@ -313,10 +271,10 @@ class StorageManager(private val context: Context) {
                     "drawing" -> "$DRAWINGS_PATH/$noteId.png"
                     else -> throw IllegalArgumentException("Invalid type: $type")
                 }
-
+                
                 val ref = storageRef.child(path)
                 val url = ref.downloadUrl.await()
-
+                
                 Log.d(TAG, "Got download URL for $type of note $noteId")
                 url
             } catch (e: Exception) {
@@ -325,7 +283,7 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     /**
      * Check if a file exists in Firebase Storage
      */
@@ -338,7 +296,7 @@ class StorageManager(private val context: Context) {
                     "drawing" -> "$DRAWINGS_PATH/$noteId.png"
                     else -> throw IllegalArgumentException("Invalid type: $type")
                 }
-
+                
                 val ref = storageRef.child(path)
                 ref.metadata.await() // Will throw exception if file doesn't exist
                 true
@@ -347,16 +305,16 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-
+    
     // Local cache methods for faster access
-
+    
     private fun saveThumbnailLocally(noteId: String, thumbnail: Bitmap): Boolean {
         return try {
             val thumbnailDir = File(context.cacheDir, THUMBNAILS_PATH)
             if (!thumbnailDir.exists()) {
                 thumbnailDir.mkdirs()
             }
-
+            
             val file = File(thumbnailDir, "$noteId.jpg")
             FileOutputStream(file).use { out ->
                 thumbnail.compress(Bitmap.CompressFormat.JPEG, 70, out)
@@ -367,12 +325,12 @@ class StorageManager(private val context: Context) {
             false
         }
     }
-
+    
     private fun loadThumbnailLocally(noteId: String): Bitmap? {
         return try {
             val thumbnailDir = File(context.cacheDir, THUMBNAILS_PATH)
             val file = File(thumbnailDir, "$noteId.jpg")
-
+            
             if (file.exists()) {
                 BitmapFactory.decodeFile(file.absolutePath)
             } else {
@@ -383,12 +341,12 @@ class StorageManager(private val context: Context) {
             null
         }
     }
-
+    
     private fun deleteThumbnailLocally(noteId: String): Boolean {
         return try {
             val thumbnailDir = File(context.cacheDir, THUMBNAILS_PATH)
             val file = File(thumbnailDir, "$noteId.jpg")
-
+            
             if (file.exists()) {
                 file.delete()
             }
@@ -398,14 +356,14 @@ class StorageManager(private val context: Context) {
             false
         }
     }
-
+    
     private fun saveImageLocally(noteId: String, image: Bitmap): Boolean {
         return try {
             val imageDir = File(context.cacheDir, IMAGES_PATH)
             if (!imageDir.exists()) {
                 imageDir.mkdirs()
             }
-
+            
             val file = File(imageDir, "$noteId.jpg")
             FileOutputStream(file).use { out ->
                 image.compress(Bitmap.CompressFormat.JPEG, 95, out)
@@ -416,12 +374,12 @@ class StorageManager(private val context: Context) {
             false
         }
     }
-
+    
     private fun loadImageLocally(noteId: String): Bitmap? {
         return try {
             val imageDir = File(context.cacheDir, IMAGES_PATH)
             val file = File(imageDir, "$noteId.jpg")
-
+            
             if (file.exists()) {
                 BitmapFactory.decodeFile(file.absolutePath)
             } else {
@@ -432,12 +390,12 @@ class StorageManager(private val context: Context) {
             null
         }
     }
-
+    
     private fun deleteImageLocally(noteId: String): Boolean {
         return try {
             val imageDir = File(context.cacheDir, IMAGES_PATH)
             val file = File(imageDir, "$noteId.jpg")
-
+            
             if (file.exists()) {
                 file.delete()
             }
