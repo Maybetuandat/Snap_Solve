@@ -196,6 +196,7 @@
 
     <!-- Canvas area -->
     <!-- Update the canvas_container in activity_note_detail.xml -->
+    <!-- Canvas area -->
     <FrameLayout
         android:id="@+id/canvas_container"
         android:layout_width="match_parent"
@@ -210,7 +211,7 @@
             android:layout_height="match_parent"
             android:contentDescription="Note Image"
             android:scaleType="fitCenter"
-            android:visibility="visible" />
+            android:visibility="gone" />
 
         <com.example.app_music.presentation.feature.noteScene.views.DrawingView
             android:id="@+id/drawing_view"

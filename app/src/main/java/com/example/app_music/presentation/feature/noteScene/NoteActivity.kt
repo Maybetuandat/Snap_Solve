@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.app_music.R
 import com.example.app_music.data.model.FolderFirebaseModel
 import com.example.app_music.data.model.NoteFirebaseModel
+import com.example.app_music.data.model.NotePage
 import com.example.app_music.data.repository.FirebaseNoteRepository
 import com.example.app_music.databinding.ActivityNoteBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
@@ -766,9 +767,10 @@ class NoteActivity : BaseActivity() {
             .show()
     }
 
+    // Tìm phương thức createNote() trong NoteActivity.kt và sửa như sau:
     private fun createNote(noteName: String) {
         if (currentFolderId == null) {
-            Toast.makeText(this, "Please enter a folder to create notes", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Vui lòng vào một thư mục để tạo ghi chú", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -778,7 +780,7 @@ class NoteActivity : BaseActivity() {
             try {
                 val contentResolver = applicationContext.contentResolver
 
-                // Thêm kiểm tra photoUri
+                // Kiểm tra photoUri
                 if (photoUri == null) {
                     Toast.makeText(this@NoteActivity, "Không có ảnh để tạo note", Toast.LENGTH_SHORT).show()
                     binding.progressBar.visibility = View.GONE
@@ -786,11 +788,9 @@ class NoteActivity : BaseActivity() {
                 }
 
                 val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, photoUri)
+                Log.d("NoteActivity", "Bitmap tạo được: ${bitmap.width}x${bitmap.height}")
 
-                // Thêm log để debug
-                Log.d("NoteActivity", "Bitmap created: ${bitmap.width}x${bitmap.height}")
-
-                // Tạo trực tiếp ID cho note - quan trọng cho việc tham chiếu
+                // Tạo ID cho note
                 val noteId = UUID.randomUUID().toString()
 
                 // Upload ảnh trước khi tạo note
@@ -799,16 +799,15 @@ class NoteActivity : BaseActivity() {
 
                 // Upload ảnh lên Storage
                 val uploadSuccess = storageManager.saveImage(noteId, bitmap)
-                Log.d("NoteActivity", "Image upload success: $uploadSuccess")
+                Log.d("NoteActivity", "Upload ảnh thành công: $uploadSuccess")
 
                 // Upload thumbnail
                 val thumbnailBitmap = createThumbnail(bitmap)
                 val thumbnailSuccess = storageManager.saveThumbnail(noteId, thumbnailBitmap)
-                Log.d("NoteActivity", "Thumbnail upload success: $thumbnailSuccess")
+                Log.d("NoteActivity", "Upload thumbnail thành công: $thumbnailSuccess")
 
-                // Chỉ tạo note nếu upload thành công
                 if (uploadSuccess) {
-                    // Tạo note với imagePath đã có
+                    // Tạo note với imagePath
                     val newNote = NoteFirebaseModel(
                         id = noteId,
                         title = noteName,
@@ -816,45 +815,69 @@ class NoteActivity : BaseActivity() {
                         updatedAt = Date().time,
                         ownerId = currentUserId,
                         folderId = currentFolderId!!,
-                        imagePath = imagePath // Đặt imagePath ngay từ đầu
+                        imagePath = imagePath
                     )
 
-                    // Lưu note vào Firestore
+                    // QUAN TRỌNG: Thay đổi ở đây - KHÔNG tạo page trống mặc định
+                    // Cần tạo page với ảnh ngay từ đầu thay vì tạo note trước
+
+                    // Tạo một pageId mới
+                    val pageId = UUID.randomUUID().toString()
+
+                    // Tạo page chứa ảnh
+                    val page = NotePage(
+                        id = pageId,
+                        noteId = noteId,
+                        pageIndex = 0,
+                        imagePath = "pages/${pageId}.jpg",  // Xác định đường dẫn ảnh rõ ràng
+                        createdAt = Date().time
+                    )
+
+                    // Lưu ảnh cho page
+                    storageManager.savePageImage(pageId, bitmap)
+
+                    // Lưu page vào Firestore
+                    repository.updatePage(page)
+
+                    // Thêm pageId vào danh sách pageIds của note
+                    newNote.pageIds.add(pageId)
+
+                    // Lưu note với danh sách pageIds đã cập nhật
                     val result = repository.createNoteWithId(newNote)
 
                     if (result.isSuccess) {
-                        // Add to local list
+                        // Thêm vào danh sách cục bộ
                         val noteItem = NoteItem(
                             id = noteId,
                             title = noteName,
                             date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
                                 .format(Date()),
                             isFolder = false,
-                            imagePreview = thumbnailBitmap // Lưu trực tiếp thumbnail vào item
+                            imagePreview = thumbnailBitmap
                         )
 
-                        notesList.add(0, noteItem) // Add at the top
+                        notesList.add(0, noteItem)
                         adapter.notifyDataSetChanged()
 
-                        Toast.makeText(this@NoteActivity, "Note created", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@NoteActivity, "Đã tạo ghi chú", Toast.LENGTH_SHORT).show()
 
-                        // Open the note detail activity
+                        // Mở note detail
                         val intent = Intent(this@NoteActivity, NoteDetailActivity::class.java).apply {
                             putExtra("note_id", noteId)
                             putExtra("note_title", noteName)
                         }
                         startActivity(intent)
                     } else {
-                        Toast.makeText(this@NoteActivity, "Failed to create note", Toast.LENGTH_SHORT).show()
-                        Log.e("NoteActivity", "Failed to create note: ${result.exceptionOrNull()?.message}")
+                        Toast.makeText(this@NoteActivity, "Không thể tạo ghi chú", Toast.LENGTH_SHORT).show()
+                        Log.e("NoteActivity", "Lỗi tạo ghi chú: ${result.exceptionOrNull()?.message}")
                     }
                 } else {
-                    Toast.makeText(this@NoteActivity, "Failed to upload image", Toast.LENGTH_SHORT).show()
-                    Log.e("NoteActivity", "Failed to upload image")
+                    Toast.makeText(this@NoteActivity, "Không thể tải lên ảnh", Toast.LENGTH_SHORT).show()
+                    Log.e("NoteActivity", "Không thể tải lên ảnh")
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("NoteActivity", "Error creating note", e)
+                Toast.makeText(this@NoteActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("NoteActivity", "Lỗi tạo ghi chú", e)
             } finally {
                 binding.progressBar.visibility = View.GONE
             }
@@ -874,6 +897,7 @@ class NoteActivity : BaseActivity() {
 
             val matrix = Matrix()
             matrix.postScale(scale, scale)
+
 
             val result = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true)
             Log.d("NoteActivity", "Thumbnail created successfully: ${result.width}x${result.height}")

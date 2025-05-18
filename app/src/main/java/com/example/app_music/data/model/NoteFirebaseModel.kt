@@ -1,6 +1,7 @@
 package com.example.app_music.data.model
 
 import android.util.Log
+import com.google.firebase.database.Exclude
 import com.google.firebase.database.IgnoreExtraProperties
 import com.google.firebase.database.PropertyName
 import com.google.gson.Gson
@@ -54,7 +55,11 @@ data class NoteFirebaseModel(
 
     @get:PropertyName("vectorDrawingData")
     @set:PropertyName("vectorDrawingData")
-    var vectorDrawingData: String? = null
+    var vectorDrawingData: String? = null,
+
+    @get:Exclude
+    @set:Exclude
+    var pages: List<NotePage> = emptyList()
 )
 
 @IgnoreExtraProperties
@@ -78,6 +83,10 @@ data class NotePage(
     @get:PropertyName("drawingData")
     @set:PropertyName("drawingData")
     var drawingData: String? = null,
+
+    @get:PropertyName("vectorDrawingData")
+    @set:PropertyName("vectorDrawingData")
+    var vectorDrawingData: String? = null,
 
     @get:PropertyName("createdAt")
     @set:PropertyName("createdAt")

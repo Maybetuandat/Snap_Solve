@@ -19,6 +19,8 @@ import java.io.ByteArrayOutputStream
 import java.util.Date
 import java.util.UUID
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
 
 class FirebaseNoteRepository {
     private val db = FirebaseFirestore.getInstance()
@@ -180,18 +182,53 @@ class FirebaseNoteRepository {
 
     suspend fun getNote(noteId: String): Result<NoteFirebaseModel> {
         return try {
+            // Lấy note
             val doc = notesCollection.document(noteId).get().await()
             val note = doc.toObject(NoteFirebaseModel::class.java)?.apply {
                 id = doc.id
             }
 
-            if (note != null) {
-                Result.success(note)
-            } else {
-                Result.failure(Exception("Note not found"))
+            if (note == null) {
+                return Result.failure(Exception("Note không tìm thấy"))
             }
+
+            // Lấy các pages của note luôn
+            try {
+                val pagesSnapshot = pagesCollection
+                    .whereEqualTo("noteId", noteId)
+                    .orderBy("pageIndex", Query.Direction.ASCENDING)
+                    .get()
+                    .await()
+
+                val pages = pagesSnapshot.documents.mapNotNull { pageDoc ->
+                    pageDoc.toObject(NotePage::class.java)?.apply {
+                        id = pageDoc.id
+                    }
+                }
+
+                // Cập nhật pageIds trong note để đảm bảo đồng bộ
+                if (pages.isNotEmpty()) {
+                    val pageIds = pages.map { it.id }
+                    if (note.pageIds != pageIds) {
+                        // Cập nhật pageIds trong Firestore nếu không khớp
+                        note.pageIds = pageIds.toMutableList()
+                        notesCollection.document(noteId).update("pageIds", pageIds).await()
+                        Log.d(TAG, "Đã cập nhật pageIds cho note: $noteId")
+                    }
+                }
+
+                // Thêm thông tin pages vào kết quả
+                note.pages = pages
+
+                Log.d(TAG, "Đã lấy ${pages.size} trang cho note: $noteId")
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi khi lấy các trang cho note: $noteId", e)
+                // Tiếp tục và trả về note ngay cả khi không lấy được pages
+            }
+
+            Result.success(note)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting note", e)
+            Log.e(TAG, "Lỗi khi lấy note", e)
             Result.failure(e)
         }
     }
@@ -234,63 +271,79 @@ class FirebaseNoteRepository {
         }
     }
 
+    // Trong FirebaseNoteRepository.kt
     suspend fun deleteNote(noteId: String): Result<Boolean> {
         return try {
-            // First get the note to check if it has an image
+            // Lấy thông tin note
             val noteDoc = notesCollection.document(noteId).get().await()
             val note = noteDoc.toObject(NoteFirebaseModel::class.java)?.apply { id = noteDoc.id }
 
-            // Delete image if exists
-            if (note?.imagePath != null && note.imagePath!!.isNotEmpty()) {
-                try {
-                    // Xử lý đường dẫn - đảm bảo đúng định dạng
-                    val path = if (!note.imagePath!!.startsWith("images/") && !note.imagePath!!.startsWith("thumbnails/")) {
-                        "images/${note.imagePath}"
-                    } else {
-                        note.imagePath!!
-                    }
+            if (note == null) {
+                return Result.failure(Exception("Note không tồn tại"))
+            }
 
-                    Log.d(TAG, "Đang xóa ảnh từ path: $path")
+            // 1. Xóa tất cả các pages
+            val pagesSnapshot = pagesCollection
+                .whereEqualTo("noteId", noteId)
+                .get()
+                .await()
 
-                    // Thử xóa ảnh chính
-                    try {
-                        storage.reference.child(path).delete().await()
-                        Log.d(TAG, "Đã xóa ảnh chính thành công")
-                    } catch (se: StorageException) {
-                        if (se.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
-                            Log.w(TAG, "Ảnh chính không tồn tại, bỏ qua: $path")
-                        } else {
-                            Log.e(TAG, "Lỗi khi xóa ảnh chính: ${se.message}")
+            for (pageDoc in pagesSnapshot.documents) {
+                val page = pageDoc.toObject(NotePage::class.java)
+                if (page != null) {
+                    // Xóa ảnh page nếu có
+                    if (page.imagePath != null) {
+                        try {
+                            storage.reference.child(page.imagePath!!).delete()
+                                .addOnFailureListener { e ->
+                                    // Chỉ log lỗi, không dừng quá trình
+                                    if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                                        Log.w(TAG, "Ảnh không tồn tại, bỏ qua: ${page.imagePath}")
+                                    } else {
+                                        Log.e(TAG, "Lỗi xóa ảnh: ${e.message}")
+                                    }
+                                }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Lỗi khi xóa ảnh page: ${e.message}")
                         }
                     }
 
-                    // Thử xóa thumbnail nếu có
-                    try {
-                        val thumbnailPath = "thumbnails/$noteId.jpg"
-                        storage.reference.child(thumbnailPath).delete().await()
-                        Log.d(TAG, "Đã xóa thumbnail thành công")
-                    } catch (se: StorageException) {
-                        if (se.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
-                            Log.w(TAG, "Thumbnail không tồn tại, bỏ qua")
-                        } else {
-                            Log.e(TAG, "Lỗi khi xóa thumbnail: ${se.message}")
-                        }
-                    }
-                } catch (e: Exception) {
-                    // Bắt tất cả các ngoại lệ khác khi xóa ảnh, ghi log nhưng vẫn tiếp tục
-                    Log.e(TAG, "Lỗi tổng thể khi xóa ảnh: ${e.message}")
+                    // Xóa page document không phụ thuộc vào việc xóa ảnh
+                    pagesCollection.document(pageDoc.id).delete().await()
+                    Log.d(TAG, "Đã xóa page: ${pageDoc.id}")
                 }
             }
 
-            // Delete note document - luôn thực hiện bước này bất kể có lỗi ở trên
-            try {
-                notesCollection.document(noteId).delete().await()
-                Log.d(TAG, "Đã xóa note thành công: $noteId")
-                Result.success(true)
-            } catch (e: Exception) {
-                Log.e(TAG, "Lỗi khi xóa document note: ${e.message}")
-                Result.failure(e)
+            // 2. Xóa các tài nguyên khác của note
+            val storagePaths = listOf(
+                "images/${noteId}.jpg",
+                "thumbnails/${noteId}.jpg",
+                "drawings/${noteId}.png"
+            )
+
+            for (path in storagePaths) {
+                try {
+                    storage.reference.child(path).delete()
+                        .addOnSuccessListener {
+                            Log.d(TAG, "Đã xóa: $path")
+                        }
+                        .addOnFailureListener { e ->
+                            if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                                Log.w(TAG, "Tệp không tồn tại, bỏ qua: $path")
+                            } else {
+                                Log.e(TAG, "Lỗi xóa tệp: ${e.message}")
+                            }
+                        }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Lỗi khi xóa tệp: $path - ${e.message}")
+                }
             }
+
+            // 3. Cuối cùng xóa document note
+            notesCollection.document(noteId).delete().await()
+            Log.d(TAG, "Đã xóa document note: $noteId")
+
+            Result.success(true)
         } catch (e: Exception) {
             Log.e(TAG, "Lỗi tổng thể khi xóa note: ${e.message}")
             Result.failure(e)
@@ -408,7 +461,66 @@ class FirebaseNoteRepository {
 
 
     suspend fun createBlankPage(noteId: String, pageIndex: Int = -1): Result<NotePage> {
-        return createPage(noteId, null, pageIndex)
+        return try {
+            // Lấy note trước
+            val noteResult = getNote(noteId)
+            if (noteResult.isFailure) {
+                return Result.failure(Exception("Note không tìm thấy"))
+            }
+
+            val note = noteResult.getOrNull()!!
+
+            // Tạo ID page mới
+            val pageId = UUID.randomUUID().toString()
+
+            // Xác định index
+            val index = if (pageIndex < 0) {
+                if (note.pages.isEmpty()) 0 else note.pages.size
+            } else {
+                pageIndex
+            }
+
+            // Tạo bitmap trắng để làm nền
+            val whiteBitmap = createWhiteBackground(800, 1200)
+
+            // Lưu bitmap trắng vào storage
+            val imagePath = "pages/$pageId.jpg"
+            val imageRef = storage.reference.child(imagePath)
+            val baos = ByteArrayOutputStream()
+            whiteBitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos)
+            imageRef.putBytes(baos.toByteArray()).await()
+
+            // Tạo page với đường dẫn ảnh nền trắng
+            val page = NotePage(
+                id = pageId,
+                noteId = noteId,
+                pageIndex = index,
+                imagePath = imagePath, // Quan trọng: đường dẫn đến ảnh nền trắng
+                createdAt = Date().time,
+                vectorDrawingData = """{"strokes":[],"width":800,"height":1200}"""
+            )
+
+            // Lưu page vào Firestore
+            pagesCollection.document(pageId).set(page).await()
+
+            // Cập nhật pageIds
+            note.pageIds.add(pageId)
+            notesCollection.document(noteId).update("pageIds", note.pageIds).await()
+
+            Result.success(page)
+        } catch (e: Exception) {
+            Log.e(TAG, "Lỗi khi tạo trang trắng", e)
+            Result.failure(e)
+        }
+    }
+
+
+
+    private fun createWhiteBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+        return bitmap
     }
 
     suspend fun getPages(noteId: String): Result<List<NotePage>> {
