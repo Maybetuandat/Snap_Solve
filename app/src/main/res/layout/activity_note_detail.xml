@@ -69,7 +69,6 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:orientation="horizontal">
-
             <ImageButton
                 android:id="@+id/button_hand"
                 android:layout_width="40dp"
@@ -148,33 +147,70 @@
         </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/text_page_indicator"
-        android:layout_width="wrap_content"
+    <!-- Page navigation bar -->
+    <LinearLayout
+        android:id="@+id/layout_page_navigation"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/page_indicator_bg"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:padding="8dp"
-        android:text="1 / 1"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"
-        android:layout_margin="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/layout_tools" />
+        android:background="#F5F5F5"
+        android:elevation="4dp"
+        app:layout_constraintTop_toBottomOf="@id/layout_tools">
+
+        <ImageButton
+            android:id="@+id/button_prev_page"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back_left"
+            android:contentDescription="Previous Page" />
+
+        <TextView
+            android:id="@+id/text_page_indicator"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Page 1 of 1"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:gravity="center" />
+
+        <ImageButton
+            android:id="@+id/button_next_page"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_right"
+            android:contentDescription="Next Page" />
+
+        <ImageButton
+            android:id="@+id/button_add_page"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/plus_icon"
+            android:contentDescription="Add Page" />
+    </LinearLayout>
 
     <!-- Canvas area -->
+    <!-- Update the canvas_container in activity_note_detail.xml -->
     <FrameLayout
         android:id="@+id/canvas_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:background="#E0E0E0"
         app:layout_constraintBottom_toTopOf="@id/layout_bottom_buttons"
-        app:layout_constraintTop_toBottomOf="@id/layout_tools">
+        app:layout_constraintTop_toBottomOf="@id/layout_page_navigation">
 
         <ImageView
             android:id="@+id/image_note"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="Note Image"
-            android:scaleType="fitCenter" />
+            android:scaleType="fitCenter"
+            android:visibility="visible" />
 
         <com.example.app_music.presentation.feature.noteScene.views.DrawingView
             android:id="@+id/drawing_view"
@@ -237,6 +273,18 @@
             android:paddingVertical="12dp" />
     </LinearLayout>
 
+    <!-- FAB for adding pages -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_page"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/plus_icon"
+        app:layout_constraintBottom_toTopOf="@id/layout_bottom_buttons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white"
+        app:backgroundTint="@color/selectedicon" />
+
     <!-- Small progress bar for save operations -->
     <ProgressBar
         android:id="@+id/save_progress_bar"
@@ -254,17 +302,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-    <!-- Ensure the ProgressBar is centered and visible -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:indeterminateTint="@color/selectedicon"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

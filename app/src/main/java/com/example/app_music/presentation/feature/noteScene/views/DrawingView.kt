@@ -16,173 +16,247 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import java.util.ArrayList
-import android.graphics.Rect
-import android.graphics.Region
+import androidx.core.graphics.withSave
+import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import java.util.UUID
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
+
+/**
+ * View vẽ với các tính năng:
+ * - Vẽ, tẩy, di chuyển, zoom
+ * - Undo/redo
+ * - Lưu và tải lại các nét vẽ dưới dạng vector
+ * - Xóa nét vẽ cụ thể
+ */
 class DrawingView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // Paint object for drawing paths
-    private var mPaint: Paint = Paint()
+    enum class DrawMode {
+        DRAW,   // Chế độ vẽ
+        ERASE,  // Chế độ tẩy
+        PAN,    // Chế độ di chuyển/zoom
+        SELECT  // Chế độ chọn nét vẽ
+    }
+    companion object {
+        private const val TAG = "DrawingView"
+        private const val DEFAULT_STROKE_WIDTH = 5f
+        private const val DEFAULT_COLOR = Color.BLACK
+        private const val TOUCH_TOLERANCE = 4f
+        private const val MIN_SCALE = 0.5f
+        private const val MAX_SCALE = 5.0f
+        private const val STROKE_SELECTION_TOLERANCE = 20f // Dung sai khi chọn nét vẽ
+    }
 
-    // Bitmap for the canvas
+    // Paint cho vẽ
+    private val mPaint = Paint().apply {
+        isAntiAlias = true
+        isDither = true
+        color = DEFAULT_COLOR
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = DEFAULT_STROKE_WIDTH
+    }
+
+    // Bitmap cho canvas
     private lateinit var mBitmap: Bitmap
-
-    // Canvas to draw on
     private lateinit var mCanvas: Canvas
 
-    // Path that is being drawn
-    private val mPath = Path()
+    // Các biến lưu trạng thái vẽ
+    private var mCurrentMode = DrawMode.DRAW
+    private var mSelectedStrokeId: String? = null
+    private var mHighlightPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        color = Color.BLUE
+        strokeWidth = 2f
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f, 10f), 0f)
+    }
 
-    // Coordinates of the last touch point
-    private var mX = 0f
-    private var mY = 0f
-
-    // Threshold for considering touch as moved
-    private val TOUCH_TOLERANCE = 4f
-
-    // Current drawing mode
-    private var mCurrentMode = DrawMode.PAN
-
-    // Variables for panning and zooming
+    // Các biến cho zooming và panning
     private var mPosX = 0f
     private var mPosY = 0f
     private var mScaleFactor = 1f
     private val mScaleDetector: ScaleGestureDetector
     private val mGestureDetector: GestureDetector
 
-    // Paths management for undo/redo
-    private val mDrawnPaths = mutableListOf<DrawAction>()
-    private val mUndoActions = mutableListOf<UndoRedoAction>()
-    private val mRedoActions = mutableListOf<UndoRedoAction>()
-    private var mCurrentDrawAction: DrawAction? = null
-    private var mTempEraserPath: Path? = null
-
-    // Background image to use as canvas
+    // Background image
     private var mBackgroundBitmap: Bitmap? = null
-    private val mBackgroundPaint = Paint()
+    private val mBackgroundPaint = Paint().apply {
+        isFilterBitmap = true
+    }
 
-    // Flag to track if drawing started outside document bounds
-    private var mStartedOutsideBounds = false
-
-    // Listener for draw completion
+    // Listeners
     interface OnDrawCompletedListener {
         fun onDrawCompleted()
     }
-
     private var mDrawCompletedListener: OnDrawCompletedListener? = null
+    private var mStrokeSelectedListener: ((String) -> Unit)? = null
 
-    fun setOnDrawCompletedListener(listener: OnDrawCompletedListener) {
-        mDrawCompletedListener = listener
-        Log.d("DrawingView", "Draw completed listener set")
-    }
+    // Danh sách các nét vẽ
+    private val mStrokes = mutableListOf<Stroke>()
+    private var mCurrentStroke: Stroke? = null
 
-    private fun notifyDrawCompleted() {
-        try {
-            Log.d("DrawingView", "Notifying draw completed")
-            mDrawCompletedListener?.onDrawCompleted()
-        } catch (e: Exception) {
-            Log.e("DrawingView", "Error notifying draw completed", e)
+    // Undo/Redo
+    private val mUndoStack = mutableListOf<DrawAction>()
+    private val mRedoStack = mutableListOf<DrawAction>()
+
+    // Lớp dữ liệu cho nét vẽ
+    data class StrokePoint(
+        @SerializedName("x") val x: Float = 0f,
+        @SerializedName("y") val y: Float = 0f,
+        @SerializedName("type") val type: Int = MotionEvent.ACTION_MOVE // ACTION_DOWN, ACTION_MOVE, ACTION_UP
+    )
+
+    data class Stroke(
+        @SerializedName("id") val id: String = UUID.randomUUID().toString(),
+        @SerializedName("color") val color: Int = DEFAULT_COLOR,
+        @SerializedName("width") val strokeWidth: Float = DEFAULT_STROKE_WIDTH,
+        @SerializedName("isEraser") val isEraser: Boolean = false,
+        @SerializedName("points") val points: MutableList<StrokePoint> = mutableListOf()
+    ) {
+        fun toPath(): Path {
+            val path = Path()
+            if (points.isEmpty()) return path
+
+            var lastX = 0f
+            var lastY = 0f
+
+            for (i in points.indices) {
+                val point = points[i]
+                when (point.type) {
+                    MotionEvent.ACTION_DOWN -> {
+                        path.moveTo(point.x, point.y)
+                        lastX = point.x
+                        lastY = point.y
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        // Tạo đường cong mượt với quadTo
+                        val midX = (lastX + point.x) / 2
+                        val midY = (lastY + point.y) / 2
+                        path.quadTo(lastX, lastY, midX, midY)
+                        lastX = point.x
+                        lastY = point.y
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        path.lineTo(point.x, point.y)
+                    }
+                }
+            }
+            return path
+        }
+
+        // Tính toán bounds của stroke với strokeWidth
+        fun getBounds(): RectF {
+            val path = toPath()
+            val bounds = RectF()
+            path.computeBounds(bounds, true)
+            // Mở rộng bounds dựa trên strokeWidth để dễ chọn
+            bounds.inset(-strokeWidth - STROKE_SELECTION_TOLERANCE, -strokeWidth - STROKE_SELECTION_TOLERANCE)
+            return bounds
         }
     }
 
+    // Lớp dữ liệu để lưu trữ toàn bộ bản vẽ
+    data class DrawingData(
+        @SerializedName("strokes") val strokes: List<Stroke> = emptyList(),
+        @SerializedName("width") val width: Int = 0,
+        @SerializedName("height") val height: Int = 0
+    )
+
+    // Lớp cơ sở cho Undo/Redo
+    sealed class DrawAction {
+        data class AddStroke(val stroke: Stroke) : DrawAction()
+        data class RemoveStroke(val stroke: Stroke, val index: Int) : DrawAction()
+        data class ClearAll(val strokes: List<Stroke>) : DrawAction()
+    }
 
     init {
-        // Initialize the paint with default values
-        mPaint.apply {
-            isAntiAlias = true
-            isDither = true
-            color = Color.BLACK
-            style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-            strokeWidth = 5f
-        }
-
-        mBackgroundPaint.apply {
-            isFilterBitmap = true
-        }
-
-        // Initialize scale detector
+        // Khởi tạo gesture detectors
         mScaleDetector = ScaleGestureDetector(context, ScaleListener())
-
-        // Initialize gesture detector for panning
         mGestureDetector = GestureDetector(context, GestureListener())
+
+        // Đặt các thuộc tính cho view
+        isFocusable = true
+        isFocusableInTouchMode = true
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        // Create a new bitmap and canvas when the view size changes
-        mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        mCanvas = Canvas(mBitmap)
+        // Tạo bitmap mới khi kích thước view thay đổi
+        if (w > 0 && h > 0) {
+            mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            mCanvas = Canvas(mBitmap)
+        }
 
-        // Center the view position
-        mPosX = 0f
-        mPosY = 0f
-    }
-
-    fun setBackgroundImage(bitmap: Bitmap) {
-        mBackgroundBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
-        invalidate()
+        // Vẽ lại tất cả nét vẽ
+        redrawStrokes()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // Save current canvas state
-        canvas.save()
+        // Lưu trạng thái canvas
+        canvas.withSave {
+            // Áp dụng transformations cho zoom và pan
+            translate(mPosX, mPosY)
+            scale(mScaleFactor, mScaleFactor)
 
-        // Apply transformations for zoom and pan
-        canvas.translate(mPosX, mPosY)
-        canvas.scale(mScaleFactor, mScaleFactor)
-
-        // Draw background image if exists
-        mBackgroundBitmap?.let {
-            // Calculate centered position
-            val left = (width - it.width) / 2f
-            val top = (height - it.height) / 2f
-            canvas.drawBitmap(it, left, top, mBackgroundPaint)
-        }
-
-        // Draw the bitmap with all previous paths
-        canvas.drawBitmap(mBitmap, 0f, 0f, null)
-
-        // Draw the current path if in drawing mode
-        if (mCurrentMode == DrawMode.DRAW) {
-            canvas.drawPath(mPath, mPaint)
-        } else if (mCurrentMode == DrawMode.ERASE && mTempEraserPath != null) {
-            // Draw a visual feedback for eraser, but with semi-transparent color
-            val eraserPaint = Paint(mPaint).apply {
-                color = Color.LTGRAY
-                alpha = 50 // Very transparent
-                style = Paint.Style.STROKE
-                strokeWidth = mPaint.strokeWidth * 1.5f
+            // Vẽ background image nếu có
+            mBackgroundBitmap?.let {
+                // Tính vị trí để đặt ảnh giữa
+                val left = (width - it.width) / 2f
+                val top = (height - it.height) / 2f
+                drawBitmap(it, left, top, mBackgroundPaint)
             }
-            canvas.drawPath(mTempEraserPath!!, eraserPaint)
-        }
 
-        // Restore canvas to original state
-        canvas.restore()
+            // Vẽ bitmap với tất cả nét vẽ đã vẽ
+            drawBitmap(mBitmap, 0f, 0f, null)
+
+            // Vẽ nét vẽ hiện tại đang được vẽ
+            mCurrentStroke?.let { stroke ->
+                val path = stroke.toPath()
+                val paint = Paint(mPaint).apply {
+                    color = stroke.color
+                    strokeWidth = stroke.strokeWidth
+                    if (stroke.isEraser) {
+                        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                    }
+                }
+                drawPath(path, paint)
+            }
+
+            // Vẽ viền highlight cho nét vẽ được chọn
+            if (mCurrentMode == DrawMode.SELECT && mSelectedStrokeId != null) {
+                val selectedStroke = mStrokes.find { it.id == mSelectedStrokeId }
+                selectedStroke?.let {
+                    val path = it.toPath()
+                    drawPath(path, mHighlightPaint)
+                }
+            }
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        // Always let the ScaleGestureDetector inspect the event first
+        // Đầu tiên cho ScaleGestureDetector xử lý
         mScaleDetector.onTouchEvent(event)
 
-        // If multitouch (zooming), prioritize that over other actions
+        // Nếu đang multitouch (zoom), ưu tiên xử lý đó
         if (event.pointerCount > 1) {
             return true
         }
 
-        // Handle touch based on current mode
+        // Xử lý touch dựa trên chế độ hiện tại
         when (mCurrentMode) {
             DrawMode.PAN -> {
-                // Let the gesture detector handle panning
+                // Để gesture detector xử lý panning
                 mGestureDetector.onTouchEvent(event)
                 invalidate()
                 return true
@@ -192,386 +266,460 @@ class DrawingView @JvmOverloads constructor(
                 invalidate()
                 return true
             }
+            DrawMode.SELECT -> {
+                handleSelectionTouch(event)
+                invalidate()
+                return true
+            }
         }
+
         return super.onTouchEvent(event)
     }
 
+    /**
+     * Xử lý sự kiện touch khi ở chế độ vẽ hoặc tẩy
+     */
     private fun handleDrawingTouch(event: MotionEvent) {
-        // Adjust coordinates for current zoom and pan
-        val rawX = (event.x - mPosX) / mScaleFactor
-        val rawY = (event.y - mPosY) / mScaleFactor
+        // Điều chỉnh tọa độ theo scale và pan
+        val adjustedX = (event.x - mPosX) / mScaleFactor
+        val adjustedY = (event.y - mPosY) / mScaleFactor
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // Start a new stroke
-                mPath.reset()
-                mPath.moveTo(rawX, rawY)
-                mX = rawX
-                mY = rawY
+                // Bỏ chọn nét vẽ nếu có
+                mSelectedStrokeId = null
 
-                if (mCurrentMode == DrawMode.ERASE) {
-                    // Create a temporary eraser path for visual feedback
-                    mTempEraserPath = Path()
-                    mTempEraserPath?.moveTo(rawX, rawY)
-                } else {
-                    // For normal drawing, create a new draw action
-                    mCurrentDrawAction = DrawAction(Path(), Paint(mPaint), false)
-                    mCurrentDrawAction?.path?.moveTo(rawX, rawY)
-                }
+                // Bắt đầu nét vẽ mới
+                mCurrentStroke = Stroke(
+                    color = if (mCurrentMode == DrawMode.ERASE) Color.TRANSPARENT else mPaint.color,
+                    strokeWidth = mPaint.strokeWidth,
+                    isEraser = (mCurrentMode == DrawMode.ERASE)
+                )
+
+                // Thêm điểm đầu tiên
+                mCurrentStroke?.points?.add(StrokePoint(adjustedX, adjustedY, MotionEvent.ACTION_DOWN))
             }
 
             MotionEvent.ACTION_MOVE -> {
-                // Calculate the distance moved
-                val dx = Math.abs(rawX - mX)
-                val dy = Math.abs(rawY - mY)
+                // Kiểm tra xem đã di chuyển đủ xa chưa
+                val lastPoint = mCurrentStroke?.points?.lastOrNull()
+                if (lastPoint != null) {
+                    val dx = abs(adjustedX - lastPoint.x)
+                    val dy = abs(adjustedY - lastPoint.y)
 
-                // If the distance is significant enough
-                if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                    // Create a bezier curve from the previous point to the current point
-                    mPath.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
-
-                    if (mCurrentMode == DrawMode.ERASE) {
-                        // Update temporary eraser path
-                        mTempEraserPath?.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
-                    } else {
-                        // Update the drawing path
-                        mCurrentDrawAction?.path?.quadTo(mX, mY, (rawX + mX) / 2, (rawY + mY) / 2)
+                    if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                        // Thêm điểm mới vào nét vẽ hiện tại
+                        mCurrentStroke?.points?.add(StrokePoint(adjustedX, adjustedY, MotionEvent.ACTION_MOVE))
                     }
-
-                    // Update the last point
-                    mX = rawX
-                    mY = rawY
                 }
             }
-            // Trong phần xử lý ACTION_UP trong handleDrawingTouch
-            MotionEvent.ACTION_UP -> {
-                // Complete the path
-                mPath.lineTo(mX, mY)
 
-                if (mCurrentMode == DrawMode.ERASE) {
-                    // Complete temporary eraser path
-                    mTempEraserPath?.lineTo(mX, mY)
-                    // Erase intersecting paths
-                    val pathsRemoved = erasePaths()
-                    // Save this action to undo stack only if paths were actually removed
-                    if (pathsRemoved.isNotEmpty()) {
-                        mUndoActions.add(EraseAction(ArrayList(pathsRemoved)))
-                        mRedoActions.clear()
-                        Log.d("DrawingView", "Added erase action with ${pathsRemoved.size} paths")
-                        // Thông báo hoàn thành vẽ để lưu ngay lập tức
+            MotionEvent.ACTION_UP -> {
+                // Thêm điểm cuối vào nét vẽ
+                mCurrentStroke?.points?.add(StrokePoint(adjustedX, adjustedY, MotionEvent.ACTION_UP))
+
+                // Thêm nét vẽ vào danh sách nếu có ít nhất 2 điểm
+                mCurrentStroke?.let { stroke ->
+                    if (stroke.points.size > 1) {
+                        mStrokes.add(stroke)
+
+                        // Thêm vào stack undo
+                        mUndoStack.add(DrawAction.AddStroke(stroke))
+                        mRedoStack.clear()
+
+                        // Vẽ nét lên canvas
+                        drawStroke(stroke)
+
+                        // Thông báo hoàn thành vẽ
                         notifyDrawCompleted()
                     }
-                    // Clear temporary eraser path
-                    mTempEraserPath = null
-                } else if (mCurrentMode == DrawMode.DRAW) {
-                    // For drawing, save the path to the canvas only if a valid path exists
-                    mCurrentDrawAction?.let {
-                        if (!it.path.isEmpty) {
-                            it.path.lineTo(mX, mY)
-                            mDrawnPaths.add(it)
-                            mCanvas.drawPath(it.path, it.paint)
-                            mUndoActions.add(DrawPathAction(it))
-                            mRedoActions.clear()
-                            Log.d("DrawingView", "Added draw action")
-                            // Thông báo hoàn thành vẽ để lưu ngay lập tức
-                            notifyDrawCompleted()
-                        }
-                    }
-                    mCurrentDrawAction = null
                 }
 
-                // Reset the path for the next drawing
-                mPath.reset()
-
-                // Log undo/redo status
-                Log.d(
-                    "DrawingView",
-                    "Undo actions: ${mUndoActions.size}, Redo actions: ${mRedoActions.size}"
-                )
+                // Reset nét vẽ hiện tại
+                mCurrentStroke = null
             }
         }
     }
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
 
-        if (::mBitmap.isInitialized && !mBitmap.isRecycled) {
-            mBitmap.recycle()
-        }
+    /**
+     * Xử lý sự kiện touch khi ở chế độ chọn
+     */
+    private fun handleSelectionTouch(event: MotionEvent) {
+        when (event.action) {
+            MotionEvent.ACTION_UP -> {
+                // Điều chỉnh tọa độ theo scale và pan
+                val adjustedX = (event.x - mPosX) / mScaleFactor
+                val adjustedY = (event.y - mPosY) / mScaleFactor
 
-        mBackgroundBitmap?.recycle()
-        mBackgroundBitmap = null
-    }
-    private fun erasePaths(): List<DrawAction> {
-        val pathsToRemove = mutableListOf<DrawAction>()
-
-        // Create a region for the eraser path
-        val eraserRegion = Region()
-        val eraserPath = Path(mPath) // Clone the current path
-
-        val rectF = RectF()
-        eraserPath.computeBounds(rectF, true)
-        val rect = Rect()
-        rectF.roundOut(rect)
-
-        eraserRegion.setPath(eraserPath, Region(rect))
-
-        // Check each drawn path for intersection
-        for (path in mDrawnPaths) {
-            val pathRegion = Region()
-            val pathRectF = RectF()
-            path.path.computeBounds(pathRectF, true)
-            val pathRect = Rect()
-            pathRectF.roundOut(pathRect)
-
-            // If the path bounds don't intersect the eraser bounds at all, skip further checks
-            if (!Rect.intersects(rect, pathRect)) {
-                continue
-            }
-
-            pathRegion.setPath(path.path, Region(pathRect))
-
-            // If the regions intersect, mark path for removal
-            if (!pathRegion.quickReject(eraserRegion) && pathRegion.op(eraserRegion, Region.Op.INTERSECT)) {
-                pathsToRemove.add(path)
+                // Chọn nét vẽ ở vị trí này
+                val strokeId = findStrokeAt(adjustedX, adjustedY)
+                if (strokeId != mSelectedStrokeId) {
+                    mSelectedStrokeId = strokeId
+                    mStrokeSelectedListener?.invoke(strokeId ?: "")
+                    invalidate()
+                }
             }
         }
+    }
 
-        // If any paths are to be removed
-        if (pathsToRemove.isNotEmpty()) {
-            // Remove the paths from drawn paths list
-            mDrawnPaths.removeAll(pathsToRemove)
+    /**
+     * Tìm nét vẽ ở vị trí được chỉ định
+     */
+    private fun findStrokeAt(x: Float, y: Float): String? {
+        // Duyệt từ sau ra trước (nét vẽ sau được ưu tiên)
+        for (i in mStrokes.indices.reversed()) {
+            val stroke = mStrokes[i]
 
-            // Redraw the canvas
-            redrawPaths()
+            // Kiểm tra xem điểm có nằm trong bounds của nét vẽ không
+            val bounds = stroke.getBounds()
+            if (bounds.contains(x, y)) {
+                // Kiểm tra chi tiết hơn với path
+                val path = stroke.toPath()
+                val pathBounds = RectF()
+                path.computeBounds(pathBounds, true)
+                pathBounds.inset(-stroke.strokeWidth - STROKE_SELECTION_TOLERANCE, -stroke.strokeWidth - STROKE_SELECTION_TOLERANCE)
+
+                if (pathBounds.contains(x, y)) {
+                    return stroke.id
+                }
+            }
         }
 
-        return pathsToRemove
+        return null
     }
 
     /**
-     * Set the color for drawing
+     * Vẽ một stroke lên canvas
      */
+    private fun drawStroke(stroke: Stroke) {
+        val path = stroke.toPath()
+        val paint = Paint(mPaint).apply {
+            color = stroke.color
+            strokeWidth = stroke.strokeWidth
+            if (stroke.isEraser) {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            } else {
+                xfermode = null
+            }
+        }
+
+        mCanvas.drawPath(path, paint)
+    }
+
     /**
-     * Get the current drawing path for collaboration
+     * Vẽ lại tất cả các nét
      */
-    fun getCurrentPath(): Path? {
-        return if (mCurrentDrawAction != null) {
-            mCurrentDrawAction?.path
-        } else {
-            null
+    private fun redrawStrokes() {
+        if (!::mCanvas.isInitialized) return
+
+        // Xóa canvas
+        mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+        // Vẽ lại từng nét
+        for (stroke in mStrokes) {
+            drawStroke(stroke)
+        }
+
+        // Cập nhật view
+        invalidate()
+    }
+
+    /**
+     * Xóa một nét vẽ cụ thể
+     */
+    fun deleteSelectedStroke() {
+        mSelectedStrokeId?.let { id ->
+            val index = mStrokes.indexOfFirst { it.id == id }
+
+            if (index != -1) {
+                val stroke = mStrokes.removeAt(index)
+
+                // Thêm vào stack undo
+                mUndoStack.add(DrawAction.RemoveStroke(stroke, index))
+                mRedoStack.clear()
+
+                // Reset selection
+                mSelectedStrokeId = null
+
+                // Vẽ lại tất cả
+                redrawStrokes()
+
+                // Thông báo hoàn thành
+                notifyDrawCompleted()
+            }
         }
     }
-    fun setColor(color: Int) {
-        mPaint.color = color
-    }
 
     /**
-     * Set the stroke width for drawing
+     * Undo thao tác gần nhất
      */
+    fun undo(): Boolean {
+        if (mUndoStack.isEmpty()) return false
 
-    fun setStrokeWidth(width: Float) {
-        mPaint.strokeWidth = width
+        val action = mUndoStack.removeAt(mUndoStack.size - 1)
+        mRedoStack.add(action)
+
+        when (action) {
+            is DrawAction.AddStroke -> {
+                // Xóa nét vẽ đã thêm
+                mStrokes.removeIf { it.id == action.stroke.id }
+            }
+            is DrawAction.RemoveStroke -> {
+                // Thêm lại nét vẽ đã xóa
+                if (action.index <= mStrokes.size) {
+                    mStrokes.add(action.index, action.stroke)
+                } else {
+                    mStrokes.add(action.stroke)
+                }
+            }
+            is DrawAction.ClearAll -> {
+                // Thêm lại tất cả nét vẽ đã xóa
+                mStrokes.addAll(action.strokes)
+            }
+        }
+
+        // Vẽ lại tất cả
+        redrawStrokes()
+
+        // Thông báo hoàn thành
+        notifyDrawCompleted()
+
+        return true
     }
 
     /**
-     * Set the drawing mode
+     * Redo thao tác đã undo
+     */
+    fun redo(): Boolean {
+        if (mRedoStack.isEmpty()) return false
+
+        val action = mRedoStack.removeAt(mRedoStack.size - 1)
+        mUndoStack.add(action)
+
+        when (action) {
+            is DrawAction.AddStroke -> {
+                // Thêm lại nét vẽ
+                mStrokes.add(action.stroke)
+            }
+            is DrawAction.RemoveStroke -> {
+                // Xóa lại nét vẽ
+                mStrokes.removeIf { it.id == action.stroke.id }
+            }
+            is DrawAction.ClearAll -> {
+                // Xóa tất cả nét vẽ
+                mStrokes.clear()
+            }
+        }
+
+        // Vẽ lại tất cả
+        redrawStrokes()
+
+        // Thông báo hoàn thành
+        notifyDrawCompleted()
+
+        return true
+    }
+
+    /**
+     * Xóa tất cả nét vẽ
+     */
+    fun clearDrawing() {
+        // Lưu trạng thái trước khi xóa
+        if (mStrokes.isNotEmpty()) {
+            val allStrokes = ArrayList(mStrokes)
+            mUndoStack.add(DrawAction.ClearAll(allStrokes))
+            mRedoStack.clear()
+        }
+
+        // Xóa tất cả nét vẽ
+        mStrokes.clear()
+
+        // Reset selection
+        mSelectedStrokeId = null
+
+        // Xóa canvas
+        mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+        // Cập nhật view
+        invalidate()
+
+        // Thông báo hoàn thành
+        notifyDrawCompleted()
+    }
+
+    /**
+     * Thông báo vẽ hoàn thành
+     */
+    private fun notifyDrawCompleted() {
+        mDrawCompletedListener?.onDrawCompleted()
+    }
+
+    /**
+     * Đặt listener khi vẽ hoàn thành
+     */
+    fun setOnDrawCompletedListener(listener: OnDrawCompletedListener) {
+        mDrawCompletedListener = listener
+    }
+
+    /**
+     * Đặt listener khi chọn nét vẽ
+     */
+    fun setOnStrokeSelectedListener(listener: (String) -> Unit) {
+        mStrokeSelectedListener = listener
+    }
+
+    /**
+     * Đặt chế độ vẽ
      */
     fun setMode(mode: DrawMode) {
         mCurrentMode = mode
+
+        // Reset selection khi chuyển mode
+        if (mode != DrawMode.SELECT) {
+            mSelectedStrokeId = null
+        }
+
+        invalidate()
     }
 
     /**
-     * Get the current drawing mode
+     * Lấy chế độ vẽ hiện tại
      */
     fun getMode(): DrawMode {
         return mCurrentMode
     }
 
     /**
-     * Clear the entire drawing
+     * Đặt màu nét vẽ
      */
-    fun clearDrawing() {
-        // Save current state before clearing
-        val currentPaths = ArrayList(mDrawnPaths)
-        if (currentPaths.isNotEmpty()) {
-            mUndoActions.add(ClearAction(currentPaths))
-            mRedoActions.clear()
-            notifyDrawCompleted()
-        }
+    fun setColor(color: Int) {
+        mPaint.color = color
+    }
 
-        // Clear the canvas
-        mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-        mDrawnPaths.clear()
+    /**
+     * Đặt độ rộng nét vẽ
+     */
+    fun setStrokeWidth(width: Float) {
+        mPaint.strokeWidth = width
+    }
+
+    /**
+     * Đặt ảnh nền
+     */
+    fun setBackgroundImage(bitmap: Bitmap) {
+        mBackgroundBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
         invalidate()
     }
 
     /**
-     * Undo the last drawing action
+     * Lấy dữ liệu vẽ
      */
-    fun undo(): Boolean {
-        Log.d("DrawingView", "Undo called with ${mUndoActions.size} actions")
-        if (mUndoActions.isEmpty()) {
-            return false
-        }
-
-        // Pop the last action from undo stack
-        val lastIndex = mUndoActions.size - 1
-        val undoAction = mUndoActions.removeAt(lastIndex)
-        // Add it to redo stack
-        mRedoActions.add(undoAction)
-
-        // Process the undo action
-        when (undoAction) {
-            is DrawPathAction -> {
-                // Remove the path
-                Log.d("DrawingView", "Undoing draw action")
-                mDrawnPaths.remove(undoAction.drawAction)
-            }
-            is EraseAction -> {
-                // Add back the erased paths
-                Log.d("DrawingView", "Undoing erase action with ${undoAction.erasedPaths.size} paths")
-                mDrawnPaths.addAll(undoAction.erasedPaths)
-            }
-            is ClearAction -> {
-                // Add back all cleared paths
-                Log.d("DrawingView", "Undoing clear action with ${undoAction.clearedPaths.size} paths")
-                mDrawnPaths.addAll(undoAction.clearedPaths)
-            }
-        }
-
-        // Redraw everything from scratch
-        redrawPaths()
-        notifyDrawCompleted()
-        return true
+    fun getDrawingData(): DrawingData {
+        return DrawingData(
+            strokes = mStrokes.toList(),
+            width = width,
+            height = height
+        )
     }
 
     /**
-     * Redo the last undone action
+     * Khôi phục dữ liệu vẽ
      */
-    fun redo(): Boolean {
-        Log.d("DrawingView", "Redo called with ${mRedoActions.size} actions")
-        if (mRedoActions.isEmpty()) {
-            return false
-        }
+    fun setDrawingData(drawingData: DrawingData) {
+        // Xóa tất cả nét vẽ hiện tại
+        mStrokes.clear()
+        mUndoStack.clear()
+        mRedoStack.clear()
 
-        // Pop the last action from redo stack
-        val lastIndex = mRedoActions.size - 1
-        val redoAction = mRedoActions.removeAt(lastIndex)
-        // Add it to undo stack
-        mUndoActions.add(redoAction)
+        // Thêm các nét vẽ từ dữ liệu
+        mStrokes.addAll(drawingData.strokes)
 
-        // Process the redo action
-        when (redoAction) {
-            is DrawPathAction -> {
-                // Add the path back
-                Log.d("DrawingView", "Redoing draw action")
-                mDrawnPaths.add(redoAction.drawAction)
-            }
-            is EraseAction -> {
-                // Remove the paths again
-                Log.d("DrawingView", "Redoing erase action with ${redoAction.erasedPaths.size} paths")
-                mDrawnPaths.removeAll(redoAction.erasedPaths)
-            }
-            is ClearAction -> {
-                // Clear all paths again
-                Log.d("DrawingView", "Redoing clear action with ${redoAction.clearedPaths.size} paths")
-                mDrawnPaths.removeAll(redoAction.clearedPaths)
-            }
-        }
-
-        // Redraw everything from scratch
-        redrawPaths()
-        notifyDrawCompleted()
-        return true
+        // Vẽ lại tất cả
+        redrawStrokes()
     }
 
     /**
-     * Redraw all paths
+     * Chuyển đổi dữ liệu vẽ sang JSON
      */
-    // Add this to ensure we're not losing drawing history
-    private fun redrawPaths() {
-        // Clear the canvas
-        mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-
-        // Redraw all paths
-        for (path in mDrawnPaths) {
-            try {
-                mCanvas.drawPath(path.path, path.paint)
-            } catch (e: Exception) {
-                Log.e("DrawingView", "Error drawing path: ${e.message}")
-            }
-        }
-
-        // Ensure UI is updated
-        invalidate()
+    fun getDrawingDataAsJson(): String {
+        return Gson().toJson(getDrawingData())
     }
 
     /**
-     * Get the current drawing as a bitmap
+     * Khôi phục dữ liệu vẽ từ JSON
+     */
+    fun setDrawingDataFromJson(json: String) {
+        try {
+            val drawingData = Gson().fromJson(json, DrawingData::class.java)
+            setDrawingData(drawingData)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting drawing data from JSON", e)
+        }
+    }
+
+    /**
+     * Lấy bitmap của bản vẽ
      */
     fun getDrawingBitmap(): Bitmap {
-        // Create a bitmap for just the drawing (without the background)
+        // Tạo bitmap mới cho bản vẽ (không bao gồm background)
         val resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(resultBitmap)
 
-        // Draw only the paths
+        // Vẽ các nét
         canvas.drawBitmap(mBitmap, 0f, 0f, null)
 
         return resultBitmap
     }
 
     /**
-     * Get a combined bitmap with background image and drawing
+     * Lấy bitmap kết hợp cả background và bản vẽ
      */
     fun getCombinedBitmap(): Bitmap {
-        // Create a bitmap that includes both background and drawing
+        // Tạo bitmap mới
         val resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(resultBitmap)
 
-        // Draw background if exists
+        // Vẽ background nếu có
         mBackgroundBitmap?.let {
             val left = (width - it.width) / 2f
             val top = (height - it.height) / 2f
             canvas.drawBitmap(it, left, top, mBackgroundPaint)
         }
 
-        // Draw the paths
+        // Vẽ các nét
         canvas.drawBitmap(mBitmap, 0f, 0f, null)
 
         return resultBitmap
     }
 
     /**
-     * Check if undo is available
+     * Kiểm tra có thể undo không
      */
-    fun canUndo(): Boolean = mUndoActions.isNotEmpty()
+    fun canUndo(): Boolean = mUndoStack.isNotEmpty()
 
     /**
-     * Check if redo is available
+     * Kiểm tra có thể redo không
      */
-    fun canRedo(): Boolean = mRedoActions.isNotEmpty()
-
-    /**
-     * Backward compatibility for the old API
-     */
-    @Deprecated("Use setMode(DrawMode.ERASE) instead", ReplaceWith("setMode(DrawMode.ERASE)"))
-    fun enableEraser(enabled: Boolean) {
-        if (enabled) {
-            setMode(DrawMode.ERASE)
-        } else {
-            setMode(DrawMode.DRAW)
-        }
+    fun canRedo(): Boolean = mRedoStack.isNotEmpty()
+    fun getLastStroke(): Stroke? {
+        return mStrokes.lastOrNull()
     }
 
     /**
-     * Scale listener for pinch-to-zoom
+     * Lấy thông tin nét vẽ hiện tại (đang vẽ dở)
+     */
+    fun getCurrentStroke(): Stroke? {
+        return mCurrentStroke
+    }
+    /**
+     * Scale listener cho pinch-to-zoom
      */
     private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             mScaleFactor *= detector.scaleFactor
 
-            // Limit scale factor
-            mScaleFactor = Math.max(0.5f, Math.min(mScaleFactor, 3.0f))
+            // Giới hạn tỷ lệ zoom
+            mScaleFactor = max(MIN_SCALE, min(mScaleFactor, MAX_SCALE))
 
             invalidate()
             return true
@@ -579,7 +727,7 @@ class DrawingView @JvmOverloads constructor(
     }
 
     /**
-     * Gesture listener for panning
+     * Gesture listener cho panning
      */
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onScroll(
@@ -588,7 +736,7 @@ class DrawingView @JvmOverloads constructor(
             distanceX: Float,
             distanceY: Float
         ): Boolean {
-            // Only pan if in PAN mode
+            // Chỉ pan khi ở chế độ PAN
             if (mCurrentMode == DrawMode.PAN) {
                 mPosX -= distanceX
                 mPosY -= distanceY
@@ -598,32 +746,4 @@ class DrawingView @JvmOverloads constructor(
             return false
         }
     }
-
-    /**
-     * Drawing modes
-     */
-    enum class DrawMode {
-        DRAW, ERASE, PAN
-    }
-
-    /**
-     * Class to represent a drawing action with path and paint
-     */
-    data class DrawAction(
-        val path: Path,
-        val paint: Paint,
-        val isEraser: Boolean
-    )
-
-    // Base class for undo/redo actions
-    sealed class UndoRedoAction
-
-    // Action for drawing a path
-    data class DrawPathAction(val drawAction: DrawAction) : UndoRedoAction()
-
-    // Action for erasing paths
-    data class EraseAction(val erasedPaths: List<DrawAction>) : UndoRedoAction()
-
-    // Action for clearing the canvas
-    data class ClearAction(val clearedPaths: List<DrawAction>) : UndoRedoAction()
 }

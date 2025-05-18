@@ -1,5 +1,5 @@
 <!-- res/drawable/rounded_spinner_border.xml -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#EA4F1A" /> <!-- Màu nền, có thể thay đổi -->
+    <solid android:color="#E19D2F04" /> <!-- Màu nền, có thể thay đổi -->
     <corners android:radius="10dp" /> <!-- Bán kính bo tròn --> <!-- Màu và độ dày viền -->
 </shape>

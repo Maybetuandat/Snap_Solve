@@ -15,20 +15,14 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.PopupMenu
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
 import com.example.app_music.data.model.FolderFirebaseModel
 import com.example.app_music.data.model.NoteFirebaseModel
@@ -40,10 +34,6 @@ import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.presentation.feature.noteScene.noteAdapter.NotesAdapter
 import com.example.app_music.presentation.feature.qrscanner.QRScannerActivity
 import com.example.app_music.utils.StorageManager
-import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FirebaseFirestoreSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,7 +59,7 @@ class NoteActivity : BaseActivity() {
     // Firebase repository
     private val repository = FirebaseNoteRepository()
 
-    // Current user and folder info
+    // Current user info
     private val currentUserId: String
         get() = "test_user_1"
 
@@ -81,22 +71,6 @@ class NoteActivity : BaseActivity() {
     // Photo capture variables
     private var photoUri: Uri? = null
     private var currentPhotoPath: String? = null
-
-    // Permission launcher for newer Android versions
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            if (pendingAction == PendingAction.OPEN_CAMERA) {
-                openCamera()
-            } else if (pendingAction == PendingAction.OPEN_GALLERY) {
-                openFilePicker()
-            }
-            pendingAction = PendingAction.NONE
-        } else {
-            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     // For tracking pending actions after permission requests
     private enum class PendingAction {
@@ -111,9 +85,16 @@ class NoteActivity : BaseActivity() {
         binding = ActivityNoteBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //set click cho back button
         setupBackButton()
+
+        // set type button
         setupTypeButton()
+
+        // set recycle view
         setupRecyclerView()
+
+        //set button menu
         setupMenuButton()
 
         // Check if we're opening a specific folder (from QR code or deep link)
@@ -128,7 +109,6 @@ class NoteActivity : BaseActivity() {
                 }
             }
         } else {
-            // Load folders by default (top level)
             loadFolders()
         }
 
@@ -141,10 +121,8 @@ class NoteActivity : BaseActivity() {
     private fun setupBackButton() {
         binding.buttonBackNote.setOnClickListener {
             if (isInFolder) {
-                // Go back to folders view
                 showFoldersView()
             } else {
-                // Standard back behavior
                 onBackPressed()
             }
         }
@@ -165,11 +143,6 @@ class NoteActivity : BaseActivity() {
                     R.id.type_name -> {
                         binding.noteButtonType.text = getString(R.string.name)
                         sortItemsByName()
-                        true
-                    }
-                    R.id.type_type -> {
-                        binding.noteButtonType.text = getString(R.string.type)
-                        sortItemsByType()
                         true
                     }
                     else -> false
@@ -195,6 +168,7 @@ class NoteActivity : BaseActivity() {
         adapter = NotesAdapter(
             context = this,
             notesList = notesList,
+            lifecycleScope = lifecycleScope,
             onNewItemClick = { anchorView ->
                 showNewItemOptions(anchorView)
             },
@@ -202,33 +176,19 @@ class NoteActivity : BaseActivity() {
                 showItemOptions(anchorView, item)
             },
             onFolderClick = { folder ->
-                // Open folder
                 openFolder(folder.id, folder.title, true)
             }
         )
         binding.recycleViewNote.adapter = adapter
     }
 
-
-    // Add a method to show permission rationale
-    private fun showPermissionRationaleDialog(title: String, message: String, permission: String, action: PendingAction) {
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setPositiveButton("Grant") { _, _ ->
-                pendingAction = action
-                requestPermissionLauncher.launch(permission)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
     private fun setupMenuButton() {
         binding.noteButtonMenu.setOnClickListener {
             val menuRes = if (isInFolder) R.menu.menu_folder_action else R.menu.menu_note_action
             val popupMenu = PopupMenu(this, it)
             popupMenu.menuInflater.inflate(menuRes, popupMenu.menu)
 
-            // Enable icons
+            //enable icon
             try {
                 val menuField = PopupMenu::class.java.getDeclaredField("mPopup")
                 menuField.isAccessible = true
@@ -250,16 +210,14 @@ class NoteActivity : BaseActivity() {
     }
 
     private fun showFoldersView() {
-        // Reset folder navigation state
         isInFolder = false
         currentFolderId = null
         currentFolderTitle = null
 
-        // Update UI
+        //cap nhat text la QANDA Note
         binding.textTitle.text = getString(R.string.noteTitle)
+
         updateMenuForFolderView()
-        updatePathBar(null)
-        // Load folders
         loadFolders()
     }
 
@@ -307,7 +265,6 @@ class NoteActivity : BaseActivity() {
         // Update UI
         binding.textTitle.text = folderTitle
         updateMenuForNoteView()
-        updatePathBar(folderTitle)
         // Load notes in this folder
         loadNotesInFolder(folderId)
     }
@@ -348,24 +305,20 @@ class NoteActivity : BaseActivity() {
     }
 
     private fun updateMenuForFolderView() {
-        // In folder view (top level), only show folder creation option
-        binding.noteButtonMenu.text = getString(R.string.create_new_folder)
+        binding.noteButtonMenu.text = getString(R.string.newbutton)
     }
 
     private fun updateMenuForNoteView() {
-        // In note view (inside folder), show note creation options
-        binding.noteButtonMenu.text = getString(R.string.create_new_note)
+        binding.noteButtonMenu.text = getString(R.string.newbutton)
     }
 
     private fun showNewItemOptions(anchorView: View?) {
         if (anchorView != null) {
             val popupMenu = if (isInFolder) {
-                // Inside folder - show note creation options
                 PopupMenu(this, anchorView).apply {
                     menuInflater.inflate(R.menu.menu_folder_action, menu)
                 }
             } else {
-                // Top level - show folder creation option
                 PopupMenu(this, anchorView).apply {
                     menuInflater.inflate(R.menu.menu_note_action, menu)
                 }
@@ -703,6 +656,7 @@ class NoteActivity : BaseActivity() {
             openFilePicker()
         }
     }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -764,17 +718,6 @@ class NoteActivity : BaseActivity() {
             }
         } else {
             Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun updatePathBar(folderTitle: String?) {
-        val pathView = binding.tvPath
-        if (isInFolder && folderTitle != null) {
-            pathView.text = "Home > $folderTitle"
-            binding.pathBar.visibility = View.VISIBLE
-        } else {
-            pathView.text = "Home"
-            binding.pathBar.visibility = View.GONE
         }
     }
 
@@ -852,7 +795,7 @@ class NoteActivity : BaseActivity() {
 
                 // Upload ảnh trước khi tạo note
                 val storageManager = StorageManager(applicationContext)
-                val imagePath = "${noteId}.jpg" // Đặt imagePath trước
+                val imagePath = "${noteId}.jpg"
 
                 // Upload ảnh lên Storage
                 val uploadSuccess = storageManager.saveImage(noteId, bitmap)
@@ -958,16 +901,4 @@ class NoteActivity : BaseActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun sortItemsByType() {
-        notesList.sortWith(compareBy({ !it.isFolder }, { it.title.lowercase() }))
-        adapter.notifyDataSetChanged()
-    }
-
-    override fun onBackPressed() {
-        if (isInFolder) {
-            showFoldersView()
-        } else {
-            super.onBackPressed()
-        }
-    }
 }
