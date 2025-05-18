@@ -131,4 +131,18 @@
     <string name="remember_me">Remember Me</string>
     <string name="or">OR</string>
     <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="share">Share</string>
+    <string name="snap_solve_premium">Snap Solve Premium</string>
+    <string name="unlimited_questions_and_answers">Unlimited questions and answers</string>
+    <string name="ai_question_resolve">You can use AI Question Solver and Multiple question search\nwithout any limits</string>
+    <string name="improved_answer">Improved answer</string>
+    <string name="smarter_ai">A smarter AI gives you reliable answers</string>
+    <string name="remove_all_ads">Remove all ads</string>
+    <string name="remove_add_description">You can focus without any distraction getting in</string>
+    <string name="unlimitednote">Experience unlimited free note-taking</string>
+    <string name="unlimited_note_description">Enjoy seamless note-taking and problem-solving — for free</string>
+    <string name="detail_explanation">A detailed explanation built on your own solution</string>
+    <string name="detail_explanation_description">Get help solving the problem on your own by building on your\ncurrent approach</string>
+    <string name="checkout_zalopay">Checkout ZaloPay</string>
+    <string name="price_for_premium_user">After the free trial ends đ98,000 billed monthly</string>
 </resources>

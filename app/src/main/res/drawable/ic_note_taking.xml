@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#E3F2FD"
+        android:pathData="M20,20m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"/>
+
+    <!-- Notebook -->
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M13,11L25,11A2,2 0,0 1,27 13L27,27A2,2 0,0 1,25 29L13,29L13,11z"/>
+
+    <!-- Spiral binding -->
+    <path
+        android:strokeColor="#1976D2"
+        android:strokeWidth="1"
+        android:pathData="M11,13L11,27"/>
+
+    <!-- Spiral circles using path -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M11,15m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0"/>
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M11,18m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0"/>
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M11,21m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0"/>
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M11,24m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0"/>
+
+    <!-- Lines on paper -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:pathData="M15,17L25,17M15,19L25,19M15,21L25,21M15,23L25,23"/>
+
+    <!-- Pencil -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M28,12L30,14L25,19L23,17L28,12z"/>
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M30,12L32,14L30,16L28,14L30,12z"/>
+
+</vector>

@@ -14,6 +14,7 @@ import com.example.app_music.presentation.feature.menu.profile.ProfileActivity
 import com.example.app_music.presentation.feature.setting.SettingActivity
 import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
+import com.example.app_music.presentation.feature.menu.premiumuser.PremiumUser
 
 class MenuFragment : Fragment() {
    private var _binding : FragmentMenuBinding ?= null
@@ -70,6 +71,10 @@ class MenuFragment : Fragment() {
 
         binding.btnEditProfile.setOnClickListener {
             val intent = Intent(requireContext(), ProfileActivity::class.java)
+            startActivity(intent)
+        }
+        binding.layoutPremium.setOnClickListener {
+            val intent = Intent(requireContext(), PremiumUser::class.java)
             startActivity(intent)
         }
     }

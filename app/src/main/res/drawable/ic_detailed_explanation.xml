@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#FFF8E1"
+        android:pathData="M20,20m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"/>
+
+    <!-- Document -->
+    <rect
+        android:width="12dp"
+        android:height="16dp"
+        android:x="10dp"
+        android:y="12dp"
+        android:fillColor="#FFC107"
+        />
+
+    <!-- Text lines -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:pathData="M12,16L20,16M12,18L20,18M12,20L20,20M12,22L20,22M12,24L18,24"/>
+
+    <!-- Chat bubble -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M22,10A4,4 0,0 1,26 6L30,6A4,4 0,0 1,34 10L34,14A4,4 0,0 1,30 18L28,18L26,20L26,18A4,4 0,0 1,22 14L22,10z"/>
+
+    <!-- Lines in bubble -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="0.8"
+        android:pathData="M24,10L32,10M24,12L32,12M24,14L30,14"/>
+
+</vector>

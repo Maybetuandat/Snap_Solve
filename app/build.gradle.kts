@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation(files("/home/maybetuandat/PTIT/Android App/BTL/Snap_Solve/zpdk-release-v3.1.aar"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -63,7 +64,13 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
 
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+
+
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+
+
+
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
@@ -86,5 +93,10 @@ dependencies {
     implementation ("com.google.firebase:firebase-database-ktx:20.3.0")
     implementation("com.github.bumptech.glide:glide:4.15.1")
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
+
+
+
+    implementation("com.squareup.okhttp3:okhttp:4.9.3") // hoặc phiên bản mới hơn
+
 
 }

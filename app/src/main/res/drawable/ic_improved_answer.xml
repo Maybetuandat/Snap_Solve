@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#FFF3E0"
+        android:pathData="M20,20m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"/>
+
+    <!-- Lightbulb -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M20,8C16.69,8 14,10.69 14,14C14,16.5 15.23,18.68 17.08,20.13L17.08,24L22.92,24L22.92,20.13C24.77,18.68 26,16.5 26,14C26,10.69 23.31,8 20,8z"/>
+
+    <!-- Lightbulb base -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M18,26L22,26L22,28L18,28L18,26z"/>
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M18,30L22,30L22,32L18,32L18,30z"/>
+
+    <!-- Sparkles using path -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M12,12L13,14L15,12L13,10z"/>
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M28,10L29,12L31,10L29,8z"/>
+
+</vector>

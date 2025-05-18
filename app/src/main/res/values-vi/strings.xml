@@ -130,4 +130,19 @@
         <string name="see_solve">Xem giải</string>
         <string name="gethelp">Xem trợ giúp</string>
         <string name="xemgiaithich">Xem giải</string>
+        <string name="share">Share</string>
+        <string name="snap_solve_premium">Snap Solve Cao Cấp</string>
+        <string name="unlimited_questions_and_answers">Không giới hạn câu hỏi và câu trả lời</string>
+        <string name="ai_question_resolve">Bạn có thể sử dụng Trình giải câu hỏi AI và tìm kiếm nhiều câu hỏi\nmà không bị giới hạn</string>
+        <string name="improved_answer">Câu trả lời được cải thiện</string>
+        <string name="smarter_ai">AI thông minh hơn mang lại câu trả lời đáng tin cậy</string>
+        <string name="remove_all_ads">Xóa tất cả quảng cáo</string>
+        <string name="remove_add_description">Bạn có thể tập trung mà không bị làm phiền</string>
+        <string name="unlimitednote">Trải nghiệm ghi chú không giới hạn</string>
+        <string name="unlimited_note_description">Thỏa sức ghi chú và giải quyết vấn đề — hoàn toàn miễn phí</string>
+        <string name="detail_explanation">Giải thích chi tiết dựa trên lời giải của bạn</string>
+        <string name="detail_explanation_description">Nhận trợ giúp giải bài bằng cách phát triển từ cách tiếp cận\nhiện tại của bạn</string>
+        <string name="checkout_zalopay">Thanh toán qua ZaloPay</string>
+        <string name="price_for_premium_user">Sau khi kết thúc dùng thử, đ98.000 sẽ được tính hàng tháng</string>
+
 </resources>

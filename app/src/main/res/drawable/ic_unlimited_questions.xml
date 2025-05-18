@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#E8F5E9"
+        android:pathData="M20,20m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"/>
+
+    <!-- Chat bubbles -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M12,14A4,4 0,0 1,16 10L24,10A4,4 0,0 1,28 14L28,18A4,4 0,0 1,24 22L18,22L14,26L14,22A4,4 0,0 1,12 18L12,14z"/>
+
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M16,18A3,3 0,0 1,19 15L25,15A3,3 0,0 1,28 18L28,22A3,3 0,0 1,25 25L21,25L18,28L18,25A3,3 0,0 1,16 22L16,18z"/>
+
+    <!-- Infinity symbol -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M17,16.5C17,15.12 18.12,14 19.5,14S22,15.12 22,16.5S20.88,19 19.5,19S17,17.88 17,16.5zM22,16.5C22,15.12 23.12,14 24.5,14S27,15.12 27,16.5S25.88,19 24.5,19S22,17.88 22,16.5z"/>
+
+</vector>
