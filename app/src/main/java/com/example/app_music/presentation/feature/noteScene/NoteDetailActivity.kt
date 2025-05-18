@@ -54,6 +54,7 @@ import java.util.UUID
 import android.Manifest
 import android.os.Build
 import android.view.MotionEvent
+import java.util.concurrent.TimeUnit
 
 class NoteDetailActivity : BaseActivity() {
 
@@ -186,6 +187,7 @@ class NoteDetailActivity : BaseActivity() {
 
         // Set up collaboration
         setupCollaboration()
+        binding.drawingView.resetTransform()
     }
 
 
@@ -199,7 +201,7 @@ class NoteDetailActivity : BaseActivity() {
     }
 
     private fun setupDrawingTools() {
-        // Default to PAN mode
+        // Mặc định ở chế độ PAN
         selectMode(DrawingView.DrawMode.PAN)
 
         // Tool selection listeners
@@ -245,17 +247,6 @@ class NoteDetailActivity : BaseActivity() {
                 syncDrawingAction()
             }
         })
-        binding.buttonHand.setOnClickListener {
-            selectMode(DrawingView.DrawMode.SELECT)
-        }
-
-        // Đặt listener cho sự kiện khi chọn nét vẽ
-        binding.drawingView.setOnStrokeSelectedListener { strokeId ->
-            if (strokeId.isNotEmpty()) {
-                // Hiển thị menu tùy chọn cho nét vẽ (xóa, đổi màu,...)
-                showStrokeOptionsDialog()
-            }
-        }
     }
 
     private fun showStrokeOptionsDialog() {
@@ -265,7 +256,7 @@ class NoteDetailActivity : BaseActivity() {
                 when (which) {
                     0 -> {
                         binding.drawingView.deleteSelectedStroke()
-                        saveDrawing(false) // Lưu sau khi xóa
+                        saveCurrentPage(false) // Lưu sau khi xóa
                     }
                 }
             }
@@ -474,14 +465,17 @@ class NoteDetailActivity : BaseActivity() {
     }
 
     // Update the loadPage method to handle image loading better and set a gray background
+    // Phương thức hỗ trợ để tải dữ liệu vẽ dạng bitmap
     private fun loadBitmapDrawingData(base64Data: String) {
         try {
             val decodedBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
             val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
             if (bitmap != null) {
-                // Đặt bitmap làm background để vẽ tiếp lên trên
+                // Đặt bitmap làm ảnh nền để vẽ tiếp lên trên
                 binding.drawingView.setBackgroundImage(bitmap)
                 Log.d("NoteDetailActivity", "Đã tải dữ liệu vẽ dạng bitmap")
+            } else {
+                Log.e("NoteDetailActivity", "Không thể giải mã dữ liệu bitmap")
             }
         } catch (e: Exception) {
             Log.e("NoteDetailActivity", "Lỗi khi tải dữ liệu bitmap: ${e.message}")
@@ -489,113 +483,119 @@ class NoteDetailActivity : BaseActivity() {
     }
     private fun loadPage(index: Int) {
         if (pages.isEmpty()) {
-            // If no pages, nothing to load
+            // Nếu không có trang, không có gì để tải
             binding.drawingView.clearDrawing()
             binding.imageNote.setImageDrawable(null)
             binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
             updatePageIndicator()
             updateNavigationButtons()
+            binding.drawingView.resetTransform()
             return
         }
 
         if (index < 0 || index >= pages.size) {
-            Log.e("NoteDetailActivity", "Invalid page index: $index, pages size: ${pages.size}")
+            Log.e("NoteDetailActivity", "Chỉ số trang không hợp lệ: $index, số lượng trang: ${pages.size}")
             return
         }
 
         binding.progressBar.visibility = View.VISIBLE
 
-        // First, save the current page if needed
+        // Đầu tiên, lưu trang hiện tại nếu cần
         currentPage?.let {
             saveCurrentPage(false)
         }
 
-        // Update current page
+        // Cập nhật trang hiện tại
         currentPage = pages[index]
         currentPageIndex = index
 
-        // Clear current canvas
+        // Xóa canvas hiện tại
         binding.drawingView.clearDrawing()
         binding.imageNote.setImageDrawable(null)
 
-        // Set gray background for better visibility
+        // Đặt nền màu xám nhạt để dễ nhìn hơn
         binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
 
         lifecycleScope.launch {
             try {
                 val page = pages[index]
 
-                Log.d("NoteDetailActivity", "Loading page ${index + 1}/${pages.size}, ID: ${page.id}")
-                Log.d("NoteDetailActivity", "Page has image path: ${page.imagePath != null}")
+                // Reset bitmap và nền
+                binding.drawingView.clearDrawing()
 
-                // Load page image if exists
+                // Đảm bảo container có nền xám
+                binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
+
                 if (page.imagePath != null) {
-                    try {
-                        Log.d("NoteDetailActivity", "Attempting to load image from path: ${page.imagePath}")
+                    // Tải ảnh từ storage
+                    val bitmap = storageManager.loadPageImage(page.id)
+                    if (bitmap != null) {
+                        // Đặt bitmap làm nền cho DrawingView
+                        binding.drawingView.setBackgroundImage(bitmap)
 
-                        // Load image from storage
-                        val bitmap = storageManager.loadPageImage(page.id)
-                        if (bitmap != null) {
-                            Log.d("NoteDetailActivity", "Image loaded from storage manager")
-                            binding.imageNote.setImageBitmap(bitmap)
-                        } else {
-                            // If failed to load from storage manager, try using Firebase URL
-                            Log.d("NoteDetailActivity", "Attempting to load from Firebase URL")
-                            val imageRef = repository.getImageBitmap(page.imagePath!!)
-                            if (imageRef.isSuccess) {
-                                val uri = imageRef.getOrNull()
-                                Log.d("NoteDetailActivity", "Image URL obtained: $uri")
+                        // Ẩn ImageView vì chúng ta sẽ sử dụng DrawingView để hiển thị cả ảnh nền
+                        binding.imageNote.visibility = View.GONE
+                    } else {
+                        // Nếu không tải được từ storage, thử sử dụng URL
+                        val imageRef = repository.getImageBitmap(page.imagePath!!)
+                        if (imageRef.isSuccess) {
+                            val uri = imageRef.getOrNull()
 
+                            // Tải ảnh bằng Glide và đặt vào DrawingView
+                            try {
+                                val future = Glide.with(this@NoteDetailActivity)
+                                    .asBitmap()
+                                    .load(uri)
+                                    .submit()
+
+                                val loadedBitmap = future.get(10, TimeUnit.SECONDS)
+                                binding.drawingView.setBackgroundImage(loadedBitmap)
+                                binding.imageNote.visibility = View.GONE
+                            } catch (e: Exception) {
+                                // Nếu tải bằng Glide thất bại, sử dụng ImageView truyền thống
+                                Log.e("NoteDetailActivity", "Lỗi tải bitmap: ${e.message}")
+                                binding.imageNote.visibility = View.VISIBLE
                                 Glide.with(this@NoteDetailActivity)
                                     .load(uri)
-                                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                    .timeout(30000) // 30 second timeout
-                                    .error(R.drawable.ic_note) // Show an error icon if loading fails
                                     .into(binding.imageNote)
-                            } else {
-                                Log.e("NoteDetailActivity", "Failed to get image URL: ${imageRef.exceptionOrNull()}")
-                                binding.imageNote.setImageResource(R.drawable.ic_note)
                             }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Error loading page image: ${e.message}")
-                        binding.imageNote.setImageResource(R.drawable.ic_note)
-                    }
-                }
-
-                // Load drawing data if exists
-                if (page.drawingData != null) {
-                    try {
-                        Log.d("NoteDetailActivity", "Loading drawing data")
-
-                        // Convert base64 string back to bitmap
-                        val decodedBytes = withContext(Dispatchers.Default) {
-                            android.util.Base64.decode(page.drawingData, android.util.Base64.DEFAULT)
-                        }
-
-                        // Create bitmap from bytes
-                        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-
-                        if (bitmap != null) {
-                            Log.d("NoteDetailActivity", "Drawing bitmap created: ${bitmap.width}x${bitmap.height}")
-                            // Set bitmap to drawing view
-                            binding.drawingView.setBackgroundImage(bitmap)
                         } else {
-                            Log.e("NoteDetailActivity", "Failed to decode drawing data")
+                            // Không lấy được URL
+                            binding.imageNote.setImageResource(R.drawable.ic_note)
+                            binding.imageNote.visibility = View.VISIBLE
                         }
-                    } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Error processing drawing data: ${e.message}")
                     }
+                } else {
+                    // Không có ảnh, tạo nền trắng với kích thước mặc định
+                    binding.drawingView.setWhiteBackground(800, 1200)
+                    binding.imageNote.visibility = View.GONE
                 }
 
-                // Update UI
+                // Tải dữ liệu vẽ
+                if (page.vectorDrawingData != null) {
+                    try {
+                        binding.drawingView.setDrawingDataFromJson(page.vectorDrawingData!!)
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Lỗi tải dữ liệu vẽ vector: ${e.message}")
+                        if (page.drawingData != null) {
+                            loadBitmapDrawingData(page.drawingData!!)
+                        }
+                    }
+                } else if (page.drawingData != null) {
+                    loadBitmapDrawingData(page.drawingData!!)
+                }
+
+                // Reset transform
+                binding.drawingView.resetTransform()
+
+                // Cập nhật UI
                 updatePageIndicator()
                 updateNavigationButtons()
-
+                updateUndoRedoButtons()
             } catch (e: Exception) {
                 Toast.makeText(this@NoteDetailActivity,
-                    "Error loading page: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("NoteDetailActivity", "Error loading page", e)
+                    "Lỗi khi tải trang: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("NoteDetailActivity", "Lỗi khi tải trang", e)
             } finally {
                 binding.progressBar.visibility = View.GONE
             }
@@ -607,59 +607,52 @@ class NoteDetailActivity : BaseActivity() {
             return
         }
 
-        // Using SupervisorJob() to prevent cancellation from propagating
-        val job = SupervisorJob()
-
-        lifecycleScope.launch(job + Dispatchers.Main) {
+        lifecycleScope.launch {
             try {
                 binding.saveProgressBar.visibility = View.VISIBLE
 
-                val result = withContext(Dispatchers.IO) {
-                    try {
-                        // Get combined bitmap
-                        val combinedBitmap = binding.drawingView.getCombinedBitmap()
+                // Lấy dữ liệu vẽ dạng vector dưới dạng JSON
+                val vectorJson = binding.drawingView.getDrawingDataAsJson()
+                Log.d("NoteDetailActivity", "Đang lưu dữ liệu vẽ vector: ${vectorJson.take(100)}...")
 
-                        // Convert bitmap to base64 string
-                        val baos = ByteArrayOutputStream()
-                        combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                        val imageBytes = baos.toByteArray()
-                        val drawingData = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT)
+                // Tạo bitmap để lưu dữ liệu tương thích ngược
+                val combinedBitmap = binding.drawingView.getCombinedBitmap()
+                val baos = ByteArrayOutputStream()
+                combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                val drawingData = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.DEFAULT)
 
-                        // Update page
-                        val updatedPage = currentPage!!.copy(
-                            drawingData = drawingData,
-                        )
+                // Cập nhật trang với cả hai định dạng
+                val updatedPage = currentPage!!.copy(
+                    drawingData = drawingData,
+                    vectorDrawingData = vectorJson
+                )
 
-                        repository.updatePage(updatedPage)
-                    } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Error saving page", e)
-                        Result.failure(e)
-                    }
-                }
-
-                // Now back on the main thread
-                binding.saveProgressBar.visibility = View.GONE
+                val result = repository.updatePage(updatedPage)
 
                 if (result.isSuccess) {
-                    if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity, "Page saved", Toast.LENGTH_SHORT).show()
-                    }
-                    // Update local page copy
+                    // Cập nhật bản sao trang cục bộ
                     currentPage = result.getOrNull()
                     pages[currentPageIndex] = currentPage!!
+
+                    if (showToast) {
+                        Toast.makeText(this@NoteDetailActivity, "Đã lưu trang", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     if (showToast) {
                         Toast.makeText(this@NoteDetailActivity,
-                            "Failed to save page: ${result.exceptionOrNull()?.message}",
+                            "Lỗi khi lưu trang: ${result.exceptionOrNull()?.message}",
                             Toast.LENGTH_SHORT).show()
                     }
+                    Log.e("NoteDetailActivity", "Lỗi khi lưu trang: ${result.exceptionOrNull()}")
                 }
             } catch (e: Exception) {
-                binding.saveProgressBar.visibility = View.GONE
+                Log.e("NoteDetailActivity", "Lỗi trong saveCurrentPage", e)
                 if (showToast) {
                     Toast.makeText(this@NoteDetailActivity,
-                        "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
+            } finally {
+                binding.saveProgressBar.visibility = View.GONE
             }
         }
     }
@@ -750,7 +743,7 @@ class NoteDetailActivity : BaseActivity() {
                     val newIndex = pages.size - 1
                     Log.d("NoteDetailActivity", "Navigating to new page at index $newIndex")
                     loadPage(newIndex)
-
+                    binding.drawingView.resetTransform()
                     Toast.makeText(this@NoteDetailActivity,
                         "Blank page added", Toast.LENGTH_SHORT).show()
                 } else {
@@ -989,16 +982,15 @@ class NoteDetailActivity : BaseActivity() {
                 binding.drawingView.setStrokeWidth(currentWidth)
             }
             DrawingView.DrawMode.ERASE -> {
-                binding.drawingView.setStrokeWidth(currentWidth * 2) // Eraser is thicker
+                binding.drawingView.setStrokeWidth(currentWidth * 2) // Tẩy rộng hơn
             }
             DrawingView.DrawMode.PAN -> {
                 // No special configuration needed
             }
-            else->{
-                //
+            else -> {
+                // Xử lý các chế độ khác nếu có
             }
         }
-
     }
 
     private fun showColorPicker() {
