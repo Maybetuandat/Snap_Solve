@@ -11,6 +11,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
@@ -19,11 +20,17 @@ import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.utils.StorageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.google.firebase.storage.StorageException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.isActive
 
 class NotesAdapter(
     private val context: Context,
     private val notesList: List<NoteItem>,
+    private val lifecycleScope: LifecycleCoroutineScope,
     private val onNewItemClick: (View?) -> Unit,
     private val onItemOptionsClick: (View, NoteItem) -> Unit,
     private val onFolderClick: (NoteItem) -> Unit
@@ -38,7 +45,7 @@ class NotesAdapter(
     override fun getItemViewType(position: Int): Int {
         return when {
             position == 0 -> TYPE_NEW // First item is always the NEW item
-            notesList[position - 1].isFolder -> TYPE_FOLDER // Adjust position (-1) because of NEW item
+            notesList[position - 1].isFolder -> TYPE_FOLDER
             else -> TYPE_NOTE
         }
     }
@@ -77,21 +84,7 @@ class NotesAdapter(
     }
 
     override fun getItemCount(): Int = notesList.size + 1 // +1 for the NEW item
-    class NotesDiffCallback(
-        private val oldList: List<NoteItem>,
-        private val newList: List<NoteItem>
-    ) : DiffUtil.Callback() {
-        override fun getOldListSize() = oldList.size
-        override fun getNewListSize() = newList.size
 
-        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-            return oldList[oldItemPosition].id == newList[newItemPosition].id
-        }
-
-        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-            return oldList[oldItemPosition] == newList[newItemPosition]
-        }
-    }
     inner class NewItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val newFolderButton: LinearLayout = itemView.findViewById(R.id.newFolderButton)
         private val textNewTitle: TextView = itemView.findViewById(R.id.textNewTitle)
@@ -99,12 +92,12 @@ class NotesAdapter(
         fun bind() {
             // When clicking on the plus box
             newFolderButton.setOnClickListener {
-                onNewItemClick(it) // Pass this view to show menu at that location
+                onNewItemClick(it)
             }
 
             // When clicking on the dropdown arrow
             textNewTitle.setOnClickListener {
-                onNewItemClick(it) // Pass view to position menu
+                onNewItemClick(it)
             }
         }
     }
@@ -115,40 +108,49 @@ class NotesAdapter(
         private val textDate: TextView = itemView.findViewById(R.id.textDateNote)
         private val expandButton: Button = itemView.findViewById(R.id.note_expand_button)
 
+        // Trong NotesAdapter.kt - ViewHolder
         fun bind(note: NoteItem) {
             textTitle.text = note.title
             textDate.text = note.date
 
-            // Default image for notes
+            // Đặt ảnh mặc định ngay lập tức
             imagePreview.setImageResource(R.drawable.ic_note)
 
-            // Load thumbnail with coroutines
-            // Trong NoteViewHolder.bind()
-// Load thumbnail with coroutines
+            // Hủy job tải ảnh cũ nếu có
+            val tag = imagePreview.tag
+            if (tag is Job) {
+                tag.cancel()
+            }
+
+            // Sử dụng ảnh đã có trong bộ nhớ nếu tồn tại
             if (note.hasImage() && note.imagePreview != null) {
                 imagePreview.setImageBitmap(note.imagePreview)
-                Log.d("NotesAdapter", "Using existing thumbnail")
             } else {
-                // Launch a coroutine in the Main dispatcher
-                val scope = CoroutineScope(Dispatchers.Main)
-                scope.launch {
+                // Tạo một job mới để tải ảnh
+                val job = lifecycleScope.launch {
                     try {
-                        Log.d("NotesAdapter", "Loading thumbnail for note ${note.id}")
+                        // Tạo StorageManager và tải ảnh
                         val storageManager = StorageManager(context)
-                        val thumbnail = storageManager.loadThumbnail(note.id)
-
-                        if (thumbnail != null) {
-                            Log.d("NotesAdapter", "Thumbnail loaded successfully")
-                            imagePreview.setImageBitmap(thumbnail)
-                        } else {
-                            Log.d("NotesAdapter", "No thumbnail found, using default image")
-                            imagePreview.setImageResource(R.drawable.ic_note)
+                        // loadThumbnail đã có logic load từ local trước, sau đó Firebase nếu cần
+                        val thumbnail = withContext(Dispatchers.IO) {
+                            storageManager.loadThumbnail(note.id)
                         }
+
+                        // Kiểm tra xem item có còn hiển thị không
+                        if (isActive && thumbnail != null) {
+                            // Lưu bitmap vào note để tái sử dụng
+                            note.imagePreview = thumbnail
+                            imagePreview.setImageBitmap(thumbnail)
+                            Log.d("NotesAdapter", "Thumbnail loaded successfully")
+                        }
+
                     } catch (e: Exception) {
                         Log.e("NotesAdapter", "Error loading thumbnail: ${e.message}")
-                        imagePreview.setImageResource(R.drawable.ic_note)
                     }
                 }
+
+                // Lưu job vào tag để có thể hủy sau này
+                imagePreview.tag = job
             }
 
             // Handle click for arrow button

@@ -2,6 +2,8 @@ package com.example.app_music.data.collaboration
 
 import android.graphics.Path
 import android.util.Log
+import android.view.MotionEvent
+import com.example.app_music.presentation.feature.noteScene.views.DrawingView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -124,7 +126,27 @@ class CollaborationManager(private val noteId: String) {
         userPresenceRef.child("isTyping").setValue(isTyping)
         userPresenceRef.child("lastActive").setValue(System.currentTimeMillis())
     }
-    
+    fun strokeToDrawingAction(stroke: DrawingView.Stroke): DrawingAction {
+        val pathPoints = stroke.points.map { point ->
+            PathPoint(
+                x = point.x,
+                y = point.y,
+                operation = when (point.type) {
+                    MotionEvent.ACTION_DOWN -> PathOperation.MOVE_TO
+                    MotionEvent.ACTION_MOVE -> PathOperation.LINE_TO
+                    MotionEvent.ACTION_UP -> PathOperation.LINE_TO
+                    else -> PathOperation.LINE_TO
+                }
+            )
+        }
+
+        return DrawingAction(
+            type = if (stroke.isEraser) ActionType.ERASE else ActionType.DRAW,
+            path = pathPoints,
+            color = stroke.color,
+            strokeWidth = stroke.strokeWidth
+        )
+    }
     /**
      * Remove user presence when they leave
      */

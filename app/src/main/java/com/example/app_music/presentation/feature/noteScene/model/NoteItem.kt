@@ -8,7 +8,7 @@ class NoteItem(
     val date: String,
     val isFolder: Boolean = false,
     var isExpanded: Boolean = false,
-    val imagePreview: Bitmap? = null
+    var imagePreview: Bitmap? = null
 ) {
     private val childNotes: MutableList<NoteItem> = mutableListOf()
 

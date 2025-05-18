@@ -2,6 +2,7 @@ package com.example.app_music.presentation.feature.noteScene
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -9,23 +10,30 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Button
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.app_music.R
 import com.example.app_music.data.collaboration.CollaborationManager
+import com.example.app_music.data.model.NotePage
 import com.example.app_music.data.repository.FirebaseNoteRepository
 import com.example.app_music.databinding.ActivityNoteDetailBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
 import com.example.app_music.presentation.feature.noteScene.views.DrawingView
 import com.example.app_music.presentation.noteScene.ColorPickerDialog
+import com.example.app_music.utils.StorageManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,18 +45,28 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.Random
+import java.util.UUID
+import android.Manifest
+import android.os.Build
+import android.view.MotionEvent
 
 class NoteDetailActivity : BaseActivity() {
 
     private lateinit var binding: ActivityNoteDetailBinding
     private lateinit var repository: FirebaseNoteRepository
     private lateinit var collaborationManager: CollaborationManager
+    private lateinit var storageManager: StorageManager
 
     private var noteId: String = ""
     private var noteTitle: String = ""
     private var fromQrCode: Boolean = false
-
+    private val CAMERA_PERMISSION_CODE = 1001
+    private val STORAGE_PERMISSION_CODE = 1002
     // Drawing variables
     private var currentColor = Color.BLACK
     private var currentWidth = 5f
@@ -68,24 +86,72 @@ class NoteDetailActivity : BaseActivity() {
     private val auth = FirebaseAuth.getInstance()
     private val currentUser get() = auth.currentUser
 
+    // Pagination variables
+    private var currentPageIndex = 0
+    private var pages = mutableListOf<NotePage>()
+    private var currentPage: NotePage? = null
+
+    // Photo capture variables
+    private var photoUri: Uri? = null
+    private var currentPhotoPath: String? = null
+    private var tempPhotoUri: Uri? = null
+    private var tempPhotoPath: String? = null
+    // Activity result launchers
+    private val takePictureContract = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempPhotoUri != null) {
+            // Use the temp photo URI that's set just before launching
+            addImagePage(tempPhotoUri!!)
+            // Clear the temporary URI after use
+            tempPhotoUri = null
+        }
+    }
+
+    private val pickImageContract = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            addImagePage(uri)
+        }
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            CAMERA_PERMISSION_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted, take picture
+                    takePicture()
+                } else {
+                    Toast.makeText(this, "Camera permission required to take photos", Toast.LENGTH_SHORT).show()
+                }
+            }
+            STORAGE_PERMISSION_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted, pick image
+                    pickImage()
+                } else {
+                    Toast.makeText(this, "Storage permission required to select images", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityNoteDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Get note details from intent
-        noteId = intent.getStringExtra("note_id") ?: ""
-        noteTitle = intent.getStringExtra("note_title") ?: ""
-        fromQrCode = intent.getBooleanExtra("from_qr_code", false)
-
-        if (noteId.isEmpty()) {
-            Toast.makeText(this, "Note ID is missing", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
-
-        // Initialize Firebase repository
+        // Initialize Firebase repository and storage manager
         repository = FirebaseNoteRepository()
+        storageManager = StorageManager(applicationContext)
+
+        // Set canvas background to light gray for better visibility of blank pages
+        binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
 
         // Initialize collaboration manager
         collaborationManager = CollaborationManager(noteId)
@@ -94,13 +160,34 @@ class NoteDetailActivity : BaseActivity() {
         setupToolbar()
         setupDrawingTools()
         setupHelpButtons()
+        setupPagination()
 
-        // Load note data
-        loadNote()
+        // Handle deep links or regular intent extras
+        if (intent.data != null) {
+            Log.d("NoteDetailActivity", "Opening from deep link: ${intent.data}")
+            handleDeepLink(intent)
+        } else {
+            // Regular flow - get intent extras
+            noteId = intent.getStringExtra("note_id") ?: ""
+            noteTitle = intent.getStringExtra("note_title") ?: ""
+            fromQrCode = intent.getBooleanExtra("from_qr_code", false)
+
+            Log.d("NoteDetailActivity", "Opening note with ID: $noteId, title: $noteTitle")
+
+            if (noteId.isEmpty()) {
+                Toast.makeText(this, "Note ID is missing", Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+
+            // Load note data - only once!
+            loadNote()
+        }
 
         // Set up collaboration
         setupCollaboration()
     }
+
 
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
@@ -139,25 +226,72 @@ class NoteDetailActivity : BaseActivity() {
         binding.buttonUndo.setOnClickListener {
             binding.drawingView.undo()
             updateUndoRedoButtons()
-            saveDrawing(false)
+            saveCurrentPage(false)
         }
 
         binding.buttonRedo.setOnClickListener {
             binding.drawingView.redo()
             updateUndoRedoButtons()
-            saveDrawing(false)
+            saveCurrentPage(false)
         }
 
         // Set up drawing view listener for auto-saving
         binding.drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
             override fun onDrawCompleted() {
                 updateUndoRedoButtons()
-                saveDrawing(false)
+                saveCurrentPage(false)
 
                 // Sync drawing action with collaborators
                 syncDrawingAction()
             }
         })
+        binding.buttonHand.setOnClickListener {
+            selectMode(DrawingView.DrawMode.SELECT)
+        }
+
+        // Đặt listener cho sự kiện khi chọn nét vẽ
+        binding.drawingView.setOnStrokeSelectedListener { strokeId ->
+            if (strokeId.isNotEmpty()) {
+                // Hiển thị menu tùy chọn cho nét vẽ (xóa, đổi màu,...)
+                showStrokeOptionsDialog()
+            }
+        }
+    }
+
+    private fun showStrokeOptionsDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Tùy chọn nét vẽ")
+            .setItems(arrayOf("Xóa nét vẽ")) { _, which ->
+                when (which) {
+                    0 -> {
+                        binding.drawingView.deleteSelectedStroke()
+                        saveDrawing(false) // Lưu sau khi xóa
+                    }
+                }
+            }
+            .setNegativeButton("Hủy", null)
+            .show()
+    }
+    private fun setupPagination() {
+        // Navigation buttons
+        binding.buttonPrevPage.setOnClickListener {
+            navigateToPreviousPage()
+        }
+
+        binding.buttonNextPage.setOnClickListener {
+            navigateToNextPage()
+        }
+
+        binding.buttonAddPage.setOnClickListener {
+            showAddPageDialog()
+        }
+
+        binding.fabAddPage.setOnClickListener {
+            showAddPageDialog()
+        }
+
+        // Initially disable navigation buttons until pages are loaded
+        updateNavigationButtons()
     }
 
     private fun setupHelpButtons() {
@@ -169,6 +303,7 @@ class NoteDetailActivity : BaseActivity() {
             Toast.makeText(this, "Explanation feature coming soon", Toast.LENGTH_SHORT).show()
         }
     }
+
     private var previousUserCount = 0
     private fun setupCollaboration() {
         // Mark user as active
@@ -192,126 +327,137 @@ class NoteDetailActivity : BaseActivity() {
                 previousUserCount = users.size
             }
         }
-
-        // Rest of the collaboration setup
     }
 
     private fun syncDrawingAction() {
-        // Get the current drawing path and convert it to a DrawingAction
-        // In a real app, you would implement logic to convert the path to a serializable format
-        // This is a simplified placeholder implementation
-        val path = binding.drawingView.getCurrentPath()
-        if (path != null) {
-            val pathPoints = collaborationManager.pathToPointsList(path)
-            val drawingAction = CollaborationManager.DrawingAction(
-                type = CollaborationManager.ActionType.DRAW,
-                path = pathPoints,
-                color = currentColor,
-                strokeWidth = currentWidth
-            )
+        binding.drawingView.getLastStroke()?.let { stroke ->
+            val drawingAction = collaborationManager.strokeToDrawingAction(stroke)
             collaborationManager.saveDrawingAction(drawingAction)
         }
     }
+    private fun saveDrawing(showToast: Boolean = true) {
+        lifecycleScope.launch {
+            try {
+                binding.saveProgressBar.visibility = View.VISIBLE
 
+                // Lấy note hiện tại
+                val noteResult = repository.getNote(noteId)
+                if (noteResult.isSuccess) {
+                    val note = noteResult.getOrNull()!!
+
+                    // Lưu dữ liệu vector mới
+                    val vectorJson = binding.drawingView.getDrawingDataAsJson()
+
+                    // Lưu cả bitmap để tương thích ngược (nếu cần)
+                    val bitmap = binding.drawingView.getCombinedBitmap()
+                    val baos = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                    val base64Drawing = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.DEFAULT)
+
+                    // Cập nhật note
+                    val updatedNote = note.copy(
+                        vectorDrawingData = vectorJson,
+                        drawingData = base64Drawing,
+                        updatedAt = System.currentTimeMillis()
+                    )
+
+                    // Lưu vào Firestore
+                    repository.updateNote(updatedNote)
+
+                    if (showToast) {
+                        Toast.makeText(this@NoteDetailActivity, "Đã lưu bản vẽ", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Lỗi lưu bản vẽ: ${e.message}")
+                if (showToast) {
+                    Toast.makeText(this@NoteDetailActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                binding.saveProgressBar.visibility = View.GONE
+            }
+        }
+    }
     private fun loadNote() {
         binding.progressBar.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             try {
-                // Fetch note data in background thread
-                val noteResult = withContext(Dispatchers.IO) {
-                    repository.getNote(noteId)
-                }
+                // Fetch note data
+                val noteResult = repository.getNote(noteId)
 
                 if (noteResult.isSuccess) {
                     val note = noteResult.getOrNull()!!
 
-                    // Update title if needed (UI update on main thread)
+                    // Update title if needed
                     if (noteTitle.isEmpty()) {
                         noteTitle = note.title
                         supportActionBar?.title = noteTitle
                     }
 
-                    // Load image if available
-                    note.imagePath?.let { path ->
-                        try {
-                            // Use retry pattern for loading images
-                            var retryCount = 0
-                            var imageLoaded = false
-                            var bitmap: Bitmap? = null
+                    // Load pages if they exist
+                    if (note.pageIds.isEmpty()) {
+                        // If no pages exist, create a first page
+                        Log.d("NoteDetailActivity", "No pages exist, creating first page")
+                        val blankPageResult = repository.createBlankPage(noteId)
+                        if (blankPageResult.isSuccess) {
+                            val page = blankPageResult.getOrNull()!!
+                            pages.add(page)
+                        } else {
+                            Toast.makeText(this@NoteDetailActivity,
+                                "Failed to create first page", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        // Load existing pages
+                        Log.d("NoteDetailActivity", "Loading ${note.pageIds.size} existing pages")
+                        val pagesResult = repository.getPages(noteId)
+                        if (pagesResult.isSuccess) {
+                            pages.clear()
+                            pages.addAll(pagesResult.getOrNull()!!)
 
-                            while (retryCount < 3 && !imageLoaded) {
-                                try {
-                                    val imageUriResult = withContext(Dispatchers.IO) {
-                                        repository.getImageBitmap(path)
-                                    }
-
-                                    if (imageUriResult.isSuccess) {
-                                        val uri = imageUriResult.getOrNull()
-
-                                        // Use Glide on the main thread
-                                        Glide.with(this@NoteDetailActivity)
-                                            .load(uri)
-                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                            .timeout(20000) // 20 second timeout
-                                            .into(binding.imageNote)
-
-                                        imageLoaded = true
-                                    } else {
-                                        retryCount++
-                                        if (retryCount < 3) {
-                                            delay(1000) // Wait a second before retrying
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("NoteDetailActivity", "Error loading image (attempt $retryCount): ${e.message}")
-                                    retryCount++
-                                    if (retryCount < 3) {
-                                        delay(1000)
-                                    }
-                                }
-                            }
-
-                            if (!imageLoaded) {
-                                binding.imageNote.setImageResource(R.drawable.ic_note)
-                                Log.w("NoteDetailActivity", "Could not load image after 3 attempts")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("NoteDetailActivity", "Error loading image: ${e.message}")
-                            binding.imageNote.setImageResource(R.drawable.ic_note)
+                            // Sort pages by index
+                            pages.sortBy { it.pageIndex }
+                            Log.d("NoteDetailActivity", "Loaded ${pages.size} pages")
+                        } else {
+                            Log.e("NoteDetailActivity", "Failed to load pages: ${pagesResult.exceptionOrNull()}")
                         }
                     }
 
-                    // Load drawing data if available
-                    note.drawingData?.let { drawingData ->
-                        try {
-                            Log.d("NoteDetailActivity", "Found drawing data, length: ${drawingData.length}")
-
-                            // Convert base64 string back to bitmap
-                            val decodedBytes = withContext(Dispatchers.Default) {
-                                android.util.Base64.decode(drawingData, android.util.Base64.DEFAULT)
-                            }
-
-                            // Create bitmap from bytes
-                            val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-
-                            if (bitmap != null) {
-                                // We have a valid bitmap to display in the drawing view
-                                binding.drawingView.setBackgroundImage(bitmap)
-                                Log.d("NoteDetailActivity", "Successfully loaded drawing: ${bitmap.width}x${bitmap.height}")
-                            } else {
-                                Log.e("NoteDetailActivity", "Failed to decode drawing data")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("NoteDetailActivity", "Error processing drawing data: ${e.message}")
-                        }
+                    // Load the first page
+                    if (pages.isNotEmpty()) {
+                        currentPageIndex = 0
+                        loadPage(currentPageIndex)
                     }
+
+                    // Update navigation buttons
+                    updateNavigationButtons()
+                    updatePageIndicator()
+
                 } else {
                     // Handle note fetch failure
                     Toast.makeText(this@NoteDetailActivity,
                         "Could not load note: ${noteResult.exceptionOrNull()?.message}",
                         Toast.LENGTH_SHORT).show()
                     Log.e("NoteDetailActivity", "Failed to fetch note: ${noteResult.exceptionOrNull()}")
+                }
+                if (noteResult.isSuccess) {
+                    val note = noteResult.getOrNull()!!
+
+                    // Ưu tiên tải dữ liệu vector nếu có
+                    if (!note.vectorDrawingData.isNullOrEmpty()) {
+                        try {
+                            binding.drawingView.setDrawingDataFromJson(note.vectorDrawingData!!)
+                            Log.d("NoteDetailActivity", "Đã tải dữ liệu vẽ dạng vector")
+                        } catch (e: Exception) {
+                            Log.e("NoteDetailActivity", "Lỗi khi tải dữ liệu vector: ${e.message}")
+
+                            // Nếu tải vector thất bại, thử tải bitmap cũ
+                            note.drawingData?.let { loadBitmapDrawingData(it) }
+                        }
+                    } else if (note.drawingData != null) {
+                        // Nếu không có dữ liệu vector, tải bitmap cũ
+                        loadBitmapDrawingData(note.drawingData!!)
+                    }
                 }
             } catch (e: Exception) {
                 // Handle any other exceptions
@@ -320,52 +466,173 @@ class NoteDetailActivity : BaseActivity() {
                     Toast.LENGTH_SHORT).show()
                 Log.e("NoteDetailActivity", "Error in loadNote", e)
             } finally {
-                // Always hide progress indicator on main thread
+                // Always hide progress indicator
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+
+    }
+
+    // Update the loadPage method to handle image loading better and set a gray background
+    private fun loadBitmapDrawingData(base64Data: String) {
+        try {
+            val decodedBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+            if (bitmap != null) {
+                // Đặt bitmap làm background để vẽ tiếp lên trên
+                binding.drawingView.setBackgroundImage(bitmap)
+                Log.d("NoteDetailActivity", "Đã tải dữ liệu vẽ dạng bitmap")
+            }
+        } catch (e: Exception) {
+            Log.e("NoteDetailActivity", "Lỗi khi tải dữ liệu bitmap: ${e.message}")
+        }
+    }
+    private fun loadPage(index: Int) {
+        if (pages.isEmpty()) {
+            // If no pages, nothing to load
+            binding.drawingView.clearDrawing()
+            binding.imageNote.setImageDrawable(null)
+            binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
+            updatePageIndicator()
+            updateNavigationButtons()
+            return
+        }
+
+        if (index < 0 || index >= pages.size) {
+            Log.e("NoteDetailActivity", "Invalid page index: $index, pages size: ${pages.size}")
+            return
+        }
+
+        binding.progressBar.visibility = View.VISIBLE
+
+        // First, save the current page if needed
+        currentPage?.let {
+            saveCurrentPage(false)
+        }
+
+        // Update current page
+        currentPage = pages[index]
+        currentPageIndex = index
+
+        // Clear current canvas
+        binding.drawingView.clearDrawing()
+        binding.imageNote.setImageDrawable(null)
+
+        // Set gray background for better visibility
+        binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
+
+        lifecycleScope.launch {
+            try {
+                val page = pages[index]
+
+                Log.d("NoteDetailActivity", "Loading page ${index + 1}/${pages.size}, ID: ${page.id}")
+                Log.d("NoteDetailActivity", "Page has image path: ${page.imagePath != null}")
+
+                // Load page image if exists
+                if (page.imagePath != null) {
+                    try {
+                        Log.d("NoteDetailActivity", "Attempting to load image from path: ${page.imagePath}")
+
+                        // Load image from storage
+                        val bitmap = storageManager.loadPageImage(page.id)
+                        if (bitmap != null) {
+                            Log.d("NoteDetailActivity", "Image loaded from storage manager")
+                            binding.imageNote.setImageBitmap(bitmap)
+                        } else {
+                            // If failed to load from storage manager, try using Firebase URL
+                            Log.d("NoteDetailActivity", "Attempting to load from Firebase URL")
+                            val imageRef = repository.getImageBitmap(page.imagePath!!)
+                            if (imageRef.isSuccess) {
+                                val uri = imageRef.getOrNull()
+                                Log.d("NoteDetailActivity", "Image URL obtained: $uri")
+
+                                Glide.with(this@NoteDetailActivity)
+                                    .load(uri)
+                                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                    .timeout(30000) // 30 second timeout
+                                    .error(R.drawable.ic_note) // Show an error icon if loading fails
+                                    .into(binding.imageNote)
+                            } else {
+                                Log.e("NoteDetailActivity", "Failed to get image URL: ${imageRef.exceptionOrNull()}")
+                                binding.imageNote.setImageResource(R.drawable.ic_note)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error loading page image: ${e.message}")
+                        binding.imageNote.setImageResource(R.drawable.ic_note)
+                    }
+                }
+
+                // Load drawing data if exists
+                if (page.drawingData != null) {
+                    try {
+                        Log.d("NoteDetailActivity", "Loading drawing data")
+
+                        // Convert base64 string back to bitmap
+                        val decodedBytes = withContext(Dispatchers.Default) {
+                            android.util.Base64.decode(page.drawingData, android.util.Base64.DEFAULT)
+                        }
+
+                        // Create bitmap from bytes
+                        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+
+                        if (bitmap != null) {
+                            Log.d("NoteDetailActivity", "Drawing bitmap created: ${bitmap.width}x${bitmap.height}")
+                            // Set bitmap to drawing view
+                            binding.drawingView.setBackgroundImage(bitmap)
+                        } else {
+                            Log.e("NoteDetailActivity", "Failed to decode drawing data")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error processing drawing data: ${e.message}")
+                    }
+                }
+
+                // Update UI
+                updatePageIndicator()
+                updateNavigationButtons()
+
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteDetailActivity,
+                    "Error loading page: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("NoteDetailActivity", "Error loading page", e)
+            } finally {
                 binding.progressBar.visibility = View.GONE
             }
         }
     }
 
-    private fun saveDrawing(showToast: Boolean = true) {
-        // Using SupervisorJob() to prevent cancellation from propagating to children
+    private fun saveCurrentPage(showToast: Boolean = true) {
+        if (currentPage == null) {
+            return
+        }
+
+        // Using SupervisorJob() to prevent cancellation from propagating
         val job = SupervisorJob()
 
         lifecycleScope.launch(job + Dispatchers.Main) {
             try {
                 binding.saveProgressBar.visibility = View.VISIBLE
 
-                // Use withContext for IO operations but keep the job context
                 val result = withContext(Dispatchers.IO) {
                     try {
-                        // Get the note first
-                        val noteResult = repository.getNote(noteId)
+                        // Get combined bitmap
+                        val combinedBitmap = binding.drawingView.getCombinedBitmap()
 
-                        if (noteResult.isSuccess) {
-                            val note = noteResult.getOrNull()!!
+                        // Convert bitmap to base64 string
+                        val baos = ByteArrayOutputStream()
+                        combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                        val imageBytes = baos.toByteArray()
+                        val drawingData = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT)
 
-                            // Get combined bitmap (background + drawing)
-                            val combinedBitmap = binding.drawingView.getCombinedBitmap()
+                        // Update page
+                        val updatedPage = currentPage!!.copy(
+                            drawingData = drawingData,
+                        )
 
-                            // Convert bitmap to base64 string
-                            val baos = ByteArrayOutputStream()
-                            combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                            val imageBytes = baos.toByteArray()
-                            val drawingData = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT)
-
-                            Log.d("NoteDetailActivity", "Drawing data length: ${drawingData.length}")
-
-                            // Only update the drawingData field, preserve other fields
-                            val updatedNote = note.copy(
-                                drawingData = drawingData,
-                                updatedAt = System.currentTimeMillis()
-                            )
-
-                            repository.updateNote(updatedNote)
-                        } else {
-                            Result.failure(Exception("Failed to get note"))
-                        }
+                        repository.updatePage(updatedPage)
                     } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Error saving drawing", e)
+                        Log.e("NoteDetailActivity", "Error saving page", e)
                         Result.failure(e)
                     }
                 }
@@ -375,26 +642,328 @@ class NoteDetailActivity : BaseActivity() {
 
                 if (result.isSuccess) {
                     if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity, "Drawing saved", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@NoteDetailActivity, "Page saved", Toast.LENGTH_SHORT).show()
                     }
-                    Log.d("NoteDetailActivity", "Drawing saved successfully")
+                    // Update local page copy
+                    currentPage = result.getOrNull()
+                    pages[currentPageIndex] = currentPage!!
                 } else {
                     if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity, "Failed to save drawing: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@NoteDetailActivity,
+                            "Failed to save page: ${result.exceptionOrNull()?.message}",
+                            Toast.LENGTH_SHORT).show()
                     }
-                    Log.e("NoteDetailActivity", "Failed to save drawing: ${result.exceptionOrNull()}")
                 }
             } catch (e: Exception) {
-                // Handle exceptions from the main thread
                 binding.saveProgressBar.visibility = View.GONE
                 if (showToast) {
-                    Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-                Log.e("NoteDetailActivity", "Error in saveDrawing", e)
             }
         }
     }
 
+    private fun navigateToPreviousPage() {
+        if (currentPageIndex > 0 && pages.isNotEmpty()) {
+            loadPage(currentPageIndex - 1)
+        }
+    }
+
+    private fun navigateToNextPage() {
+        if (currentPageIndex < pages.size - 1 && pages.isNotEmpty()) {
+            loadPage(currentPageIndex + 1)
+        }
+    }
+
+    private fun updateNavigationButtons() {
+        // Enable/disable prev button
+        binding.buttonPrevPage.isEnabled = currentPageIndex > 0
+        binding.buttonPrevPage.alpha = if (currentPageIndex > 0) 1.0f else 0.5f
+
+        // Enable/disable next button
+        binding.buttonNextPage.isEnabled = currentPageIndex < pages.size - 1
+        binding.buttonNextPage.alpha = if (currentPageIndex < pages.size - 1) 1.0f else 0.5f
+    }
+
+    private fun updatePageIndicator() {
+        if (pages.isEmpty()) {
+            binding.textPageIndicator.text = "No pages"
+        } else {
+            binding.textPageIndicator.text = "Page ${currentPageIndex + 1} of ${pages.size}"
+        }
+    }
+
+
+    private fun showAddPageDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_page, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        // Set up click listeners
+        dialogView.findViewById<View>(R.id.layout_blank_page).setOnClickListener {
+            addBlankPage()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.layout_camera_page).setOnClickListener {
+            takePicture()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.layout_gallery_page).setOnClickListener {
+            pickImage()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.button_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun addBlankPage() {
+        binding.progressBar.visibility = View.VISIBLE
+
+        Log.d("NoteDetailActivity", "Adding a new blank page")
+        Toast.makeText(this, "Creating blank page...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                // Create a new blank page
+                val pageResult = repository.createBlankPage(noteId)
+
+                if (pageResult.isSuccess) {
+                    val newPage = pageResult.getOrNull()!!
+                    Log.d("NoteDetailActivity", "Successfully created blank page with ID: ${newPage.id}")
+
+                    // Add to pages list
+                    pages.add(newPage)
+
+                    // Force reload of UI elements
+                    updatePageIndicator()
+                    updateNavigationButtons()
+
+                    // Navigate to the new page
+                    val newIndex = pages.size - 1
+                    Log.d("NoteDetailActivity", "Navigating to new page at index $newIndex")
+                    loadPage(newIndex)
+
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Blank page added", Toast.LENGTH_SHORT).show()
+                } else {
+                    Log.e("NoteDetailActivity", "Failed to add blank page: ${pageResult.exceptionOrNull()}")
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Failed to add blank page", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error adding blank page", e)
+                Toast.makeText(this@NoteDetailActivity,
+                    "Error adding blank page: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+
+    // Fix for the takePicture method
+
+    private fun takePicture() {
+        // Check for camera permission first
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            // Request permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                CAMERA_PERMISSION_CODE
+            )
+            return
+        }
+
+        try {
+            // Create a file in app-specific directory that's definitely covered by FileProvider
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val imageFileName = "JPEG_${timeStamp}_"
+
+            // Use the cache directory instead, which is typically covered by default
+            val storageDir = cacheDir // Use internal cache directory, not external
+            val photoFile = File.createTempFile(imageFileName, ".jpg", storageDir)
+
+            // Log the file path for debugging
+            Log.d("NoteDetailActivity", "Created temp file at: ${photoFile.absolutePath}")
+
+            // Set the temp path
+            tempPhotoPath = photoFile.absolutePath
+
+            // Create URI using FileProvider
+            val uri = FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                photoFile
+            )
+
+            // Log the URI for debugging
+            Log.d("NoteDetailActivity", "Created URI: $uri")
+
+            // Store the URI and launch camera
+            tempPhotoUri = uri
+            takePictureContract.launch(uri)
+
+        } catch (e: Exception) {
+            Log.e("NoteDetailActivity", "Error taking picture: ${e.message}", e)
+            e.printStackTrace() // Print full stack trace for debugging
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+
+            // Clear variables on error
+            tempPhotoUri = null
+            tempPhotoPath = null
+        }
+    }
+
+
+    private fun pickImage() {
+        // Check for storage permission first
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // For Android 13+, we need READ_MEDIA_IMAGES
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
+                    STORAGE_PERMISSION_CODE
+                )
+                return
+            }
+        } else {
+            // For older versions
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                    STORAGE_PERMISSION_CODE
+                )
+                return
+            }
+        }
+
+        try {
+            // Launch gallery picker
+            pickImageContract.launch("image/*")
+        } catch (e: Exception) {
+            Log.e("NoteDetailActivity", "Error picking image: ${e.message}", e)
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun addImagePage(imageUri: Uri) {
+        binding.progressBar.visibility = View.VISIBLE
+
+        Log.d("NoteDetailActivity", "Adding a new image page from URI: $imageUri")
+        Toast.makeText(this, "Creating image page...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                // First get bitmap from URI
+                val bitmap = withContext(Dispatchers.IO) {
+                    try {
+                        if (tempPhotoPath != null && tempPhotoUri != null &&
+                            imageUri.toString() == tempPhotoUri.toString()) {
+                            // If this is from camera, load from file path
+                            Log.d("NoteDetailActivity", "Loading image from file: $tempPhotoPath")
+                            BitmapFactory.decodeFile(tempPhotoPath)
+                        } else {
+                            // If from gallery, load from content URI
+                            Log.d("NoteDetailActivity", "Loading image from content URI")
+                            MediaStore.Images.Media.getBitmap(contentResolver, imageUri)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error decoding bitmap: ${e.message}", e)
+                        null
+                    }
+                }
+
+                if (bitmap == null) {
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Failed to load image", Toast.LENGTH_SHORT).show()
+                    Log.e("NoteDetailActivity", "Bitmap is null - failed to load image")
+                    binding.progressBar.visibility = View.GONE
+                    return@launch
+                }
+
+                Log.d("NoteDetailActivity", "Image loaded successfully: ${bitmap.width}x${bitmap.height}")
+
+                // Create a new page
+                val pageId = UUID.randomUUID().toString()
+
+                // Save image to storage
+                Log.d("NoteDetailActivity", "Saving image to storage with page ID: $pageId")
+                val imageSaved = storageManager.savePageImage(pageId, bitmap)
+
+                if (!imageSaved) {
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Failed to save image", Toast.LENGTH_SHORT).show()
+                    Log.e("NoteDetailActivity", "Failed to save image to storage")
+                    binding.progressBar.visibility = View.GONE
+                    return@launch
+                }
+
+                // Create the page in database
+                Log.d("NoteDetailActivity", "Creating page in database")
+                val page = NotePage(
+                    id = pageId,
+                    noteId = noteId,
+                    pageIndex = pages.size,
+                    imagePath = "pages/$pageId.jpg",
+                    createdAt = Date().time
+                )
+
+                val pageResult = repository.updatePage(page)
+
+                if (pageResult.isSuccess) {
+                    Log.d("NoteDetailActivity", "Page created successfully in database")
+
+                    // Update note's page list
+                    val noteResult = repository.getNote(noteId)
+                    if (noteResult.isSuccess) {
+                        val note = noteResult.getOrNull()!!
+                        note.pageIds.add(pageId)
+                        repository.updateNote(note)
+                        Log.d("NoteDetailActivity", "Note updated with new page ID")
+                    }
+
+                    // Add to pages list
+                    pages.add(page)
+
+                    // Force reload of UI elements
+                    updatePageIndicator()
+                    updateNavigationButtons()
+
+                    // Navigate to the new page
+                    val newIndex = pages.size - 1
+                    Log.d("NoteDetailActivity", "Navigating to new image page at index $newIndex")
+                    loadPage(newIndex)
+
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Image page added", Toast.LENGTH_SHORT).show()
+                } else {
+                    Log.e("NoteDetailActivity", "Failed to create page in database: ${pageResult.exceptionOrNull()}")
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Failed to add image page", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error adding image page", e)
+                e.printStackTrace()
+                Toast.makeText(this@NoteDetailActivity,
+                    "Error adding image page: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+                // Clear the variables
+                tempPhotoPath = null
+                tempPhotoUri = null
+            }
+        }
+    }
     private fun selectMode(mode: DrawingView.DrawMode) {
         // Set the drawing mode
         binding.drawingView.setMode(mode)
@@ -425,7 +994,11 @@ class NoteDetailActivity : BaseActivity() {
             DrawingView.DrawMode.PAN -> {
                 // No special configuration needed
             }
+            else->{
+                //
+            }
         }
+
     }
 
     private fun showColorPicker() {
@@ -473,7 +1046,7 @@ class NoteDetailActivity : BaseActivity() {
         return when (item.itemId) {
             android.R.id.home -> {
                 // Save before exiting
-                saveDrawing(true)
+                saveCurrentPage(true)
                 finish()
                 true
             }
@@ -488,12 +1061,109 @@ class NoteDetailActivity : BaseActivity() {
             else -> super.onOptionsItemSelected(item)
         }
     }
+    private fun loadNoteWithSpecificPages(noteId: String, pageIds: List<String>) {
+        binding.progressBar.visibility = View.VISIBLE
 
+        lifecycleScope.launch {
+            try {
+                // First get the note
+                val noteResult = repository.getNote(noteId)
+
+                if (noteResult.isSuccess) {
+                    val note = noteResult.getOrNull()!!
+
+                    // Update title
+                    noteTitle = note.title
+                    supportActionBar?.title = noteTitle
+
+                    // Load only the specified pages
+                    val allPages = mutableListOf<NotePage>()
+                    for (pageId in pageIds) {
+                        val pageResult = repository.getPage(pageId)
+                        if (pageResult.isSuccess) {
+                            val page = pageResult.getOrNull()!!
+                            if (page.noteId == noteId) {
+                                allPages.add(page)
+                            }
+                        }
+                    }
+
+                    // Sort pages by index
+                    allPages.sortBy { it.pageIndex }
+
+                    // Update pages list
+                    pages.clear()
+                    pages.addAll(allPages)
+
+                    // Load the first page
+                    if (pages.isNotEmpty()) {
+                        currentPageIndex = 0
+                        loadPage(currentPageIndex)
+                    }
+
+                    // Update navigation buttons
+                    updateNavigationButtons()
+                    updatePageIndicator()
+                } else {
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Could not load note: ${noteResult.exceptionOrNull()?.message}",
+                        Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NoteDetailActivity,
+                    "Error loading note: ${e.message}",
+                    Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
     private fun showShareDialog() {
         val qrCodeFragment = QRCodeFragment.newInstance(noteId, false)
         qrCodeFragment.show(supportFragmentManager, "qrcode_dialog")
     }
+    private fun handleDeepLink(intent: Intent) {
+        val data = intent.data
+        if (data != null) {
+            // Parse the URI
+            val path = data.path
+            if (path != null) {
+                if (path.startsWith("/notes/")) {
+                    // Extract note ID
+                    val noteId = path.removePrefix("/notes/")
+                    Log.d("NoteDetailActivity", "Deep link for note ID: $noteId")
 
+                    // Set the note ID
+                    this.noteId = noteId
+
+                    // Check if specific pages are requested
+                    val pagesParam = data.getQueryParameter("pages")
+                    if (pagesParam != null) {
+                        // Load specific pages
+                        val pageIds = pagesParam.split(",")
+                        Log.d("NoteDetailActivity", "Loading specific pages: $pageIds")
+                        loadNoteWithSpecificPages(noteId, pageIds)
+                    } else {
+                        // Load the full note
+                        Log.d("NoteDetailActivity", "Loading full note")
+                        loadNote()
+                    }
+                } else if (path.startsWith("/folders/")) {
+                    // Handle folder deep link
+                    val folderId = path.removePrefix("/folders/")
+                    Log.d("NoteDetailActivity", "Deep link for folder ID: $folderId")
+
+                    // Close this activity and open folder view
+                    val folderIntent = Intent(this, NoteActivity::class.java).apply {
+                        putExtra("folder_id", folderId)
+                        putExtra("from_qr_code", true)
+                    }
+                    startActivity(folderIntent)
+                    finish()
+                }
+            }
+        }
+    }
     private fun showCollaborateDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_collaborator, null)
         val editTextEmail = dialogView.findViewById<android.widget.EditText>(R.id.et_email)
@@ -534,16 +1204,16 @@ class NoteDetailActivity : BaseActivity() {
     override fun onPause() {
         super.onPause()
 
-        // Save drawing state - use a specific job that won't be cancelled
+        // Save current page
         val saveJob = lifecycleScope.launch {
             try {
-                saveDrawing(false)
+                saveCurrentPage(false)
             } catch (e: Exception) {
-                Log.e("NoteDetailActivity", "Error saving drawing in onPause", e)
+                Log.e("NoteDetailActivity", "Error saving page in onPause", e)
             }
         }
 
-        // Wait for the save to complete (optional)
+        // Wait for the save to complete
         runBlocking {
             try {
                 saveJob.join()
@@ -555,7 +1225,6 @@ class NoteDetailActivity : BaseActivity() {
         // Update user typing status
         collaborationManager.setUserTyping(false)
     }
-
 
     override fun onDestroy() {
         try {
@@ -569,5 +1238,15 @@ class NoteDetailActivity : BaseActivity() {
             Log.e("NoteDetailActivity", "Error during cleanup", e)
         }
         super.onDestroy()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // Do not reload note data here - it's already loaded in onCreate
+
+        // Just update UI elements if needed
+        updateNavigationButtons()
+        updatePageIndicator()
     }
 }
