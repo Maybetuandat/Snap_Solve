@@ -145,5 +145,18 @@
     <string name="detail_explanation_description">Get help solving the problem on your own by building on your\ncurrent approach</string>
     <string name="checkout_zalopay">Checkout ZaloPay</string>
     <string name="price_for_premium_user">After the free trial ends đ98,000 billed monthly</string>
-
+    <string name="processing">Processing...</string>
+    <string name="share_app">Discover SnapSolve Premium – Get answers to all your questions with smart AI! https://docs.zalopay.vn/v2/docs/apptoapp/guide.html</string>
+    <string name="error_transaction">Transaction Failed</string>
+    <string name="success_transaction_premium_user">Successful Payment 🎉</string>
+    <string name="congratulation_premium_user">Congratulations! You are now a Premium member.\n\n</string>
+    <string name="payment_cancel_title">Payment Cancelled</string>
+    <string name="payment_cancel_message">You cancelled the payment process. Would you like to try again?</string>
+    <string name="retry">Retry</string>
+    <string name="try_later">Later</string>
+    <string name="dialog_title_error">Error</string>
+    <string name="dialog_button_close">Close</string>
+    <string name="dialog_button_retry">Retry</string>
+    <string name="premium_activation_error_title">Premium Activation Error</string>
+    <string name="premium_activation_error_message">Unable to activate Premium account</string>
 </resources>

@@ -5,35 +5,42 @@ import android.os.Bundle
 import android.os.StrictMode
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
 import com.example.app_music.R
 import com.example.app_music.databinding.ActivityPremiumUserBinding
 import com.example.app_music.domain.utils.AppInfo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.app_music.presentation.feature.common.BaseActivity
 import vn.zalopay.sdk.Environment
-import vn.zalopay.sdk.ZaloPayError
 import vn.zalopay.sdk.ZaloPaySDK
 import vn.zalopay.sdk.listeners.PayOrderListener
 
-class PremiumUser : AppCompatActivity() {
+class PremiumUser : BaseActivity() {
+
     private lateinit var binding: ActivityPremiumUserBinding
-    private val premiumPrice = "98000"
+    private lateinit var viewModel: PremiumViewModel
+
+    companion object {
+        private const val TAG = "PremiumUserActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
         binding = ActivityPremiumUserBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize ViewModel
+        viewModel = ViewModelProvider(this)[PremiumViewModel::class.java]
 
         setupStrictMode()
         initZaloPaySDK()
         setupClickListeners()
+        observeViewModel()
 
-        // Check nếu activity được mở từ payment callback
-        checkPaymentCallback()
+
     }
 
     private fun setupStrictMode() {
@@ -55,266 +62,143 @@ class PremiumUser : AppCompatActivity() {
         }
 
         binding.btnZalopay.setOnClickListener {
-            processZaloPayPayment()
+            viewModel.createOrderAndInitiatePayment()
         }
     }
 
-    private fun checkPaymentCallback() {
-        val isFromCallback = intent.getBooleanExtra("from_payment_callback", false)
+    private fun observeViewModel() {
+        // Observe payment state
+        viewModel.paymentState.observe(this) { state ->
+            handlePaymentState(state)
+        }
 
-        if (isFromCallback) {
-            Log.d("PremiumPayment", "=== Activity opened from payment callback ===")
+        // Observe loading state
+        viewModel.isLoading.observe(this) { isLoading ->
+            updateLoadingState(isLoading)
+        }
 
-            val paymentResult = intent.getStringExtra("payment_result")
-
-            when (paymentResult) {
-                "success" -> {
-                    val transactionId = intent.getStringExtra("transaction_id")
-                    val amount = intent.getStringExtra("amount")
-
-                    Log.d("PremiumPayment", "Callback payment success: $transactionId")
-
-                    // Hiển thị success ngay lập tức
-                    runOnUiThread {
-                        Toast.makeText(
-                            this,
-                            "🎉 Thanh toán thành công từ ZaloPay!",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        showSuccessDialog(transactionId ?: "N/A", "")
-                    }
-                }
-                "error" -> {
-                    val errorMessage = intent.getStringExtra("error_message")
-                    showErrorDialog("Thanh toán thất bại", errorMessage ?: "Unknown error")
-                }
-                "cancelled" -> {
-                    showCancelDialog()
-                }
-                else -> {
-                    // Xử lý theo cách cũ với onNewIntent
-                    handleIntentForCallback(intent)
-                }
+        // Observe error messages
+        viewModel.errorMessage.observe(this) { errorMessage ->
+            if (errorMessage.isNotEmpty()) {
+                Log.e(TAG, "Error: $errorMessage")
             }
+        }
+    }
+
+    private fun handlePaymentState(state: PaymentState) {
+        when (state) {
+            is PaymentState.Idle -> {
+
+                updateLoadingState(false)
+            }
+
+            is PaymentState.Processing -> {
+
+                Log.d(TAG, "Processing payment...")
+            }
+
+            is PaymentState.OrderCreated -> {
+
+                initiateZaloPayPayment(state.zpTransToken)
+            }
+
+            is PaymentState.Success -> {
+                showSuccessDialog(state.transactionId, state.transToken)
+            }
+
+            is PaymentState.Error -> {
+
+                showErrorDialog(getString(R.string.error_transaction), state.errorMessage)
+            }
+
+            is PaymentState.Cancelled -> {
+                showCancelDialog()
+            }
+        }
+    }
+
+    private fun updateLoadingState(isLoading: Boolean) {
+        binding.btnZalopay.isEnabled = !isLoading
+        binding.btnZalopay.text = if (isLoading) {
+                    getString(R.string.processing)
         } else {
-            // Xử lý intent thông thường hoặc deep link
-            handleIntentForCallback(intent)
+            getString(R.string.checkout_zalopay)
         }
     }
 
-    private fun handleIntentForCallback(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_VIEW) {
-            Log.d("PremiumPayment", "Received VIEW intent: ${intent.data}")
 
-            // Forward đến ZaloPaySDK để xử lý callback
-            ZaloPaySDK.getInstance().onResult(intent)
-        }
-    }
+
 
     private fun shareApp() {
         val shareIntent = Intent().apply {
             action = Intent.ACTION_SEND
             type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, "Khám phá SnapSolve Premium - Giải đáp mọi câu hỏi với AI thông minh!")
+            putExtra(
+                Intent.EXTRA_TEXT,
+                getString(R.string.share_app)
+            )
         }
-        startActivity(Intent.createChooser(shareIntent, "Chia sẻ qua"))
-    }
-
-    private fun processZaloPayPayment() {
-        // Disable button để tránh click nhiều lần
-        binding.btnZalopay.isEnabled = false
-        binding.btnZalopay.text = "Đang xử lý..."
-
-        // Sử dụng coroutines cho network call (recommended)
-        lifecycleScope.launch {
-            try {
-                createOrderAndPay()
-            } catch (e: Exception) {
-                handlePaymentError(e)
-            } finally {
-                // Re-enable button
-                binding.btnZalopay.isEnabled = true
-                binding.btnZalopay.text = getString(R.string.checkout_zalopay)
-            }
-        }
-    }
-
-    private suspend fun createOrderAndPay() {
-        try {
-            // Tạo đơn hàng với API
-            val orderResponse = withContext(Dispatchers.IO) {
-                CreateOrder().createOrder(premiumPrice)
-            }
-
-            Log.d("PremiumPayment", "Order response: $orderResponse")
-
-            // Kiểm tra response có null không
-            if (orderResponse == null) {
-                Log.e("PremiumPayment", "Order response is null")
-                showErrorDialog("Lỗi", "Không nhận được phản hồi từ server. Vui lòng thử lại.")
-                return
-            }
-
-            // Fix: Lấy return_code dưới dạng int hoặc string
-            val returnCode = when {
-                orderResponse.has("return_code") -> {
-                    try {
-                        // Thử lấy dưới dạng string trước
-                        orderResponse.getString("return_code")
-                    } catch (e: Exception) {
-                        // Nếu lỗi, thử lấy dưới dạng int
-                        orderResponse.getInt("return_code").toString()
-                    }
-                }
-                else -> {
-                    Log.e("PremiumPayment", "No return_code found in response")
-                    "0" // Default to error
-                }
-            }
-
-            Log.d("PremiumPayment", "Return code: $returnCode")
-
-            when (returnCode) {
-                "1" -> {
-                    // Thành công - Lấy token và thực hiện thanh toán
-                    if (orderResponse.has("zp_trans_token")) {
-                        val zpTransToken = orderResponse.getString("zp_trans_token")
-                        Log.d("PremiumPayment", "Got zp_trans_token: $zpTransToken")
-
-                        // Đảm bảo chạy trên main thread
-                        runOnUiThread {
-                            initiateZaloPayPayment(zpTransToken)
-                        }
-                    } else {
-                        Log.e("PremiumPayment", "No zp_trans_token found in response")
-                        showErrorDialog("Lỗi", "Không nhận được token thanh toán. Vui lòng thử lại.")
-                    }
-                }
-                else -> {
-                    val message = orderResponse.optString("return_message", "Có lỗi xảy ra khi tạo đơn hàng")
-                    Log.e("PremiumPayment", "Order creation failed: $message")
-                    showErrorDialog("Tạo đơn hàng thất bại", message)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("PremiumPayment", "Error creating order", e)
-            Log.e("PremiumPayment", "Exception details: ${e.message}")
-            e.printStackTrace()
-            showErrorDialog("Lỗi", "Không thể tạo đơn hàng. Vui lòng thử lại.\nLỗi: ${e.message}")
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        Log.d("PremiumPayment", "=== onNewIntent called ===")
-        Log.d("PremiumPayment", "Intent: $intent")
-        Log.d("PremiumPayment", "Intent data: ${intent?.data}")
-        Log.d("PremiumPayment", "Intent action: ${intent?.action}")
-
-        // Set intent mới
-        setIntent(intent)
-
-        // Xử lý callback từ ZaloPay
-        ZaloPaySDK.getInstance().onResult(intent)
-        Log.d("PremiumPayment", "ZaloPaySDK.onResult called with intent")
+        startActivity(Intent.createChooser(shareIntent,  getString(R.string.share_app)))
     }
 
     private fun initiateZaloPayPayment(zpTransToken: String) {
-        Log.d("PremiumPayment", "Initiating ZaloPay payment with token: $zpTransToken")
+        Log.d(TAG, "Initiating ZaloPay payment with token: $zpTransToken")
 
         ZaloPaySDK.getInstance().payOrder(
             this@PremiumUser,
             zpTransToken,
-            "snapsolve://premium", // Deep link để nhận callback
-            object : PayOrderListener {
+            "snapsolve://premium",   //url schema call back -> sau khi thanh toan zalopay se goi lai app theo intent nay
+            object : PayOrderListener {   // doi tuong call back
                 override fun onPaymentSucceeded(
                     transactionId: String,
                     transToken: String,
                     appTransID: String
                 ) {
-                    Log.d("PremiumPayment", "=== PAYMENT SUCCESS CALLBACK ===")
-                    Log.d("PremiumPayment", "Transaction ID: $transactionId")
-                    Log.d("PremiumPayment", "Trans Token: $transToken")
-                    Log.d("PremiumPayment", "App Trans ID: $appTransID")
-
-                    runOnUiThread {
-                        // Toast ngay lập tức khi callback được gọi
-                        Toast.makeText(
-                            this@PremiumUser,
-                            "✅ Giao dịch hoàn tất thành công!",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        // Hiển thị dialog chi tiết
-                        showSuccessDialog(transactionId, transToken)
-                    }
+                    viewModel.onPaymentSuccess(transactionId, transToken, appTransID)
                 }
 
                 override fun onPaymentCanceled(zpTransToken: String, appTransID: String) {
-                    Log.d("PremiumPayment", "=== PAYMENT CANCELED ===")
-                    Log.d("PremiumPayment", "ZP Trans Token: $zpTransToken")
-                    Log.d("PremiumPayment", "App Trans ID: $appTransID")
-
-                    runOnUiThread {
-                        showCancelDialog()
-                    }
+                    viewModel.onPaymentCancelled(zpTransToken, appTransID)
                 }
 
                 override fun onPaymentError(
-                    zaloPayError: ZaloPayError,
+                    zaloPayError: vn.zalopay.sdk.ZaloPayError,
                     zpTransToken: String,
                     appTransID: String
                 ) {
-                    Log.e("PremiumPayment", "=== PAYMENT ERROR ===")
-                    Log.e("PremiumPayment", "ZaloPay Error: $zaloPayError")
-                    Log.e("PremiumPayment", "Error Code: ${zaloPayError.name}")
-                    Log.e("PremiumPayment", "ZP Trans Token: $zpTransToken")
-                    Log.e("PremiumPayment", "App Trans ID: $appTransID")
-
-                    runOnUiThread {
-                        showErrorDialog("Thanh toán thất bại", "Lỗi: ${zaloPayError.name}")
-                    }
+                    viewModel.onPaymentError(zaloPayError, zpTransToken, appTransID)
                 }
             }
         )
 
-        Log.d("PremiumPayment", "ZaloPay payOrder called successfully")
+        Log.d(TAG, "ZaloPay payOrder called successfully")
     }
 
     private fun showSuccessDialog(transactionId: String, transToken: String) {
-        // Hiển thị toast ngay lập tức khi thanh toán thành công
-        Toast.makeText(
-            this,
-            "🎉 Thanh toán thành công! Chào mừng bạn đến với Premium!",
-            Toast.LENGTH_LONG
-        ).show()
 
-        // Đảm bảo activity vẫn còn active trước khi hiển thị dialog
+
+        // Show detailed dialog if activity is still active
         if (!isFinishing && !isDestroyed) {
             try {
-                val dialog = AlertDialog.Builder(this)
-                    .setTitle("Thanh toán thành công! 🎉")
-                    .setMessage("Chúc mừng! Bạn đã trở thành thành viên Premium.\n\nMã giao dịch: $transactionId")
-                    .setPositiveButton("Tuyệt vời!") { dialog, _ ->
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.success_transaction_premium_user))
+                    .setMessage(getString(R.string.congratulation_premium_user))
+                    .setPositiveButton(getString(R.string.confirm)) { dialog, _ ->
                         dialog.dismiss()
                         handlePremiumActivation(transactionId, transToken)
                     }
                     .setCancelable(false)
                     .create()
+                    .show()
 
-                // Hiển thị dialog
-                dialog.show()
-
-                Log.d("PremiumPayment", "Success dialog shown for transaction: $transactionId")
+              //  Log.d(TAG, "Success dialog shown for transaction: $transactionId")
             } catch (e: Exception) {
-                Log.e("PremiumPayment", "Error showing success dialog", e)
-                // Fallback: Chỉ sử dụng toast và xử lý kích hoạt premium
+                Log.e(TAG, "Error showing success dialog", e)
+                // Fallback: Handle premium activation without dialog
                 handlePremiumActivation(transactionId, transToken)
             }
         } else {
-            Log.w("PremiumPayment", "Activity is finishing/destroyed, cannot show dialog")
-            // Activity đã bị destroy, chỉ xử lý logic premium
+            Log.w(TAG, "Activity is finishing/destroyed, cannot show dialog")
             handlePremiumActivation(transactionId, transToken)
         }
     }
@@ -323,23 +207,25 @@ class PremiumUser : AppCompatActivity() {
         if (!isFinishing && !isDestroyed) {
             try {
                 AlertDialog.Builder(this)
-                    .setTitle("Thanh toán bị hủy")
-                    .setMessage("Bạn đã hủy quá trình thanh toán. Bạn có muốn thử lại không?")
-                    .setPositiveButton("Thử lại") { dialog, _ ->
+                    .setTitle(getString(R.string.payment_cancel_title))
+                    .setMessage(getString(R.string.payment_cancel_message))
+                    .setPositiveButton(getString(R.string.retry)) { dialog, _ ->
                         dialog.dismiss()
-                        processZaloPayPayment()
+                        viewModel.createOrderAndInitiatePayment()
                     }
-                    .setNegativeButton("Để sau") { dialog, _ ->
+                    .setNegativeButton(getString(R.string.try_later)) { dialog, _ ->
                         dialog.dismiss()
+                        viewModel.resetPaymentState()
                     }
                     .show()
 
-                Log.d("PremiumPayment", "Cancel dialog shown")
+                Log.d(TAG, "Cancel dialog shown")
             } catch (e: Exception) {
-                Log.e("PremiumPayment", "Error showing cancel dialog", e)
+                Log.e(TAG, "Error showing cancel dialog", e)
             }
         }
     }
+
 
     private fun showErrorDialog(title: String, message: String) {
         if (!isFinishing && !isDestroyed) {
@@ -347,69 +233,73 @@ class PremiumUser : AppCompatActivity() {
                 AlertDialog.Builder(this)
                     .setTitle(title)
                     .setMessage(message)
-                    .setPositiveButton("Đóng") { dialog, _ ->
+                    .setPositiveButton(getString(R.string.dialog_button_close)) { dialog, _ ->
                         dialog.dismiss()
+                        viewModel.resetPaymentState()
                     }
-                    .setNeutralButton("Thử lại") { dialog, _ ->
+                    .setNeutralButton(getString(R.string.dialog_button_retry)) { dialog, _ ->
                         dialog.dismiss()
-                        processZaloPayPayment()
+                        viewModel.createOrderAndInitiatePayment()
                     }
                     .show()
 
-                Log.d("PremiumPayment", "Error dialog shown: $title")
+                Log.d(TAG, "Error dialog shown: $title")
             } catch (e: Exception) {
-                Log.e("PremiumPayment", "Error showing error dialog", e)
-                // Fallback với toast
+                Log.e(TAG, "Error showing error dialog", e)
                 Toast.makeText(this, "$title: $message", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun handlePaymentError(error: Exception) {
-        Log.e("PremiumPayment", "Payment process error", error)
-        runOnUiThread {
-            Toast.makeText(this, "Có lỗi xảy ra: ${error.message}", Toast.LENGTH_LONG).show()
+
+    private fun handlePremiumActivation(transactionId: String, transToken: String) {
+        val result = viewModel.handlePremiumActivation(transactionId, transToken)
+
+        if (result.success) {
+
+
+            // Return result to previous activity
+            val resultIntent = Intent().apply {
+                putExtra("payment_success", true)
+                putExtra("transaction_id", result.transactionId)
+                putExtra("amount", result.amount)
+            }
+            setResult(RESULT_OK, resultIntent)
+            finish()
+        } else {
+            // Handle activation failure
+            showErrorDialog(
+                getString(R.string.premium_activation_error_title),
+                result.errorMessage ?: getString(R.string.premium_activation_error_message)
+            )
+
         }
     }
 
-    private fun handlePremiumActivation(transactionId: String, transToken: String) {
-        // 1. Gửi thông tin giao dịch lên server để verify
-        // 2. Cập nhật trạng thái premium trong local storage
-        // 3. Refresh UI hoặc chuyển về màn hình chính
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        Log.d(TAG, "=== onNewIntent called ===")
+        Log.d(TAG, "Intent: $intent")
+        Log.d(TAG, "Intent data: ${intent?.data}")
+        Log.d(TAG, "Intent action: ${intent?.action}")
 
-        // Toast xác nhận kích hoạt premium
-        Toast.makeText(
-            this,
-            "🌟 Tài khoản Premium đã được kích hoạt thành công!",
-            Toast.LENGTH_LONG
-        ).show()
+        // Set new intent
+        setIntent(intent)
 
-        // Ví dụ: Quay về màn hình trước với kết quả
-        val resultIntent = Intent().apply {
-            putExtra("payment_success", true)
-            putExtra("transaction_id", transactionId)
-            putExtra("amount", premiumPrice)
-        }
-        setResult(RESULT_OK, resultIntent)
-        finish()
+        // Handle ZaloPay callback
+        ZaloPaySDK.getInstance().onResult(intent)
+      //  Log.d(TAG, "ZaloPaySDK.onResult called with intent")
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d("PremiumPayment", "=== onResume called ===")
+        Log.d(TAG, "=== onResume called ===")
 
-        // Re-enable button khi quay lại activity
-        binding.btnZalopay.isEnabled = true
-        binding.btnZalopay.text = getString(R.string.checkout_zalopay)
+        // Reset loading state when returning to activity
+        updateLoadingState(false)
     }
 
-    override fun onPause() {
-        super.onPause()
-        Log.d("PremiumPayment", "=== onPause called ===")
-    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("PremiumPayment", "=== onDestroy called ===")
-    }
+
+
 }

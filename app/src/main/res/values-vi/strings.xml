@@ -145,4 +145,21 @@
         <string name="checkout_zalopay">Thanh toán qua ZaloPay</string>
         <string name="price_for_premium_user">Sau khi kết thúc dùng thử, đ98.000 sẽ được tính hàng tháng</string>
 
+        <string name="processing">Đang xử lý</string>
+        <string name="share_app">Khám phá SnapSolve Premium - Giải đáp mọi câu hỏi với AI thông minh! https://docs.zalopay.vn/v2/docs/apptoapp/guide.html</string>
+        <string name="error_transaction">Thanh toán thất bại</string>
+        <string name="success_transaction_premium_user">Thanh toán thành công! 🎉</string>
+        <string name="congratulation_premium_user">"Chúc mừng! Bạn đã trở thành thành viên Premium.\n\n</string>
+        <string name="payment_cancel_title">Thanh toán bị hủy</string>
+        <string name="payment_cancel_message">Bạn đã hủy quá trình thanh toán. Bạn có muốn thử lại không?</string>
+        <string name="retry">Thử lại</string>
+        <string name="try_later">Để sau</string>
+        <string name="dialog_title_error">Lỗi</string>
+        <string name="dialog_button_close">Đóng</string>
+        <string name="dialog_button_retry">Thử lại</string>
+        <string name="premium_activation_error_title">Lỗi kích hoạt Premium</string>
+        <string name="premium_activation_error_message">Không thể kích hoạt tài khoản Premium</string>
+
+
+
 </resources>

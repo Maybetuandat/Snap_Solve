@@ -33,7 +33,7 @@
             android:name=".presentation.feature.menu.premiumuser.PremiumUser"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -91,7 +91,7 @@
             android:exported="false" />
         <activity
             android:name=".presentation.feature.noteScene.NoteActivity"
-            android:exported="true"></activity>
+            android:exported="true"/>
         <activity
             android:name=".presentation.feature.noteScene.NoteDetailActivity"
             android:exported="false" />

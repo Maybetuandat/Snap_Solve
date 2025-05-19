@@ -1,5 +1,6 @@
 package com.example.app_music.presentation.feature.menu.premiumuser
 
+import android.util.Log
 import com.example.app_music.data.remote.api.HttpProvider
 import com.example.app_music.domain.utils.AppInfo
 import com.example.app_music.domain.utils.Helpers
@@ -10,17 +11,17 @@ import okhttp3.RequestBody
 
 class CreateOrder {
     private inner class CreateOrderData(amount: String, isForPremium: Boolean = false) {
-        // ... existing code ... {
-        val appId: String
-        val appUser: String
-        val appTime: String
-        val amount: String
-        val appTransId: String
-        val embedData: String
-        val items: String
-        val bankCode: String
-        val description: String
-        val mac: String
+
+        val appId: String // do zalopay cung cap
+        val appUser: String  // Ten app cua ca nhan
+        val appTime: String  // mui gio hien tai
+        val amount: String   // gia tien thanh toan -> doi voi premium user mac dinh la 98000
+        val appTransId: String  // appTransId duoc lay tu lop Helper cung cap san tu thu vien cua zalopay -> id dinh danh cho cho don hang
+        val embedData: String  // thong tin ve chien luoc thanh toan -> mac dinh la rong.
+        val items: String   // danh sach san pham nguoi dung dang mua
+        val bankCode: String  // ma ngan hang -> khi su dung zlpay thi se la zalopay
+        val description: String   // mo ta don hang
+        val mac: String  // ky de zalo thuc hien xac thuc
 
         init {
             val appTime = Date().time
@@ -55,6 +56,14 @@ class CreateOrder {
     fun createOrder(amount: String, isForPremium: Boolean = false): JSONObject {
         val input = CreateOrderData(amount, isForPremium)
 
+        Log.d("CreateOrder", "=== ORDER CREATION DEBUG ===")
+        Log.d("CreateOrder", "App ID: ${input.appId}")
+        Log.d("CreateOrder", "App Trans ID: ${input.appTransId}")
+        Log.d("CreateOrder", "Amount: ${input.amount}")
+        Log.d("CreateOrder", "MAC: ${input.mac}")
+        Log.d("CreateOrder", "Embed Data: ${input.embedData}")
+        Log.d("CreateOrder", "Items: ${input.items}")
+        Log.d("CreateOrder", "Description: ${input.description}")
         val formBody: RequestBody = FormBody.Builder()
             .add("app_id", input.appId)
             .add("app_user", input.appUser)
@@ -68,6 +77,8 @@ class CreateOrder {
             .add("mac", input.mac)
             .build()
 
-        return HttpProvider.sendPost(AppInfo.URL_CREATE_ORDER, formBody)
+        val response =  HttpProvider.sendPost(AppInfo.URL_CREATE_ORDER, formBody)   // tao mot formbody va gui request den phia backend server cua zalopay
+      //  Log.d("CreateOrder", "Response: ${response.toString(2)}")
+        return response
     }
 }
