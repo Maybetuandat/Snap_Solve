@@ -1,15 +1,21 @@
-// Create a new file: app/src/main/java/com/example/app_music/presentation/feature/noteScene/views/RealtimeDrawingManager.kt
 package com.example.app_music.presentation.feature.noteScene.views
 
 import android.graphics.Color
 import android.util.Log
 import com.example.app_music.data.collaboration.CollaborationManager
-import com.example.app_music.presentation.feature.noteScene.views.DrawingView
+import com.example.app_music.data.repository.StrokesRepository
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
 
+/**
+ * Quản lý vẽ thời gian thực và đồng bộ hóa
+ */
 class RealtimeDrawingManager(
     private val drawingView: DrawingView,
     private val collaborationManager: CollaborationManager,
@@ -18,143 +24,220 @@ class RealtimeDrawingManager(
 ) {
     private val TAG = "RealtimeDrawingManager"
     private var isLocalStroke = false
-    private var activeStrokeIds = HashSet<String>() // Track IDs for current page
+    private var activeStrokeIds = HashSet<String>() // Theo dõi ID cho trang hiện tại
+    private val strokesRepository = StrokesRepository()
+
+    // Reference trực tiếp đến node strokes trong Realtime Database
+    private val strokesRef = FirebaseDatabase.getInstance().getReference("strokes").child(currentPageId)
+    private var strokesListener: ChildEventListener? = null
 
     init {
-        // Listen for remote strokes
-        listenForRemoteDrawingActions()
-
-        // Set listener for local strokes
+        // Đặt listener cho các nét vẽ cục bộ
         drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
             override fun onDrawCompleted() {
-                // Get the last stroke drawn and sync it
+                // Lấy nét vẽ cuối cùng và đồng bộ hóa
                 val lastStroke = drawingView.getLastStroke()
-                if (lastStroke != null) {
+                if (lastStroke != null && !isLocalStroke) {
+                    // Đánh dấu là đang xử lý nét vẽ cục bộ để tránh vòng lặp
                     isLocalStroke = true
 
-                    // Add stroke ID to the tracking set
+                    // Thêm ID nét vẽ vào tập theo dõi
                     activeStrokeIds.add(lastStroke.id)
 
-                    // Convert to drawing action and send to server
-                    val drawingAction = collaborationManager.strokeToDrawingAction(lastStroke)
-                    // Add page ID to the action to distinguish between pages
-                    val actionWithPageId = drawingAction.copy(
-                        pageId = currentPageId,
-                        timestamp = System.currentTimeMillis()
-                    )
-                    collaborationManager.saveDrawingAction(actionWithPageId)
-                    isLocalStroke = false
+                    // Lưu nét vẽ vào repository
+                    scope.launch {
+                        try {
+                            val saveResult = strokesRepository.saveStroke(currentPageId, lastStroke)
+
+                            if (saveResult.isSuccess) {
+                                Log.d(TAG, "Stroke saved successfully: ${lastStroke.id}")
+
+                                // Không cần chuyển đổi và gửi drawingAction riêng nữa
+                                // vì listener thực hiện điều này tự động
+                            } else {
+                                Log.e(TAG, "Failed to save stroke: ${saveResult.exceptionOrNull()?.message}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error saving stroke", e)
+                        } finally {
+                            isLocalStroke = false
+                        }
+                    }
                 }
             }
         })
+
+        // Tải các nét vẽ hiện có khi khởi tạo
+        loadExistingStrokes()
+
+        // Thiết lập listener cho các thay đổi theo thời gian thực
+        setupRealtimeListener()
     }
 
-    // Clear existing strokes from view when page changes
-    // In RealtimeDrawingManager.kt
-    fun clearForPageChange() {
-        // Make sure we're not listening to events during the clear
-        isLocalStroke = true
-
-        // Clear the drawing view completely
-        drawingView.clearDrawing(false)
-
-        // Clear our tracking of stroke IDs
-        activeStrokeIds.clear()
-
-        // Reset local stroke flag
-        isLocalStroke = false
-    }
-
-    private fun listenForRemoteDrawingActions() {
-        scope.launch(Dispatchers.IO) {
+    /**
+     * Tải các nét vẽ hiện có cho trang
+     */
+    private fun loadExistingStrokes() {
+        scope.launch {
             try {
-                // Load existing strokes for this page first
-                val existingActions = collaborationManager.getDrawingActionsForPage(currentPageId)
-                if (existingActions.isNotEmpty()) {
-                    scope.launch(Dispatchers.Main) {
-                        // Clear view before applying loaded strokes
-                        drawingView.clearDrawing(false)
+                val result = strokesRepository.getStrokesForPage(currentPageId)
 
-                        // Apply existing strokes in order
-                        for (action in existingActions) {
-                            Log.d(TAG, "Loading existing stroke: ${action.actionId} for page $currentPageId")
-                            val stroke = convertToStroke(action)
+                if (result.isSuccess) {
+                    val strokes = result.getOrNull() ?: emptyList()
 
-                            // Add to tracked IDs
-                            activeStrokeIds.add(stroke.id)
+                    if (strokes.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            // Xóa view trước khi áp dụng các nét vẽ đã tải
+                            drawingView.clearDrawing(false)
 
-                            // Add to drawing
-                            drawingView.addRemoteStroke(stroke)
-                        }
-                    }
-                }
+                            // Áp dụng các nét vẽ hiện có theo thứ tự
+                            for (stroke in strokes) {
+                                Log.d(TAG, "Loading existing stroke: ${stroke.id} for page $currentPageId")
 
-                // Now listen for real-time updates
-                collaborationManager.getDrawingActionsFlow().collectLatest { action ->
-                    // Only process if this action is for our current page
-                    if (action.pageId == currentPageId) {
-                        Log.d(TAG, "Received real-time drawing action: ${action.actionId} for page $currentPageId")
+                                // Thêm vào ID đã theo dõi
+                                activeStrokeIds.add(stroke.id)
 
-                        // Skip if we've already seen this stroke ID
-                        if (action.userId != collaborationManager.getCurrentUserId() &&
-                            !activeStrokeIds.contains(action.actionId)) {
-
-                            scope.launch(Dispatchers.Main) {
-                                when (action.type) {
-                                    CollaborationManager.ActionType.DRAW -> {
-                                        // Add the stroke ID to our tracking
-                                        activeStrokeIds.add(action.actionId)
-
-                                        // Apply the stroke
-                                        val remoteStroke = convertToStroke(action)
-                                        drawingView.addRemoteStroke(remoteStroke)
-                                    }
-                                    CollaborationManager.ActionType.ERASE -> {
-                                        val strokeToErase = drawingView.findStrokeById(action.targetStrokeId)
-                                        if (strokeToErase != null) {
-                                            // Remove from tracking
-                                            activeStrokeIds.remove(action.targetStrokeId)
-
-                                            // Remove from drawing
-                                            drawingView.removeStroke(strokeToErase)
-                                        }
-                                    }
-                                    CollaborationManager.ActionType.CLEAR -> {
-                                        // Handle clear all for this page
-                                        activeStrokeIds.clear()
-                                        drawingView.clearDrawing(false)
-                                    }
-                                }
+                                // Thêm vào bản vẽ
+                                drawingView.addRemoteStroke(stroke)
                             }
                         }
                     }
+                } else {
+                    Log.e(TAG, "Failed to load strokes: ${result.exceptionOrNull()?.message}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error in real-time drawing updates", e)
+                Log.e(TAG, "Error loading existing strokes", e)
             }
         }
     }
-    private fun convertToStroke(action: CollaborationManager.DrawingAction): DrawingView.Stroke {
-        // Convert drawing action back to a stroke
-        val points = action.path.map { point ->
-            DrawingView.StrokePoint(
-                x = point.x,
-                y = point.y,
-                type = when (point.operation) {
-                    CollaborationManager.PathOperation.MOVE_TO -> android.view.MotionEvent.ACTION_DOWN
-                    CollaborationManager.PathOperation.LINE_TO -> android.view.MotionEvent.ACTION_MOVE
-                    CollaborationManager.PathOperation.QUAD_TO -> android.view.MotionEvent.ACTION_MOVE
+
+    /**
+     * Thiết lập listener cho các thay đổi theo thời gian thực
+     */
+    private fun setupRealtimeListener() {
+        // Chỉ thiết lập nếu chưa có listener
+        if (strokesListener != null) return
+
+        // Tạo listener mới
+        strokesListener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                try {
+                    // Kiểm tra nếu là nét vẽ của chính chúng ta
+                    val createdBy = snapshot.child("createdBy").getValue(String::class.java) ?: ""
+                    val strokeId = snapshot.child("id").getValue(String::class.java) ?: ""
+
+                    // Bỏ qua nếu là nét vẽ của chúng ta hoặc đã có trong view
+                    if (createdBy == collaborationManager.getCurrentUserId() ||
+                        activeStrokeIds.contains(strokeId)) {
+                        return
+                    }
+
+                    // Parse dữ liệu stroke
+                    val color = snapshot.child("color").getValue(Long::class.java)?.toInt() ?: Color.BLACK
+                    val strokeWidth = snapshot.child("strokeWidth").getValue(Double::class.java)?.toFloat() ?: 5f
+                    val isEraser = snapshot.child("isEraser").getValue(Boolean::class.java) ?: false
+
+                    // Parse dữ liệu points
+                    val pointsSnapshot = snapshot.child("points")
+                    val points = mutableListOf<DrawingView.StrokePoint>()
+
+                    for (pointSnapshot in pointsSnapshot.children) {
+                        val x = pointSnapshot.child("x").getValue(Double::class.java)?.toFloat() ?: 0f
+                        val y = pointSnapshot.child("y").getValue(Double::class.java)?.toFloat() ?: 0f
+                        val type = pointSnapshot.child("type").getValue(Int::class.java) ?: 0
+
+                        points.add(DrawingView.StrokePoint(x, y, type))
+                    }
+
+                    // Tạo stroke
+                    val stroke = DrawingView.Stroke(
+                        id = strokeId,
+                        color = color,
+                        strokeWidth = strokeWidth,
+                        isEraser = isEraser,
+                        points = points
+                    )
+
+                    // Thêm vào danh sách theo dõi
+                    activeStrokeIds.add(strokeId)
+
+                    // Thêm vào view
+                    scope.launch(Dispatchers.Main) {
+                        drawingView.addRemoteStroke(stroke)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing added stroke", e)
                 }
-            )
-        }.toMutableList()
-        
-        return DrawingView.Stroke(
-            id = action.actionId,
-            color = action.color,
-            strokeWidth = action.strokeWidth,
-            isEraser = action.type == CollaborationManager.ActionType.ERASE,
-            points = points
-        )
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                // Strokes thường không thay đổi sau khi tạo
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                try {
+                    val strokeId = snapshot.child("id").getValue(String::class.java) ?: return
+
+                    // Tìm stroke trong view
+                    scope.launch(Dispatchers.Main) {
+                        val stroke = drawingView.findStrokeById(strokeId)
+                        if (stroke != null) {
+                            // Xóa khỏi danh sách theo dõi
+                            activeStrokeIds.remove(strokeId)
+
+                            // Xóa khỏi view
+                            drawingView.removeStroke(stroke)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error handling removed stroke", e)
+                }
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+                // Không cần xử lý
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error in strokes listener", error.toException())
+            }
+        }
+
+        // Đăng ký listener
+        strokesRef.addChildEventListener(strokesListener!!)
     }
 
+    /**
+     * Xóa các nét vẽ hiện có khi chuyển trang
+     */
+    fun clearForPageChange() {
+        // Hủy listener
+        strokesListener?.let {
+            strokesRef.removeEventListener(it)
+            strokesListener = null
+        }
+
+        // Đảm bảo không nghe các sự kiện trong quá trình xóa
+        isLocalStroke = true
+
+        // Xóa hoàn toàn drawingView
+        drawingView.clearDrawing(false)
+
+        // Xóa theo dõi ID nét vẽ
+        activeStrokeIds.clear()
+
+        // Đặt lại cờ nét vẽ cục bộ
+        isLocalStroke = false
+    }
+
+    /**
+     * Xóa và dọn dẹp tài nguyên
+     */
+    fun cleanup() {
+        // Hủy listener
+        strokesListener?.let {
+            strokesRef.removeEventListener(it)
+            strokesListener = null
+        }
+    }
 }
