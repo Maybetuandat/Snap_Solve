@@ -80,10 +80,7 @@ data class NotePage(
     @set:PropertyName("imagePath")
     var imagePath: String? = null,
 
-    @get:PropertyName("drawingData")
-    @set:PropertyName("drawingData")
-    var drawingData: String? = null,
-
+    // Remove drawingData field and only keep vectorDrawingData
     @get:PropertyName("vectorDrawingData")
     @set:PropertyName("vectorDrawingData")
     var vectorDrawingData: String? = null,

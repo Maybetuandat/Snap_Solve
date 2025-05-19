@@ -251,7 +251,7 @@ class QRCodeFragment : DialogFragment() {
     }
 
     private suspend fun generateQrCodeForPages(pageIds: List<String>) {
-        // Create a special URL that includes specific pages
+        // Create a URL that includes specific pages
         shareableUrl = "snapsolve://notes/$noteId?pages=${pageIds.joinToString(",")}"
 
         // Generate QR code
@@ -260,6 +260,7 @@ class QRCodeFragment : DialogFragment() {
             binding.ivQrCode.setImageBitmap(it)
         }
     }
+
 
     private fun shareUrl() {
         // First copy to clipboard

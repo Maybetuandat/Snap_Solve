@@ -52,8 +52,14 @@ import java.util.Locale
 import java.util.Random
 import java.util.UUID
 import android.Manifest
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.view.MotionEvent
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
+import com.example.app_music.presentation.feature.noteScene.views.RealtimeDrawingManager
+import com.google.gson.Gson
+import kotlinx.coroutines.isActive
 import java.util.concurrent.TimeUnit
 
 class NoteDetailActivity : BaseActivity() {
@@ -86,7 +92,8 @@ class NoteDetailActivity : BaseActivity() {
     // Firebase Auth
     private val auth = FirebaseAuth.getInstance()
     private val currentUser get() = auth.currentUser
-
+    private var saveJob: Job? = null
+    private val AUTO_SAVE_DELAY = 2000L
     // Pagination variables
     private var currentPageIndex = 0
     private var pages = mutableListOf<NotePage>()
@@ -97,6 +104,7 @@ class NoteDetailActivity : BaseActivity() {
     private var currentPhotoPath: String? = null
     private var tempPhotoUri: Uri? = null
     private var tempPhotoPath: String? = null
+    private var drawingManager: RealtimeDrawingManager? = null
     // Activity result launchers
     private val takePictureContract = registerForActivityResult(
         ActivityResultContracts.TakePicture()
@@ -184,10 +192,11 @@ class NoteDetailActivity : BaseActivity() {
             // Load note data - only once!
             loadNote()
         }
-
+        startAutoSave()
         // Set up collaboration
         setupCollaboration()
         binding.drawingView.resetTransform()
+        setupPageEventListener()
     }
 
 
@@ -201,10 +210,10 @@ class NoteDetailActivity : BaseActivity() {
     }
 
     private fun setupDrawingTools() {
-        // Mặc định ở chế độ PAN
-        selectMode(DrawingView.DrawMode.PAN)
+        // Set default mode
+        selectMode(DrawingView.DrawMode.DRAW)
 
-        // Tool selection listeners
+        // Tool selection buttons
         binding.buttonHand.setOnClickListener {
             selectMode(DrawingView.DrawMode.PAN)
         }
@@ -217,34 +226,35 @@ class NoteDetailActivity : BaseActivity() {
             selectMode(DrawingView.DrawMode.ERASE)
         }
 
-        binding.buttonColor.setOnClickListener {
-            showColorPicker()
-        }
-
-        binding.buttonStrokeWidth.setOnClickListener {
-            showStrokeWidthDialog()
-        }
-
+        // Undo/redo buttons with explicit saving
         binding.buttonUndo.setOnClickListener {
-            binding.drawingView.undo()
+            val undoSuccess = binding.drawingView.undo()
             updateUndoRedoButtons()
-            saveCurrentPage(false)
+            if (undoSuccess) {
+                // Save immediately after undo
+                saveCurrentPage(false)
+            }
         }
 
         binding.buttonRedo.setOnClickListener {
-            binding.drawingView.redo()
+            val redoSuccess = binding.drawingView.redo()
             updateUndoRedoButtons()
-            saveCurrentPage(false)
+            if (redoSuccess) {
+                // Save immediately after redo
+                saveCurrentPage(false)
+            }
         }
 
-        // Set up drawing view listener for auto-saving
+        // Set draw completed listener with forced save check
         binding.drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
             override fun onDrawCompleted() {
+                // Update UI
                 updateUndoRedoButtons()
-                saveCurrentPage(false)
 
-                // Sync drawing action with collaborators
-                syncDrawingAction()
+                // Check if force save is needed
+                if (binding.drawingView.isForceSaveNeeded()) {
+                    saveCurrentPage(false)
+                }
             }
         })
     }
@@ -263,6 +273,120 @@ class NoteDetailActivity : BaseActivity() {
             .setNegativeButton("Hủy", null)
             .show()
     }
+
+
+    // Add this method to handle page deletion:
+    private fun showDeletePageConfirmation() {
+        if (pages.size <= 1) {
+            Toast.makeText(this, "Cannot delete the only page", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Delete Page")
+            .setMessage("Are you sure you want to delete this page? This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                deletePage()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deletePage() {
+        if (currentPage == null || pages.isEmpty()) {
+            return
+        }
+
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val pageToDelete = currentPage!!
+                val deleteIndex = currentPageIndex
+                val result = repository.deletePage(pageToDelete.id)
+
+                if (result.isSuccess) {
+                    // Remove from local list
+                    pages.removeAt(deleteIndex)
+
+                    // Update page indices for all pages after the deleted page
+                    val updatedIndices = mutableListOf<NotePage>()
+                    for (i in deleteIndex until pages.size) {
+                        val updatedPage = pages[i].copy(pageIndex = i)
+                        pages[i] = updatedPage
+                        updatedIndices.add(updatedPage)
+                    }
+
+                    // Update all indices in one batch if possible
+                    updatedIndices.forEach { page ->
+                        repository.updatePage(page)
+                    }
+
+                    // Update note's pageIds list
+                    val noteResult = repository.getNote(pageToDelete.noteId)
+                    if (noteResult.isSuccess) {
+                        val note = noteResult.getOrNull()!!
+                        note.pageIds.remove(pageToDelete.id)
+                        repository.updateNote(note)
+
+                        // Notify all collaborators of the page deletion
+                        collaborationManager.emitPageEvent(
+                            CollaborationManager.PageEventType.PAGE_DELETED,
+                            note.id,
+                            pageToDelete.id,
+                            deleteIndex,
+                            note.pageIds
+                        )
+                    }
+
+                    Toast.makeText(this@NoteDetailActivity, "Page deleted", Toast.LENGTH_SHORT).show()
+
+                    // Navigate to appropriate page
+                    if (pages.isEmpty()) {
+                        // If no pages left, create a blank one
+                        val blankPageResult = repository.createBlankPage(pageToDelete.noteId)
+                        if (blankPageResult.isSuccess) {
+                            val page = blankPageResult.getOrNull()!!
+                            pages.add(page)
+                            currentPageIndex = 0
+
+                            // Notify collaborators of new page
+                            noteResult.getOrNull()?.let { note ->
+                                note.pageIds.add(page.id)
+                                repository.updateNote(note)
+
+                                collaborationManager.emitPageEvent(
+                                    CollaborationManager.PageEventType.PAGE_DELETED,
+                                    note.id,
+                                    pageToDelete.id,
+                                    deleteIndex,
+                                    note.pageIds
+                                )
+                            }
+                        }
+                    } else {
+                        // Navigate to previous page, or next if this was the first
+                        currentPageIndex = if (deleteIndex > 0) deleteIndex - 1 else 0
+                    }
+
+                    // Load the new current page
+                    loadPage(currentPageIndex)
+                } else {
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Error deleting page: ${result.exceptionOrNull()?.message}",
+                        Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error deleting page", e)
+                Toast.makeText(this@NoteDetailActivity,
+                    "Error: ${e.message}",
+                    Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+
     private fun setupPagination() {
         // Navigation buttons
         binding.buttonPrevPage.setOnClickListener {
@@ -294,7 +418,16 @@ class NoteDetailActivity : BaseActivity() {
             Toast.makeText(this, "Explanation feature coming soon", Toast.LENGTH_SHORT).show()
         }
     }
+    private fun debouncedSaveCurrentPage() {
+        // Cancel previous save job if it exists
+        saveJob?.cancel()
 
+        // Create a new save job with delay
+        saveJob = lifecycleScope.launch {
+            delay(AUTO_SAVE_DELAY)
+            saveCurrentPage(false) // Save without toast
+        }
+    }
     private var previousUserCount = 0
     private fun setupCollaboration() {
         // Mark user as active
@@ -483,178 +616,500 @@ class NoteDetailActivity : BaseActivity() {
     }
     private fun loadPage(index: Int) {
         if (pages.isEmpty()) {
-            // Nếu không có trang, không có gì để tải
+            // Clear everything if no pages
             binding.drawingView.clearDrawing()
             binding.imageNote.setImageDrawable(null)
+            binding.imageNote.visibility = View.GONE
             binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
             updatePageIndicator()
             updateNavigationButtons()
-            binding.drawingView.resetTransform()
             return
         }
 
         if (index < 0 || index >= pages.size) {
-            Log.e("NoteDetailActivity", "Chỉ số trang không hợp lệ: $index, số lượng trang: ${pages.size}")
+            Log.e("NoteDetailActivity", "Invalid page index: $index")
             return
         }
 
+        // Show loading indicator
         binding.progressBar.visibility = View.VISIBLE
 
-        // Đầu tiên, lưu trang hiện tại nếu cần
+        // Save current page first
         currentPage?.let {
             saveCurrentPage(false)
         }
 
-        // Cập nhật trang hiện tại
+        // COMPLETE RESET of all page content
+        binding.drawingView.clearDrawing(false)
+        binding.drawingView.setBackgroundImage(null)
+        binding.imageNote.setImageDrawable(null)
+        binding.imageNote.visibility = View.GONE
+        binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
+
+        // Clear realtime drawing manager
+        drawingManager?.clearForPageChange()
+        drawingManager = null
+
+        // Update page references
         currentPage = pages[index]
         currentPageIndex = index
 
-        // Xóa canvas hiện tại
-        binding.drawingView.clearDrawing()
-        binding.imageNote.setImageDrawable(null)
-
-        // Đặt nền màu xám nhạt để dễ nhìn hơn
-        binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
-
+        // Load the page
         lifecycleScope.launch {
             try {
                 val page = pages[index]
+                Log.d("NoteDetailActivity", "Loading page ${page.id}")
 
-                // Reset bitmap và nền
-                binding.drawingView.clearDrawing()
-
-                // Đảm bảo container có nền xám
-                binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
-
+                // First handle background
+                var backgroundLoaded = false
                 if (page.imagePath != null) {
-                    // Tải ảnh từ storage
-                    val bitmap = storageManager.loadPageImage(page.id)
-                    if (bitmap != null) {
-                        // Đặt bitmap làm nền cho DrawingView
-                        binding.drawingView.setBackgroundImage(bitmap)
-
-                        // Ẩn ImageView vì chúng ta sẽ sử dụng DrawingView để hiển thị cả ảnh nền
-                        binding.imageNote.visibility = View.GONE
-                    } else {
-                        // Nếu không tải được từ storage, thử sử dụng URL
-                        val imageRef = repository.getImageBitmap(page.imagePath!!)
-                        if (imageRef.isSuccess) {
-                            val uri = imageRef.getOrNull()
-
-                            // Tải ảnh bằng Glide và đặt vào DrawingView
-                            try {
-                                val future = Glide.with(this@NoteDetailActivity)
-                                    .asBitmap()
-                                    .load(uri)
-                                    .submit()
-
-                                val loadedBitmap = future.get(10, TimeUnit.SECONDS)
-                                binding.drawingView.setBackgroundImage(loadedBitmap)
-                                binding.imageNote.visibility = View.GONE
-                            } catch (e: Exception) {
-                                // Nếu tải bằng Glide thất bại, sử dụng ImageView truyền thống
-                                Log.e("NoteDetailActivity", "Lỗi tải bitmap: ${e.message}")
-                                binding.imageNote.visibility = View.VISIBLE
-                                Glide.with(this@NoteDetailActivity)
-                                    .load(uri)
-                                    .into(binding.imageNote)
-                            }
+                    try {
+                        // Try loading image
+                        val bitmap = storageManager.loadPageImage(page.id)
+                        if (bitmap != null) {
+                            binding.drawingView.setBackgroundImage(bitmap)
+                            backgroundLoaded = true
                         } else {
-                            // Không lấy được URL
-                            binding.imageNote.setImageResource(R.drawable.ic_note)
-                            binding.imageNote.visibility = View.VISIBLE
+                            // Try URL loading
+                            val imageResult = repository.getImageBitmap(page.imagePath!!)
+                            if (imageResult.isSuccess) {
+                                try {
+                                    Glide.with(this@NoteDetailActivity)
+                                        .asBitmap()
+                                        .load(imageResult.getOrNull())
+                                        .into(object : CustomTarget<Bitmap>() {
+                                            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                                                binding.drawingView.setBackgroundImage(resource)
+                                            }
+
+                                            override fun onLoadCleared(placeholder: Drawable?) {}
+                                        })
+
+                                    backgroundLoaded = true
+                                } catch (e: Exception) {
+                                    Log.e("NoteDetailActivity", "Error loading image with Glide", e)
+                                }
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error loading image", e)
                     }
-                } else {
-                    // Không có ảnh, tạo nền trắng với kích thước mặc định
-                    binding.drawingView.setWhiteBackground(800, 1200)
-                    binding.imageNote.visibility = View.GONE
                 }
 
-                // Tải dữ liệu vẽ
-                if (page.vectorDrawingData != null) {
+                // Create white background if no image
+                if (!backgroundLoaded) {
+                    binding.drawingView.setWhiteBackground(800, 1200)
+                }
+
+                // Wait a bit for background to load
+                delay(100)
+
+                // Load drawing data if available
+                if (!page.vectorDrawingData.isNullOrEmpty()) {
                     try {
                         binding.drawingView.setDrawingDataFromJson(page.vectorDrawingData!!)
+                        Log.d("NoteDetailActivity", "Drawing data loaded successfully")
                     } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Lỗi tải dữ liệu vẽ vector: ${e.message}")
-                        if (page.drawingData != null) {
-                            loadBitmapDrawingData(page.drawingData!!)
-                        }
+                        Log.e("NoteDetailActivity", "Error loading drawing data", e)
                     }
-                } else if (page.drawingData != null) {
-                    loadBitmapDrawingData(page.drawingData!!)
+                } else {
+                    Log.d("NoteDetailActivity", "No drawing data for this page")
                 }
 
-                // Reset transform
-                binding.drawingView.resetTransform()
+                // Wait a bit for drawing to load
+                delay(100)
 
-                // Cập nhật UI
+                // Initialize real-time drawing
+                drawingManager = RealtimeDrawingManager(
+                    binding.drawingView,
+                    collaborationManager,
+                    lifecycleScope,
+                    page.id
+                )
+
+                // Update UI
                 updatePageIndicator()
                 updateNavigationButtons()
                 updateUndoRedoButtons()
+
             } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error loading page", e)
                 Toast.makeText(this@NoteDetailActivity,
-                    "Lỗi khi tải trang: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("NoteDetailActivity", "Lỗi khi tải trang", e)
+                    "Error loading page: ${e.message}",
+                    Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
             }
         }
     }
+    private fun clearPageContent() {
+        Log.d("NoteDetailActivity", "Clearing all page content")
 
-    private fun saveCurrentPage(showToast: Boolean = true) {
-        if (currentPage == null) {
+        // Stop drawing manager first
+        drawingManager?.clearForPageChange()
+        drawingManager = null  // Important: Set to null to prevent further events
+
+        // Clear the drawing view completely
+        binding.drawingView.clearDrawing(false)
+
+        // Reset transformations BEFORE clearing background
+        binding.drawingView.resetTransform()
+
+        // Clear background image (important to do after clearing drawing)
+        try {
+            binding.drawingView.setBackgroundImage(null)
+        } catch (e: Exception) {
+            Log.e("NoteDetailActivity", "Error clearing background image", e)
+        }
+
+        // Clear and hide ImageView
+        binding.imageNote.setImageDrawable(null)
+        binding.imageNote.visibility = View.GONE
+
+        // Reset container background
+        binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
+    }
+    private suspend fun loadPageImage(page: NotePage) {
+        try {
+            // First try loading from storage
+            val bitmap = storageManager.loadPageImage(page.id)
+
+            if (bitmap != null) {
+                // Successfully loaded from storage
+                Log.d("NoteDetailActivity", "Loaded page image from storage: ${bitmap.width}x${bitmap.height}")
+
+                // Set as drawing view background
+                withContext(Dispatchers.Main) {
+                    binding.drawingView.setBackgroundImage(bitmap)
+                }
+                return
+            }
+
+            // If we're here, storage loading failed - try from URL
+            if (page.imagePath != null) {
+                val imageResult = repository.getImageBitmap(page.imagePath!!)
+
+                if (imageResult.isSuccess) {
+                    val uri = imageResult.getOrNull()
+
+                    try {
+                        // Use Glide with a timeout to load the image
+                        val future = Glide.with(this@NoteDetailActivity)
+                            .asBitmap()
+                            .load(uri)
+                            .submit()
+
+                        val loadedBitmap = withTimeout(5000) { future.get() }
+
+                        // Set as drawing view background
+                        withContext(Dispatchers.Main) {
+                            binding.drawingView.setBackgroundImage(loadedBitmap)
+                        }
+
+                        return
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error loading bitmap with Glide", e)
+
+                        // Fallback to ImageView
+                        withContext(Dispatchers.Main) {
+                            binding.imageNote.visibility = View.VISIBLE
+                            Glide.with(this@NoteDetailActivity)
+                                .load(uri)
+                                .into(binding.imageNote)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("NoteDetailActivity", "Error loading page image", e)
+
+            // If all attempts fail, fallback to white background
+            createWhiteBackground()
+        }
+    }
+    private fun createWhiteBackground() {
+        binding.drawingView.setWhiteBackground(800, 1200)
+        binding.imageNote.visibility = View.GONE
+    }
+
+    private suspend fun loadPageDrawings(page: NotePage) {
+        withContext(Dispatchers.Main) {
+            // Always clear drawing first
+            binding.drawingView.clearDrawing(false)
+        }
+
+        if (page.vectorDrawingData.isNullOrEmpty()) {
+            Log.d("NoteDetailActivity", "No drawing data for page ${page.id}")
             return
         }
+
+        try {
+            Log.d("NoteDetailActivity", "Loading vector drawing data for page ${page.id}")
+
+            // Set the drawing data
+            withContext(Dispatchers.Main) {
+                // Try to parse the JSON data first to validate it
+                try {
+                    val gson = com.google.gson.Gson()
+                    val drawingData = gson.fromJson(page.vectorDrawingData, binding.drawingView.getDrawingDataClass())
+
+                    if (drawingData != null) {
+                        binding.drawingView.setDrawingData(drawingData)
+                        Log.d("NoteDetailActivity", "Successfully loaded drawing data with ${drawingData.strokes.size} strokes")
+                    } else {
+                        Log.e("NoteDetailActivity", "Invalid drawing data (null)")
+                    }
+                } catch (e: Exception) {
+                    Log.e("NoteDetailActivity", "Error parsing drawing data JSON", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("NoteDetailActivity", "Error loading vector drawing data", e)
+        }
+    }
+
+    // New helper method to initialize real-time drawing
+    private fun initializeRealtimeDrawing(page: NotePage) {
+        drawingManager = RealtimeDrawingManager(
+            binding.drawingView,
+            collaborationManager,
+            lifecycleScope,
+            page.id
+        )
+    }
+    private fun setupPageEventListener() {
+        lifecycleScope.launch {
+            collaborationManager.getPageEventsFlow().collectLatest { event ->
+                when (event.getEventType()) { // Use the helper method instead of direct enum
+                    CollaborationManager.PageEventType.PAGE_DELETED -> {
+                        // Handle page deletion from another user
+                        handleRemotePageDeletion(event.pageId, event.allPageIds)
+                    }
+                    CollaborationManager.PageEventType.PAGES_REORDERED -> {
+                        // Handle page reordering from another user
+                        handleRemotePageReordering(event.allPageIds)
+                    }
+                    CollaborationManager.PageEventType.PAGE_ADDED -> {
+                        // Handle new page addition from another user
+                        handleRemotePageAddition(event.pageId, event.pageIndex)
+                    }
+                }
+            }
+        }
+    }
+    private fun handleRemotePageReordering(newPageOrdering: List<String>) {
+        lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                // Save current pageId to maintain position
+                val currentPageId = currentPage?.id
+
+                // Get the new pages in the correct order
+                val newOrderedPages = mutableListOf<NotePage>()
+
+                for (pageId in newPageOrdering) {
+                    // Find the page in our existing list
+                    val existingPage = pages.find { it.id == pageId }
+
+                    if (existingPage != null) {
+                        // Use the existing page data but with updated index
+                        newOrderedPages.add(existingPage)
+                    } else {
+                        // Fetch the page from repository if we don't have it
+                        val pageResult = repository.getPage(pageId)
+                        if (pageResult.isSuccess) {
+                            newOrderedPages.add(pageResult.getOrNull()!!)
+                        }
+                    }
+                }
+
+                // Update our page list with the new order
+                if (newOrderedPages.isNotEmpty()) {
+                    // Update indices based on new order
+                    for (i in newOrderedPages.indices) {
+                        newOrderedPages[i] = newOrderedPages[i].copy(pageIndex = i)
+                    }
+
+                    // Replace our page list
+                    pages.clear()
+                    pages.addAll(newOrderedPages)
+
+                    // Find current page in new ordering
+                    val newIndex = if (currentPageId != null) {
+                        pages.indexOfFirst { it.id == currentPageId }.takeIf { it >= 0 } ?: 0
+                    } else {
+                        0
+                    }
+
+                    // Update current page index
+                    currentPageIndex = newIndex
+
+                    // Update UI
+                    updatePageIndicator()
+                    updateNavigationButtons()
+
+                    Toast.makeText(this@NoteDetailActivity,
+                        "Page ordering updated by a collaborator", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error handling remote page reordering", e)
+            }
+        }
+    }
+
+    // Handle remote page addition
+    private fun handleRemotePageAddition(pageId: String, pageIndex: Int) {
+        lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                // Try to get the new page from the repository
+                val pageResult = repository.getPage(pageId)
+
+                if (pageResult.isSuccess) {
+                    val newPage = pageResult.getOrNull()!!
+
+                    // Check if we already have this page
+                    if (pages.none { it.id == pageId }) {
+                        // Insert the page at the correct index
+                        if (pageIndex >= 0 && pageIndex <= pages.size) {
+                            pages.add(pageIndex, newPage)
+
+                            // Update indices of all pages
+                            for (i in 0 until pages.size) {
+                                if (pages[i].pageIndex != i) {
+                                    pages[i] = pages[i].copy(pageIndex = i)
+                                }
+                            }
+
+                            // Update current page index if needed
+                            if (pageIndex <= currentPageIndex) {
+                                currentPageIndex++
+                            }
+
+                            // Update UI
+                            updatePageIndicator()
+                            updateNavigationButtons()
+
+                            Toast.makeText(this@NoteDetailActivity,
+                                "New page added by a collaborator", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error handling remote page addition", e)
+            }
+        }
+    }
+    private fun handleRemotePageDeletion(deletedPageId: String, newPageOrdering: List<String>) {
+        lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                // Remove page from local list
+                val deletedIndex = pages.indexOfFirst { it.id == deletedPageId }
+                if (deletedIndex >= 0) {
+                    pages.removeAt(deletedIndex)
+
+                    // Update current page index if needed
+                    if (currentPageIndex >= pages.size) {
+                        currentPageIndex = maxOf(0, pages.size - 1)
+                    } else if (currentPageIndex > deletedIndex) {
+                        // Adjust index if we were past the deleted page
+                        currentPageIndex--
+                    }
+
+                    // If current page was deleted, load the new current page
+                    if (currentPage?.id == deletedPageId) {
+                        if (pages.isNotEmpty()) {
+                            loadPage(currentPageIndex)
+                        } else {
+                            // No pages left, create a placeholder view
+                            binding.drawingView.clearDrawing()
+                            binding.imageNote.setImageDrawable(null)
+                        }
+                    }
+
+                    // Update page indicators and navigation buttons
+                    updatePageIndicator()
+                    updateNavigationButtons()
+
+                    Toast.makeText(this@NoteDetailActivity,
+                        "A collaborator deleted a page", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error handling remote page deletion", e)
+            }
+        }
+    }
+
+    private fun saveCurrentPage(showToast: Boolean = true) {
+        if (currentPage == null) return
 
         lifecycleScope.launch {
             try {
                 binding.saveProgressBar.visibility = View.VISIBLE
 
-                // Lấy dữ liệu vẽ dạng vector dưới dạng JSON
+                // Get drawing data as JSON
                 val vectorJson = binding.drawingView.getDrawingDataAsJson()
-                Log.d("NoteDetailActivity", "Đang lưu dữ liệu vẽ vector: ${vectorJson.take(100)}...")
+                Log.d("NoteDetailActivity", "Saving page ${currentPage!!.id}, data length: ${vectorJson.length}")
 
-                // Tạo bitmap để lưu dữ liệu tương thích ngược
-                val combinedBitmap = binding.drawingView.getCombinedBitmap()
-                val baos = ByteArrayOutputStream()
-                combinedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                val drawingData = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.DEFAULT)
-
-                // Cập nhật trang với cả hai định dạng
+                // Create updated page
                 val updatedPage = currentPage!!.copy(
-                    drawingData = drawingData,
-                    vectorDrawingData = vectorJson
+                    vectorDrawingData = vectorJson,
+                    createdAt = System.currentTimeMillis()
                 )
 
+                // Save to repository
                 val result = repository.updatePage(updatedPage)
 
                 if (result.isSuccess) {
-                    // Cập nhật bản sao trang cục bộ
+                    // Update local copy
                     currentPage = result.getOrNull()
                     pages[currentPageIndex] = currentPage!!
 
                     if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity, "Đã lưu trang", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@NoteDetailActivity, "Page saved", Toast.LENGTH_SHORT).show()
                     }
+
+                    Log.d("NoteDetailActivity", "Page saved successfully")
                 } else {
+                    Log.e("NoteDetailActivity", "Error saving page: ${result.exceptionOrNull()}")
+
                     if (showToast) {
                         Toast.makeText(this@NoteDetailActivity,
-                            "Lỗi khi lưu trang: ${result.exceptionOrNull()?.message}",
+                            "Error saving page: ${result.exceptionOrNull()?.message}",
                             Toast.LENGTH_SHORT).show()
                     }
-                    Log.e("NoteDetailActivity", "Lỗi khi lưu trang: ${result.exceptionOrNull()}")
                 }
             } catch (e: Exception) {
-                Log.e("NoteDetailActivity", "Lỗi trong saveCurrentPage", e)
+                Log.e("NoteDetailActivity", "Error in saveCurrentPage", e)
+
                 if (showToast) {
                     Toast.makeText(this@NoteDetailActivity,
-                        "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                        "Error: ${e.message}",
+                        Toast.LENGTH_SHORT).show()
                 }
             } finally {
                 binding.saveProgressBar.visibility = View.GONE
             }
         }
+    }
+
+    // Add an automatic save timer
+    private var autoSaveJob: Job? = null
+    private val AUTO_SAVE_INTERVAL = 30000L // 30 seconds
+
+    private fun startAutoSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(AUTO_SAVE_INTERVAL)
+                if (currentPage != null) {
+                    saveCurrentPage(false)
+                }
+            }
+        }
+    }
+
+    private fun stopAutoSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = null
     }
 
     private fun navigateToPreviousPage() {
@@ -1022,11 +1477,16 @@ class NoteDetailActivity : BaseActivity() {
     }
 
     private fun updateUndoRedoButtons() {
-        binding.buttonUndo.isEnabled = binding.drawingView.canUndo()
-        binding.buttonUndo.alpha = if (binding.drawingView.canUndo()) 1.0f else 0.5f
+        val canUndo = binding.drawingView.canUndo()
+        val canRedo = binding.drawingView.canRedo()
 
-        binding.buttonRedo.isEnabled = binding.drawingView.canRedo()
-        binding.buttonRedo.alpha = if (binding.drawingView.canRedo()) 1.0f else 0.5f
+        Log.d("NoteDetailActivity", "Updating undo/redo buttons: undo=$canUndo, redo=$canRedo")
+
+        binding.buttonUndo.isEnabled = canUndo
+        binding.buttonUndo.alpha = if (canUndo) 1.0f else 0.5f
+
+        binding.buttonRedo.isEnabled = canRedo
+        binding.buttonRedo.alpha = if (canRedo) 1.0f else 0.5f
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -1220,11 +1680,25 @@ class NoteDetailActivity : BaseActivity() {
 
     override fun onDestroy() {
         try {
-            // Ensure we clean up properly
+            // Save current page before exiting
+            saveJob?.cancel() // Cancel any pending saves
+            stopAutoSave()
+            // Force an immediate save
+            if (currentPage != null) {
+                runBlocking {
+                    try {
+                        saveCurrentPage(false)
+                    } catch (e: Exception) {
+                        Log.e("NoteDetailActivity", "Error saving in onDestroy", e)
+                    }
+                }
+            }
+
+            // Ensure progress bars are hidden
             binding.saveProgressBar.visibility = View.GONE
             binding.progressBar.visibility = View.GONE
 
-            // Cleanup resources
+            // Properly clean up collaboration manager
             collaborationManager.cleanup()
         } catch (e: Exception) {
             Log.e("NoteDetailActivity", "Error during cleanup", e)

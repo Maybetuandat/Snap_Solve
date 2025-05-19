@@ -5,14 +5,17 @@ import android.util.Log
 import android.view.MotionEvent
 import com.example.app_music.presentation.feature.noteScene.views.DrawingView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.PropertyName
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 /**
@@ -23,7 +26,7 @@ class CollaborationManager(private val noteId: String) {
     private val database = FirebaseDatabase.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val currentUserId = auth.currentUser?.uid ?: UUID.randomUUID().toString()
-    
+    private lateinit var connectionListener: ValueEventListener
     private val noteRef = database.getReference("note_edits").child(noteId)
     private val usersRef = database.getReference("note_users").child(noteId)
     private val drawingRef = database.getReference("note_drawings").child(noteId)
@@ -41,9 +44,98 @@ class CollaborationManager(private val noteId: String) {
         val path: List<PathPoint> = emptyList(),
         val color: Int = 0,
         val strokeWidth: Float = 5f,
-        val timestamp: Long = System.currentTimeMillis()
+        val timestamp: Long = System.currentTimeMillis(),
+        val pageId: String = "", // Add pageId field
+        val targetStrokeId: String = "" // For erase actions
     )
-    
+
+    fun getCurrentUserId(): String {
+        return currentUserId
+    }
+    enum class PageEventType {
+        PAGE_ADDED,
+        PAGE_DELETED,
+        PAGES_REORDERED
+    }
+
+    // Create PageEvent class with no-argument constructor
+    data class PageEvent(
+        val type: String = "PAGE_ADDED",  // Store as String to avoid enum serialization issues
+        val noteId: String = "",
+        val pageId: String = "",
+        val timestamp: Long = System.currentTimeMillis(),
+        val userId: String = "",
+        val pageIndex: Int = -1,
+        val allPageIds: List<String> = emptyList()
+    ) {
+        // No-argument constructor required by Firebase
+        constructor() : this(
+            "PAGE_ADDED",
+            "",
+            "",
+            System.currentTimeMillis(),
+            "",
+            -1,
+            emptyList()
+        )
+
+        // Helper method to convert string to enum
+        fun getEventType(): PageEventType {
+            return when(type) {
+                "PAGE_ADDED" -> PageEventType.PAGE_ADDED
+                "PAGE_DELETED" -> PageEventType.PAGE_DELETED
+                "PAGES_REORDERED" -> PageEventType.PAGES_REORDERED
+                else -> PageEventType.PAGE_ADDED // Default
+            }
+        }
+    }
+
+    // Update emitPageEvent function to use string representation
+    fun emitPageEvent(eventType: PageEventType, noteId: String, pageId: String, pageIndex: Int = -1, allPageIds: List<String> = emptyList()) {
+        val event = PageEvent(
+            type = eventType.name, // Store enum as string
+            noteId = noteId,
+            pageId = pageId,
+            timestamp = System.currentTimeMillis(),
+            userId = currentUserId,
+            pageIndex = pageIndex,
+            allPageIds = allPageIds
+        )
+        pageEventsRef.push().setValue(event)
+    }
+    private val pageEventsRef = database.getReference("note_page_events").child(noteId)
+
+    // Function to emit page events
+    fun emitPageEvent(event: PageEvent) {
+        val eventWithUser = event.copy(userId = currentUserId)
+        pageEventsRef.push().setValue(eventWithUser)
+    }
+
+    // Function to listen for page events
+    fun getPageEventsFlow(): Flow<PageEvent> = callbackFlow {
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val event = snapshot.getValue(PageEvent::class.java)
+                if (event != null && event.userId != currentUserId) {
+                    trySend(event)
+                }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Page events listener cancelled", error.toException())
+            }
+        }
+
+        pageEventsRef.addChildEventListener(listener)
+
+        awaitClose {
+            pageEventsRef.removeEventListener(listener)
+        }
+    }
     data class PathPoint(
         val x: Float = 0f,
         val y: Float = 0f,
@@ -79,7 +171,7 @@ class CollaborationManager(private val noteId: String) {
         userPresenceRef.onDisconnect().removeValue()
 
         // Monitor connection state
-        connectionRef.addValueEventListener(object : ValueEventListener {
+        connectionListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val connected = snapshot.getValue(Boolean::class.java) ?: false
                 if (connected) {
@@ -94,7 +186,8 @@ class CollaborationManager(private val noteId: String) {
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "Error monitoring connection state", error.toException())
             }
-        })
+        }
+        connectionRef.addValueEventListener(connectionListener)
     }
     fun setUserPresence(username: String, color: Int) {
         lastUsername = username
@@ -154,12 +247,20 @@ class CollaborationManager(private val noteId: String) {
         userPresenceRef.removeValue()
     }
     fun cleanup() {
-        // Hủy đăng ký tất cả các listener
         try {
+            // Actively remove user presence, don't just rely on onDisconnect
             userPresenceRef.removeValue()
-            // Hủy các listener khác nếu cần
+                .addOnSuccessListener {
+                    Log.d(TAG, "User presence removed successfully")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error removing user presence", e)
+                }
+
+            // Cancel any pending listeners
+            connectionRef.removeEventListener(connectionListener)
         } catch (e: Exception) {
-            Log.e(TAG, "Lỗi khi dọn dẹp CollaborationManager", e)
+            Log.e(TAG, "Error during collaboration manager cleanup", e)
         }
     }
 
@@ -249,4 +350,56 @@ class CollaborationManager(private val noteId: String) {
     companion object {
         private const val TAG = "CollaborationManager"
     }
+
+    // In CollaborationManager.kt
+    suspend fun getDrawingActionsForPage(pageId: String): List<DrawingAction> {
+        // Get a snapshot of current drawing actions filtered by page
+        val snapshot = drawingRef.orderByChild("pageId").equalTo(pageId).get().await()
+
+        val actions = mutableListOf<DrawingAction>()
+        for (actionSnapshot in snapshot.children) {
+            val action = actionSnapshot.getValue(DrawingAction::class.java)
+            if (action != null) {
+                actions.add(action)
+            }
+        }
+
+        // Sort by timestamp
+        return actions.sortedBy { it.timestamp }
+    }
+
+    // Add a stream for individual actions (more efficient than the full list)
+    fun getDrawingActionsFlow(): Flow<DrawingAction> = callbackFlow {
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val action = snapshot.getValue(DrawingAction::class.java)
+                if (action != null) {
+                    trySend(action)
+                }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                // Not used for drawing actions (they're immutable)
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                // Not handling removals in this flow
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+                // Not used for drawing actions
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error with drawing actions listener", error.toException())
+            }
+        }
+
+        drawingRef.addChildEventListener(listener)
+
+        awaitClose {
+            drawingRef.removeEventListener(listener)
+        }
+    }
+
 }
