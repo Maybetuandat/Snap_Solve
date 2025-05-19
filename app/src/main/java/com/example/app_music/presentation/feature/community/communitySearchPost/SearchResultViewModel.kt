@@ -165,4 +165,48 @@ class SearchResultViewModel : ViewModel() {
             _searchResults.value = filteredResults
         }
     }
+
+    fun toggleLikePost(post: Post, userId: Long) {
+        viewModelScope.launch {
+            try {
+                // Kiểm tra xem người dùng đã thích bài viết này chưa
+                val hasUserLiked = post.react.any { it.user.id == userId }
+
+                val response = if (hasUserLiked) {
+                    // Nếu đã thích, gọi API để bỏ thích
+                    postRepository.unlikePost(post.id, userId)
+                } else {
+                    // Nếu chưa thích, gọi API để thích
+                    postRepository.likePost(post.id, userId)
+                }
+
+                if (response.isSuccessful) {
+                    // Sau khi thích/bỏ thích thành công, cập nhật lại kết quả tìm kiếm
+                    // Tìm và cập nhật bài viết trong danh sách hiện tại
+                    val updatedPost = response.body()
+                    if (updatedPost != null) {
+                        val currentResults = _searchResults.value?.toMutableList() ?: mutableListOf()
+                        val index = currentResults.indexOfFirst { it.id == post.id }
+                        if (index != -1) {
+                            currentResults[index] = updatedPost
+                            _searchResults.value = currentResults
+
+                            // Cập nhật cả danh sách gốc
+                            val originalResults = _originalResults.value?.toMutableList() ?: mutableListOf()
+                            val originalIndex = originalResults.indexOfFirst { it.id == post.id }
+                            if (originalIndex != -1) {
+                                originalResults[originalIndex] = updatedPost
+                                _originalResults.value = originalResults
+                            }
+                        }
+                    }
+                } else {
+                    _error.value = "Lỗi: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                Log.e("SearchResultViewModel", "Lỗi khi thích/bỏ thích bài viết", e)
+                _error.value = "Lỗi kết nối: ${e.message}"
+            }
+        }
+    }
 }

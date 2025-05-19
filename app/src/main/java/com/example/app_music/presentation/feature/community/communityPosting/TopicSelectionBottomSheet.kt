@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.example.app_music.R
 import com.example.app_music.domain.model.Topic
+import com.google.android.flexbox.FlexboxLayout
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
@@ -19,7 +20,7 @@ class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
         return R.style.BottomSheetDialogTheme
     }
 
-    private lateinit var topicsContainer: LinearLayout
+    private lateinit var topicsContainer: FlexboxLayout
     private lateinit var btnSelect: Button
 
     // Lưu trữ các topic được chọn
@@ -91,7 +92,11 @@ class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
 
                 // Style cho checkbox
                 textSize = 16f
-                setPadding(16, 16, 16, 16)
+                setPadding(28, 12, 28, 12)
+                setBackgroundResource(R.drawable.tab_selector)
+                buttonDrawable = null // Xóa nút radio mặc định
+                setTextColor(resources.getColorStateList(R.color.tab_text_selector, null))
+                gravity = android.view.Gravity.CENTER
 
                 // Xử lý khi checkbox được click
                 setOnCheckedChangeListener { _, isChecked ->
@@ -104,15 +109,14 @@ class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
             }
 
             // Thêm padding và margin
-            val layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+            val layoutParams = FlexboxLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
                 setMargins(8, 8, 8, 8)
             }
-
-            // Thêm vào container
             topicsContainer.addView(checkBox, layoutParams)
+
         }
 
         // Nếu không có topic nào, hiển thị thông báo

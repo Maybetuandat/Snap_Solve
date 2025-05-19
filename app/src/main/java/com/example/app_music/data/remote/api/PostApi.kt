@@ -1,6 +1,5 @@
 package com.example.app_music.data.remote.api
 
-import com.example.app_music.domain.model.AddCommentRequest
 import com.example.app_music.domain.model.Comment
 import com.example.app_music.domain.model.CreatePostRequest
 import com.example.app_music.domain.model.Post
@@ -33,12 +32,6 @@ interface PostApi {
     @POST("/api/post")
     suspend fun createPost(@Body request: CreatePostRequest): Response<Post>
 
-    @POST("/api/post/{id}/comment")
-    suspend fun addComment(
-        @Path("id") postId: Long,
-        @Body request: AddCommentRequest
-    ): Response<Comment>
-
     @POST("/api/post/{id}/like")
     suspend fun likePost(
         @Path("id") postId: Long,
@@ -50,9 +43,6 @@ interface PostApi {
         @Path("id") postId: Long,
         @Query("userId") userId: Long
     ): Response<Post>
-
-    @POST("/api/comment/{id}/like")
-    suspend fun likeComment(@Path("id") commentId: Long): Response<Comment>
 
     @GET("/api/post/user/{userId}")
     suspend fun getPostsByUserId(@Path("userId") userId: Long): Response<List<Post>>

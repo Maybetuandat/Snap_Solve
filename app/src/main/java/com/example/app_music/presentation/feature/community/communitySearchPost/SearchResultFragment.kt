@@ -1,10 +1,12 @@
 package com.example.app_music.presentation.feature.community.communitySearchPost
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -12,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.presentation.feature.community.adapter.PostAdapter
+import com.google.android.flexbox.FlexboxLayout
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class SearchResultFragment : Fragment() {
@@ -124,7 +127,7 @@ class SearchResultFragment : Fragment() {
 
         // Xử lý khi người dùng nhấn nút like
         postAdapter.setOnLikeClickListener { post ->
-            // TODO: Triển khai chức năng thích/bỏ thích bài viết từ kết quả tìm kiếm
+            viewModel.toggleLikePost(post, currentUserId)
         }
 
         // Xử lý khi người dùng nhấn nút comment
@@ -200,34 +203,79 @@ class SearchResultFragment : Fragment() {
         val view = layoutInflater.inflate(R.layout.dialog_filter_topics, null)
         dialog.setContentView(view)
 
-        val radioGroupTopics = view.findViewById<RadioGroup>(R.id.radioGroupTopics)
+        val flexboxTopics = view.findViewById<com.google.android.flexbox.FlexboxLayout>(R.id.flexboxTopics)
         val btnApply = view.findViewById<Button>(R.id.btnApply)
         val btnReset = view.findViewById<Button>(R.id.btnReset)
 
-        // Tạo radio button cho mỗi topic
+        var selectedRadioButton: RadioButton? = null
+        val currentFilterId = viewModel.currentTopicFilter.value
+
+        // Tạo radio button cho mỗi topic và thêm vào FlexboxLayout
         viewModel.topics.value?.forEach { topic ->
             val radioButton = RadioButton(requireContext()).apply {
                 text = topic.name
                 id = topic.id.toInt()
 
+                // Ẩn icon radio button mặc định
+                buttonDrawable = null
+
+                // Thiết lập style cho radio button
+                textSize = 16f
+                setPadding(28, 12, 28, 12)
+                setBackgroundResource(R.drawable.tab_selector)
+
+                // Sử dụng ColorStateList để tự động thay đổi màu chữ
+                setTextColor(resources.getColorStateList(R.color.tab_text_selector, null))
+
                 // Chọn radio button nếu topic này đang được lọc
-                if (viewModel.currentTopicFilter.value == topic.id) {
+                if (currentFilterId == topic.id) {
                     isChecked = true
+                    selectedRadioButton = this
+                }
+
+                // Xử lý click để đảm bảo chỉ một radio button được chọn
+                setOnClickListener {
+                    // Bỏ check tất cả radio button khác
+                    for (i in 0 until flexboxTopics.childCount) {
+                        val child = flexboxTopics.getChildAt(i)
+                        if (child is RadioButton && child != this) {
+                            child.isChecked = false
+                        }
+                    }
+
+                    // Cập nhật selectedRadioButton
+                    selectedRadioButton = if (isChecked) this else null
                 }
             }
-            radioGroupTopics.addView(radioButton)
+
+            // Thiết lập layout params cho flexbox
+            val layoutParams = com.google.android.flexbox.FlexboxLayout.LayoutParams(
+                com.google.android.flexbox.FlexboxLayout.LayoutParams.WRAP_CONTENT,
+                com.google.android.flexbox.FlexboxLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(8, 8, 8, 8)
+            }
+
+            // Thêm vào flexbox
+            flexboxTopics.addView(radioButton, layoutParams)
         }
 
         btnApply.setOnClickListener {
-            val checkedRadioButtonId = radioGroupTopics.checkedRadioButtonId
-            if (checkedRadioButtonId != -1) {
-                viewModel.setTopicFilter(checkedRadioButtonId.toLong())
+            selectedRadioButton?.let { radioButton ->
+                viewModel.setTopicFilter(radioButton.id.toLong())
             }
             dialog.dismiss()
         }
 
         btnReset.setOnClickListener {
-            radioGroupTopics.clearCheck()
+            // Bỏ chọn tất cả radio button
+            for (i in 0 until flexboxTopics.childCount) {
+                val child = flexboxTopics.getChildAt(i)
+                if (child is RadioButton) {
+                    child.isChecked = false
+                }
+            }
+            selectedRadioButton = null
             viewModel.setTopicFilter(null)
             dialog.dismiss()
         }

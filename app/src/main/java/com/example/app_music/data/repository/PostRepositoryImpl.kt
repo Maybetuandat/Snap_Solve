@@ -1,6 +1,5 @@
 package com.example.app_music.data.repository
 
-import com.example.app_music.domain.model.AddCommentRequest
 import com.example.app_music.domain.model.Comment
 import com.example.app_music.domain.model.CreatePostRequest
 import com.example.app_music.domain.model.Post
@@ -71,19 +70,6 @@ class PostRepositoryImpl : PostRepository {
         } else {
             emptyList()
         }
-    }
-
-    override suspend fun addComment(postId: Long, content: String, imageUrl: String?): Response<Comment> {
-        val request = AddCommentRequest(
-            content = content,
-            image = imageUrl
-        )
-
-        return RetrofitFactory.postApi.addComment(postId, request)
-    }
-
-    override suspend fun likeComment(commentId: Long): Response<Comment> {
-        return RetrofitFactory.postApi.likeComment(commentId)
     }
 
     override suspend fun likePost(postId: Long, userId: Long): Response<Post> {

@@ -60,14 +60,25 @@
             <RadioButton
                 android:id="@+id/rbNewest"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="32dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="@drawable/tab_selector"
+                android:textColor="@color/tab_text_selector"
+                android:button="@null"
+                android:layout_marginEnd="12dp"
                 android:text="Newest"
                 android:checked="true" />
 
             <RadioButton
                 android:id="@+id/rbPopular"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="32dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="@drawable/tab_selector"
+                android:textColor="@color/tab_text_selector"
+                android:button="@null"
                 android:text="Popular" />
         </RadioGroup>
 
@@ -78,8 +89,9 @@
             android:text="Filter"
             android:textSize="12sp"
             android:padding="4dp"
-            android:backgroundTint="@color/selectedicon"
-            android:textColor="@android:color/white" />
+            android:background="@drawable/tag_backround"
+            android:textColor="@android:color/white"
+            app:backgroundTint="@null" />
     </LinearLayout>
 
     <View

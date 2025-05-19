@@ -13,13 +13,17 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
-    <RadioGroup
-        android:id="@+id/radioGroupTopics"
+    <com.google.android.flexbox.FlexboxLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/flexboxTopics"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
-        <!-- Radio buttons will be added dynamically -->
-    </RadioGroup>
+        app:flexWrap="wrap"
+        app:alignItems="center"
+        app:justifyContent="flex_start">
+        <!-- Radio buttons sẽ được thêm vào động -->
+    </com.google.android.flexbox.FlexboxLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

@@ -11,9 +11,7 @@ interface PostRepository {
     suspend fun searchPosts(keyword: String): Response<List<Post>>
     suspend fun getPostById(postId: Long): Response<Post>
     suspend fun createPost(title: String, content: String, userId: Long, topicIds: List<Long>, imagePaths: List<String>): Response<Post>
-    suspend fun addComment(postId: Long, content: String, imageUrl: String?): Response<Comment>
     suspend fun likePost(postId: Long, userId: Long): Response<Post>
-    suspend fun likeComment(commentId: Long): Response<Comment>
     suspend fun unlikePost(postId: Long, userId: Long): Response<Post>
     suspend fun getPostsByUserId(userId: Long): Response<List<Post>>
     suspend fun getLikedPostsByUserId(userId: Long): Response<List<Post>>

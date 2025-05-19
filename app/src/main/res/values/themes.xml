@@ -2,6 +2,7 @@
 
     <!-- Base Theme -->
     <style name="Base.Theme.App_music" parent="Theme.MaterialComponents.Light.NoActionBar">
+
         <!-- Làm status bar trong suốt -->
         <item name="android:statusBarColor">@android:color/transparent</item>
 

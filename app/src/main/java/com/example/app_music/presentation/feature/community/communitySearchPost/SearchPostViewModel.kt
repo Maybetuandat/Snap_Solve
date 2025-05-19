@@ -1,7 +1,6 @@
 package com.example.app_music.presentation.feature.community.communitySearchPost
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -75,4 +74,6 @@ class SearchPostViewModel : ViewModel() {
         editor.remove(SEARCH_HISTORY_KEY)
         editor.apply()
     }
+
+
 }
