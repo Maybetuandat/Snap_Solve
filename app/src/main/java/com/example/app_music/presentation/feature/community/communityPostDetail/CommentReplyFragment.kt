@@ -248,8 +248,6 @@ class CommentReplyFragment : Fragment() {
             rvParentImages.visibility = View.GONE
         }
 
-        // Cập nhật title
-        tvTitle.text = "Trả lời bình luận"
     }
 
     private fun checkPermissionAndOpenGallery() {

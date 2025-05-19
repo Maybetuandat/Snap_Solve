@@ -30,7 +30,7 @@
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="My Activities in the Community"
+            android:text="@string/community_profile_header"
             android:textColor="@android:color/black"
             android:textSize="18sp"
             android:textStyle="bold"
@@ -110,12 +110,12 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Your posts" />
+            android:text="@string/community_profile_your_posts" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Liked posts" />
+            android:text="@string/community_profile_liked_posts" />
 
     </com.google.android.material.tabs.TabLayout>
 

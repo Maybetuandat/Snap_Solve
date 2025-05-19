@@ -67,7 +67,7 @@
                 android:textColor="@color/tab_text_selector"
                 android:button="@null"
                 android:layout_marginEnd="12dp"
-                android:text="Newest"
+                android:text="@string/post_search_newest"
                 android:checked="true" />
 
             <RadioButton
@@ -79,14 +79,14 @@
                 android:background="@drawable/tab_selector"
                 android:textColor="@color/tab_text_selector"
                 android:button="@null"
-                android:text="Popular" />
+                android:text="@string/post_search_popular" />
         </RadioGroup>
 
         <Button
             android:id="@+id/btnFilter"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="Filter"
+            android:text="@string/post_search_filter"
             android:textSize="12sp"
             android:padding="4dp"
             android:background="@drawable/tag_backround"
@@ -115,7 +115,7 @@
             android:id="@+id/tvNoResults"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Không tìm thấy kết quả nào"
+            android:text="@string/post_search_no_result"
             android:textSize="16sp"
             android:gravity="center"
             android:padding="16dp"

@@ -84,7 +84,7 @@ class SearchResultFragment : Fragment() {
         observeViewModel()
 
         // Hiển thị query đã tìm kiếm
-        tvSearchQuery.text = "Kết quả cho: $searchQuery"
+        tvSearchQuery.text = getString(R.string.post_search_header, searchQuery)
 
         // Tải kết quả tìm kiếm
         if (searchQuery.isNotEmpty()) {
@@ -191,9 +191,9 @@ class SearchResultFragment : Fragment() {
         // Quan sát topic đã chọn
         viewModel.selectedTopicName.observe(viewLifecycleOwner) { topicName ->
             if (topicName.isEmpty()) {
-                btnFilter.text = "Filter"
+                btnFilter.text = getString(R.string.post_search_filter)
             } else {
-                btnFilter.text = "Filter: $topicName"
+                btnFilter.text = getString(R.string.post_search_filter_topic, topicName)
             }
         }
     }

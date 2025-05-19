@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Filter by Topic"
+        android:text="@string/post_filter_header"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -36,7 +36,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Reset"
+            android:text="@string/post_filter_reset"
             android:backgroundTint="#EEEEEE"
             android:textColor="#333333"
             android:layout_marginEnd="8dp" />
@@ -46,7 +46,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Apply"
+            android:text="@string/post_filter_apply"
             android:backgroundTint="@color/selectedicon"
             android:textColor="@android:color/white" />
     </LinearLayout>

@@ -37,7 +37,7 @@
                 android:id="@+id/tvTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Trả lời bình luận"
+                android:text="@string/post_comment_reply_header"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black"
@@ -143,7 +143,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Tất cả trả lời"
+                android:text="@string/post_comment_reply_all"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -164,7 +164,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Ảnh đã chọn"
+                android:text="@string/post_comment_reply_image_selected"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black"
@@ -231,7 +231,7 @@
                 android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_profile_field_border"
-                android:hint="Nhập trả lời..."
+                android:hint="@string/post_comment_reply_hint"
                 android:inputType="textMultiLine"
                 android:maxLines="3"
                 android:paddingHorizontal="12dp" />

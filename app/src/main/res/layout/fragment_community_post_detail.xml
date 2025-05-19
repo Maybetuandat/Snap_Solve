@@ -37,7 +37,7 @@
                 android:id="@+id/tvTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Post Details"
+                android:text="@string/post_detail_header"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black"
@@ -177,7 +177,7 @@
                 android:id="@+id/tvImagesLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Hình ảnh"
+                android:text="@string/post_detail_images"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -259,7 +259,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="Like"
+                        android:text="@string/post_detail_like"
                         android:textColor="#333333"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -283,7 +283,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="Comment"
+                        android:text="@string/post_detail_comment"
                         android:textColor="#333333"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -307,7 +307,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="Share"
+                        android:text="@string/post_detail_share"
                         android:textColor="#333333"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -324,7 +324,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Comments"
+                android:text="@string/post_detail_comments"
                 android:textColor="@android:color/black"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -399,7 +399,7 @@
                 android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_profile_field_border"
-                android:hint="Enter comment..."
+                android:hint="@string/post_detail_comment_hint"
                 android:inputType="textMultiLine"
                 android:maxLines="3"
                 android:paddingHorizontal="12dp" />

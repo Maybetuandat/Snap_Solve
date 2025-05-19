@@ -32,7 +32,7 @@
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Update Post"
+            android:text="@string/post_edit_header"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@android:color/black"
@@ -45,7 +45,7 @@
             android:id="@+id/btnUpdate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Update"
+            android:text="@string/post_edit_edit"
             android:textSize="16sp"
             android:textColor="@color/selectedicon"
             android:paddingHorizontal="16dp"
@@ -157,7 +157,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Chủ đề đã chọn"
+                android:text="@string/posting_topic_selected"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black"
@@ -179,7 +179,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Hình ảnh đã chọn"
+                android:text="@string/posting_image_selected"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black"
@@ -243,7 +243,7 @@
                 android:layout_height="36dp"
                 android:src="@drawable/ic_community_gallery"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Add Image"
+                android:contentDescription="@string/posting_add_image"
                 android:layout_marginEnd="8dp" />
 
             <TextView
