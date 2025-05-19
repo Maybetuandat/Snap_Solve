@@ -66,7 +66,20 @@ class RealtimeDrawingManager(
                 }
             }
         })
-
+        drawingView.setOnStrokeDeletedListener(object : DrawingView.OnStrokeDeletedListener {
+            override fun onStrokeDeleted(strokeId: String) {
+                // Remove from Firebase
+                strokesRef.child(strokeId).removeValue()
+                    .addOnSuccessListener {
+                        Log.d(TAG, "Stroke deleted from database: $strokeId")
+                        // Also remove from tracking set
+                        activeStrokeIds.remove(strokeId)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Failed to delete stroke from database: ${e.message}")
+                    }
+            }
+        })
         // Tải các nét vẽ hiện có khi khởi tạo
         loadExistingStrokes()
 
