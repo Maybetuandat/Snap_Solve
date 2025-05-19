@@ -119,31 +119,6 @@
                 android:padding="8dp"
                 android:src="@drawable/ic_stroke_width" />
 
-            <View
-                android:layout_width="1dp"
-                android:layout_height="24dp"
-                android:layout_marginHorizontal="4dp"
-                android:background="#CCCCCC" />
-
-            <ImageButton
-                android:id="@+id/button_undo"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginHorizontal="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Undo"
-                android:padding="8dp"
-                android:src="@drawable/ic_undo" />
-
-            <ImageButton
-                android:id="@+id/button_redo"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginHorizontal="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Redo"
-                android:padding="8dp"
-                android:src="@drawable/ic_redo" />
         </LinearLayout>
     </LinearLayout>
 

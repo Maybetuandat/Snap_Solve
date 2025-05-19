@@ -1,28 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <item
         android:id="@+id/action_share"
         android:icon="@drawable/ic_share"
-        android:title="Share"
+        android:title="@string/share"
         app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/action_collaborate"
-        android:icon="@drawable/ic_collaborate"
-        android:title="Add Collaborator"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_save"
-        android:icon="@drawable/ic_save"
-        android:title="Save"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_export"
-        android:icon="@drawable/ic_export"
-        android:title="Export"
-        app:showAsAction="never" />
 </menu>

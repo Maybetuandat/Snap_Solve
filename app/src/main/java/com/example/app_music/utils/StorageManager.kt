@@ -123,29 +123,55 @@ class StorageManager(private val context: Context) {
     suspend fun loadPageImage(pageId: String): Bitmap? {
         return withContext(Dispatchers.IO) {
             try {
-                val imageRef = storageRef.child("$PAGES_PATH/$pageId.jpg")
+                Log.d(TAG, "Đang tải ảnh cho trang: $pageId")
 
-                // Create a temporary file to store the downloaded image
+                // Xóa cache trước khi tải nếu cần thiết
+                val cachedFile = File(context.cacheDir, "pages/$pageId.jpg")
+                if (cachedFile.exists()) {
+                    Log.d(TAG, "Xóa ảnh cache cũ cho trang: $pageId")
+                    cachedFile.delete()
+                }
+
+                // Tạo đường dẫn chính xác cho ảnh
+                val imageRef = storage.reference.child("pages/$pageId.jpg")
+
+                // Tạo file tạm để lưu ảnh
                 val localFile = File.createTempFile("page", "jpg")
 
-                // Download to the local file
-                imageRef.getFile(localFile).await()
+                // Download ảnh
+                val downloadTask = imageRef.getFile(localFile)
 
-                // Decode the file into a bitmap
-                val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
+                // Thêm timeout để tránh treo
+                val result = withTimeout(5000) {
+                    downloadTask.await()
+                    true
+                }
 
-                // Delete the temporary file
-                localFile.delete()
+                // Kiểm tra tải thành công
+                if (result) {
+                    // Giải mã bitmap
+                    val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
 
-                Log.d(TAG, "Loaded page image for page $pageId")
-                bitmap
+                    // Xóa file tạm
+                    localFile.delete()
+
+                    if (bitmap != null) {
+                        Log.d(TAG, "Tải ảnh thành công cho trang: $pageId, kích thước: ${bitmap.width}x${bitmap.height}")
+                    } else {
+                        Log.e(TAG, "Tải ảnh thất bại cho trang: $pageId (bitmap null)")
+                    }
+
+                    bitmap
+                } else {
+                    Log.e(TAG, "Tải ảnh thất bại cho trang: $pageId (timeout)")
+                    null
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading page image for page $pageId", e)
+                Log.e(TAG, "Lỗi tải ảnh cho trang: $pageId", e)
                 null
             }
         }
     }
-
     /**
      * Load a page thumbnail
      */
