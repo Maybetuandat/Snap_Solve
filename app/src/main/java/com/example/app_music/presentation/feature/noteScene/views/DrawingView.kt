@@ -95,10 +95,18 @@ class DrawingView @JvmOverloads constructor(
     private var mBackgroundHeight = 0
     // Background image
     private var mBackgroundBitmap: Bitmap? = null
+    private var mLastTouchX = 0f
+    private var mLastTouchY = 0f
+    private var mLastEditTime: Long = 0L
     private val mBackgroundPaint = Paint().apply {
         isFilterBitmap = true
     }
-
+    private val mEraserHintPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        color = Color.RED
+        strokeWidth = 2f
+        alpha = 128
+    }
     // Listeners
     interface OnDrawCompletedListener {
         fun onDrawCompleted()
@@ -263,6 +271,10 @@ class DrawingView @JvmOverloads constructor(
             }
             canvas.drawPath(path, paint)
         }
+        if (mCurrentMode == DrawMode.ERASE) {
+            val eraserRadius = mPaint.strokeWidth * 3
+            canvas.drawCircle(mLastTouchX, mLastTouchY, eraserRadius, mEraserHintPaint)
+        }
     }
     private fun createPathFromStroke(stroke: Stroke): Path {
         val path = Path()
@@ -296,49 +308,217 @@ class DrawingView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Xử lý các gesture detectors trước
+        mScaleDetector.onTouchEvent(event)
+        mGestureDetector.onTouchEvent(event)
+
+        // Lưu tọa độ touch cuối cùng
+        mLastTouchX = event.x
+        mLastTouchY = event.y
+
+        // Nếu đang ở chế độ PAN, để gesture detector xử lý
+        if (mCurrentMode == DrawMode.PAN) {
+            return true
+        }
+
+        // Xử lý dựa trên chế độ hiện tại
+        when (mCurrentMode) {
+            DrawMode.DRAW -> {
+                handleDrawingMode(event)
+            }
+            DrawMode.ERASE -> {
+                handleEraserMode(event)
+            }
+            DrawMode.SELECT -> {
+                handleSelectionMode(event)
+            }
+            else -> return false
+        }
+
+        invalidate()
+        return true
+    }
+    private fun handleDrawingMode(event: MotionEvent) {
         val x = event.x
         val y = event.y
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // Start a new stroke
+                // Bắt đầu nét vẽ mới
                 mCurrentStroke = Stroke(
-                    id = UUID.randomUUID().toString(),
-                    color = Color.BLACK,
-                    strokeWidth = 5f,
-                    points = mutableListOf(StrokePoint(x, y))
+                    color = mPaint.color,
+                    strokeWidth = mPaint.strokeWidth,
+                    isEraser = false
                 )
-                invalidate()
-                return true
+                mCurrentStroke?.points?.add(StrokePoint(x, y, MotionEvent.ACTION_DOWN))
+                updateLastEditTime()
             }
             MotionEvent.ACTION_MOVE -> {
-                // Add point to current stroke
-                mCurrentStroke?.points?.add(StrokePoint(x, y))
-                invalidate()
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                // Finalize the stroke
-                mCurrentStroke?.let { stroke ->
-                    if (stroke.points.size > 1) {
-                        // Add completed stroke
-                        mStrokes.add(stroke)
+                // Thêm điểm vào nét vẽ hiện tại
+                val lastPoint = mCurrentStroke?.points?.lastOrNull()
+                if (lastPoint != null) {
+                    val dx = Math.abs(x - lastPoint.x)
+                    val dy = Math.abs(y - lastPoint.y)
 
-                        // Clear redo history when a new stroke is added
-                        mDeletedStrokes.clear()
-
-                        // Force save after adding a stroke
-                        mForceSave = true
-                        notifyDrawCompleted()
+                    if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                        mCurrentStroke?.points?.add(StrokePoint(x, y, MotionEvent.ACTION_MOVE))
+                        updateLastEditTime()
                     }
                 }
+            }
+            MotionEvent.ACTION_UP -> {
+                // Hoàn thành nét vẽ
+                mCurrentStroke?.points?.add(StrokePoint(x, y, MotionEvent.ACTION_UP))
+
+                // Chỉ thêm nét vẽ nếu có ít nhất 2 điểm
+                if ((mCurrentStroke?.points?.size ?: 0) > 1) {
+                    mStrokes.add(mCurrentStroke!!)
+                    mForceSave = true  // Đánh dấu cần lưu
+
+                    // Xóa redo history khi thêm nét vẽ mới
+                    mDeletedStrokes.clear()
+
+                    // Thông báo hoàn thành vẽ
+                    updateLastEditTime()
+                    notifyDrawCompleted()
+                }
+
                 mCurrentStroke = null
-                invalidate()
-                return true
+            }
+        }
+    }
+
+    // 5. Thêm phương thức xử lý chế độ tẩy cải tiến
+    private fun handleEraserMode(event: MotionEvent) {
+        val x = event.x
+        val y = event.y
+
+        // Kích thước tẩy lớn hơn nét vẽ để dễ sử dụng
+        val eraserRadius = mPaint.strokeWidth * 3
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                // Tìm tất cả nét vẽ gần điểm chạm
+                val strokesHit = findStrokesNearPoint(x, y, eraserRadius)
+
+                if (strokesHit.isNotEmpty()) {
+                    // Nếu tìm thấy nét vẽ để tẩy
+
+                    // Lưu lại cho undo
+                    mDeletedStrokes.addAll(strokesHit)
+
+                    // Xóa khỏi danh sách nét vẽ
+                    for (stroke in strokesHit) {
+                        mStrokes.remove(stroke)
+                    }
+
+                    // Đánh dấu là đã thay đổi và cần lưu
+                    mForceSave = true
+                    updateLastEditTime()
+
+                    // Thông báo hoàn thành để cập nhật UI
+                    notifyDrawCompleted()
+                }
+            }
+        }
+    }
+    private fun handleSelectionMode(event: MotionEvent) {
+        when (event.action) {
+            MotionEvent.ACTION_UP -> {
+                // Convert coordinates accounting for scale and pan
+                val adjustedX = (event.x - mPosX) / mScaleFactor
+                val adjustedY = (event.y - mPosY) / mScaleFactor
+
+                // Try to find a stroke at this position
+                val strokeId = findStrokeAt(adjustedX, adjustedY)
+
+                // Update selection if a different stroke was selected
+                if (strokeId != mSelectedStrokeId) {
+                    mSelectedStrokeId = strokeId
+                    mStrokeSelectedListener?.invoke(strokeId ?: "")
+                    invalidate()
+                }
+            }
+        }
+    }
+    private fun findStrokesNearPoint(x: Float, y: Float, radius: Float): List<Stroke> {
+        val result = mutableListOf<Stroke>()
+
+        for (stroke in mStrokes) {
+            // Bỏ qua các nét tẩy (không tẩy các nét tẩy)
+            if (stroke.isEraser) continue
+
+            // Kiểm tra từng đoạn của nét vẽ
+            for (i in 0 until stroke.points.size - 1) {
+                val p1 = stroke.points[i]
+                val p2 = stroke.points[i + 1]
+
+                // Tính khoảng cách từ điểm đến đoạn thẳng
+                val distance = distancePointToLineSegment(
+                    x, y,
+                    p1.x, p1.y,
+                    p2.x, p2.y
+                )
+
+                // Nếu khoảng cách đủ gần, thêm vào kết quả
+                if (distance <= radius + stroke.strokeWidth / 2) {
+                    result.add(stroke)
+                    break // Không cần kiểm tra các đoạn khác của nét vẽ này
+                }
             }
         }
 
-        return super.onTouchEvent(event)
+        return result
+    }
+
+    // 7. Thêm phương thức tính khoảng cách từ điểm đến đoạn thẳng
+    private fun distancePointToLineSegment(
+        px: Float, py: Float,
+        x1: Float, y1: Float,
+        x2: Float, y2: Float
+    ): Float {
+        val A = px - x1
+        val B = py - y1
+        val C = x2 - x1
+        val D = y2 - y1
+
+        val dot = A * C + B * D
+        val lenSq = C * C + D * D
+        var param = -1f
+
+        if (lenSq != 0f) { // Tránh chia cho 0
+            param = dot / lenSq
+        }
+
+        var xx: Float
+        var yy: Float
+
+        if (param < 0) {
+            xx = x1
+            yy = y1
+        } else if (param > 1) {
+            xx = x2
+            yy = y2
+        } else {
+            xx = x1 + param * C
+            yy = y1 + param * D
+        }
+
+        val dx = px - xx
+        val dy = py - yy
+
+        return Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+    }
+
+
+
+    // 9. Thêm các phương thức hỗ trợ theo dõi thời gian chỉnh sửa
+    private fun updateLastEditTime() {
+        mLastEditTime = System.currentTimeMillis()
+    }
+
+    fun getLastEditTime(): Long {
+        return mLastEditTime
     }
 
     /**

@@ -98,7 +98,7 @@ class NoteDetailActivity : BaseActivity() {
     private var currentPageIndex = 0
     private var pages = mutableListOf<NotePage>()
     private var currentPage: NotePage? = null
-
+    private val lastEditTimes = mutableMapOf<String, Long>()
     // Photo capture variables
     private var photoUri: Uri? = null
     private var currentPhotoPath: String? = null
@@ -197,6 +197,25 @@ class NoteDetailActivity : BaseActivity() {
         setupCollaboration()
         binding.drawingView.resetTransform()
         setupPageEventListener()
+        binding.drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
+            override fun onDrawCompleted() {
+                // Cập nhật UI
+                updateUndoRedoButtons()
+
+                // Cập nhật thời gian chỉnh sửa cuối cùng
+                currentPage?.let { page ->
+                    lastEditTimes[page.id] = System.currentTimeMillis()
+                }
+
+                // Kiểm tra nếu cần lưu
+                if (binding.drawingView.isForceSaveNeeded()) {
+                    debouncedSaveCurrentPage()
+                }
+            }
+        })
+
+        // Thêm vào cuối phương thức onCreate
+        startAutoSave()
     }
 
 
@@ -617,7 +636,7 @@ class NoteDetailActivity : BaseActivity() {
     private fun loadPage(index: Int) {
         if (pages.isEmpty()) {
             // Clear everything if no pages
-            binding.drawingView.clearDrawing()
+            binding.drawingView.clearDrawing(false)
             binding.imageNote.setImageDrawable(null)
             binding.imageNote.visibility = View.GONE
             binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
@@ -634,49 +653,57 @@ class NoteDetailActivity : BaseActivity() {
         // Show loading indicator
         binding.progressBar.visibility = View.VISIBLE
 
-        // Save current page first
+        // Quan trọng: Lưu trang hiện tại trước khi chuyển - với cơ chế đồng bộ
+        // sử dụng runBlocking để đảm bảo hoàn tất lưu trước khi tiếp tục
         currentPage?.let {
-            saveCurrentPage(false)
+            runBlocking {
+                try {
+                    val job = lifecycleScope.launch {
+                        saveCurrentPage(false)
+                    }
+                    // Đợi việc lưu hoàn tất nhưng có timeout để tránh bị treo
+                    withTimeout(3000) {
+                        job.join()
+                    }
+                } catch (e: Exception) {
+                    Log.e("NoteDetailActivity", "Error saving current page before navigation", e)
+                    // Vẫn tiếp tục chuyển trang ngay cả khi lưu lỗi
+                }
+            }
         }
 
-        // COMPLETE RESET of all page content
-        binding.drawingView.clearDrawing(false)
-        binding.drawingView.setBackgroundImage(null)
-        binding.imageNote.setImageDrawable(null)
-        binding.imageNote.visibility = View.GONE
-        binding.canvasContainer.setBackgroundColor(Color.LTGRAY)
+        // Reset trang hiện tại
+        clearPageContent() // Xóa sạch nội dung của trang
 
-        // Clear realtime drawing manager
-        drawingManager?.clearForPageChange()
-        drawingManager = null
-
-        // Update page references
+        // Cập nhật trang hiện tại
         currentPage = pages[index]
         currentPageIndex = index
 
-        // Load the page
+        // Tải trang mới
         lifecycleScope.launch {
             try {
                 val page = pages[index]
                 Log.d("NoteDetailActivity", "Loading page ${page.id}")
 
-                // First handle background
+                // Đầu tiên xử lý background
                 var backgroundLoaded = false
                 if (page.imagePath != null) {
                     try {
-                        // Try loading image
+                        // Thử tải ảnh
                         val bitmap = storageManager.loadPageImage(page.id)
                         if (bitmap != null) {
                             binding.drawingView.setBackgroundImage(bitmap)
                             backgroundLoaded = true
                         } else {
-                            // Try URL loading
+                            // Thử tải từ URL
                             val imageResult = repository.getImageBitmap(page.imagePath!!)
                             if (imageResult.isSuccess) {
                                 try {
+                                    // Sử dụng Glide để tải ảnh từ URL
                                     Glide.with(this@NoteDetailActivity)
                                         .asBitmap()
                                         .load(imageResult.getOrNull())
+                                        .diskCacheStrategy(DiskCacheStrategy.ALL) // Thêm cache
                                         .into(object : CustomTarget<Bitmap>() {
                                             override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                                                 binding.drawingView.setBackgroundImage(resource)
@@ -696,30 +723,16 @@ class NoteDetailActivity : BaseActivity() {
                     }
                 }
 
-                // Create white background if no image
+                // Tạo nền trắng nếu không có ảnh
                 if (!backgroundLoaded) {
                     binding.drawingView.setWhiteBackground(800, 1200)
                 }
 
-                // Wait a bit for background to load
+                // Đợi một chút để background tải xong
                 delay(100)
 
-                // Load drawing data if available
-                if (!page.vectorDrawingData.isNullOrEmpty()) {
-                    try {
-                        binding.drawingView.setDrawingDataFromJson(page.vectorDrawingData!!)
-                        Log.d("NoteDetailActivity", "Drawing data loaded successfully")
-                    } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Error loading drawing data", e)
-                    }
-                } else {
-                    Log.d("NoteDetailActivity", "No drawing data for this page")
-                }
-
-                // Wait a bit for drawing to load
-                delay(100)
-
-                // Initialize real-time drawing
+                // Khởi tạo real-time drawing - điều này cũng sẽ tải các nét vẽ
+                drawingManager?.cleanup() // Đảm bảo dọn dẹp trước
                 drawingManager = RealtimeDrawingManager(
                     binding.drawingView,
                     collaborationManager,
@@ -727,7 +740,7 @@ class NoteDetailActivity : BaseActivity() {
                     page.id
                 )
 
-                // Update UI
+                // Cập nhật UI
                 updatePageIndicator()
                 updateNavigationButtons()
                 updateUndoRedoButtons()
@@ -749,20 +762,16 @@ class NoteDetailActivity : BaseActivity() {
         drawingManager?.clearForPageChange()
         drawingManager = null  // Important: Set to null to prevent further events
 
-        // Clear the drawing view completely
-        binding.drawingView.clearDrawing(false)
-
-        // Reset transformations BEFORE clearing background
+        // Reset transformations BEFORE clearing drawing
         binding.drawingView.resetTransform()
 
-        // Clear background image (important to do after clearing drawing)
-        try {
-            binding.drawingView.setBackgroundImage(null)
-        } catch (e: Exception) {
-            Log.e("NoteDetailActivity", "Error clearing background image", e)
-        }
+        // Clear completely without triggering events to maintain proper state
+        binding.drawingView.clearDrawing(false)
 
-        // Clear and hide ImageView
+        // Xóa ảnh background
+        binding.drawingView.setBackgroundImage(null)
+
+        // Xóa và ẩn ImageView
         binding.imageNote.setImageDrawable(null)
         binding.imageNote.visibility = View.GONE
 
@@ -1045,29 +1054,28 @@ class NoteDetailActivity : BaseActivity() {
             try {
                 binding.saveProgressBar.visibility = View.VISIBLE
 
-                // Get drawing data as JSON
-                val vectorJson = binding.drawingView.getDrawingDataAsJson()
-                Log.d("NoteDetailActivity", "Saving page ${currentPage!!.id}, data length: ${vectorJson.length}")
-
-                // Create updated page
+                // Cập nhật timestamp cho trang
                 val updatedPage = currentPage!!.copy(
-                    vectorDrawingData = vectorJson,
                     createdAt = System.currentTimeMillis()
                 )
 
-                // Save to repository
+                // Đánh dấu thời gian này để biết lần cập nhật cuối cùng
+                val saveTimestamp = System.currentTimeMillis()
+
+                // Lưu trang vào repository
                 val result = repository.updatePage(updatedPage)
 
                 if (result.isSuccess) {
-                    // Update local copy
+                    // Cập nhật bản sao cục bộ
                     currentPage = result.getOrNull()
                     pages[currentPageIndex] = currentPage!!
 
+                    // Thông báo cho người dùng nếu cần
                     if (showToast) {
                         Toast.makeText(this@NoteDetailActivity, "Page saved", Toast.LENGTH_SHORT).show()
                     }
 
-                    Log.d("NoteDetailActivity", "Page saved successfully")
+                    Log.d("NoteDetailActivity", "Page saved successfully at $saveTimestamp")
                 } else {
                     Log.e("NoteDetailActivity", "Error saving page: ${result.exceptionOrNull()}")
 
@@ -1091,18 +1099,41 @@ class NoteDetailActivity : BaseActivity() {
         }
     }
 
+
     // Add an automatic save timer
     private var autoSaveJob: Job? = null
-    private val AUTO_SAVE_INTERVAL = 30000L // 30 seconds
+    private val AUTO_SAVE_INTERVAL = 10000L // 10 giây
 
     private fun startAutoSave() {
+        // Hủy job cũ nếu có
         autoSaveJob?.cancel()
+
+        // Khởi tạo job mới
         autoSaveJob = lifecycleScope.launch {
-            while (isActive) {
-                delay(AUTO_SAVE_INTERVAL)
-                if (currentPage != null) {
-                    saveCurrentPage(false)
+            try {
+                while (isActive) {
+                    delay(AUTO_SAVE_INTERVAL)
+
+                    // Kiểm tra nếu có trang hiện tại
+                    currentPage?.let { page ->
+                        // Kiểm tra xem trang có bị chỉnh sửa kể từ lần lưu cuối không
+                        val lastDrawingTime = binding.drawingView.getLastEditTime() ?: 0L
+                        val lastSaveTime = lastEditTimes[page.id] ?: 0L
+
+                        if (lastDrawingTime > lastSaveTime) {
+                            // Có chỉnh sửa mới - thực hiện lưu
+                            Log.d("NoteDetailActivity", "Auto-saving page ${page.id}")
+                            saveCurrentPage(false)
+
+                            // Cập nhật thời gian lưu cuối cùng
+                            lastEditTimes[page.id] = System.currentTimeMillis()
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("NoteDetailActivity", "Error in auto-save job", e)
+                // Restart auto-save job if it fails
+                startAutoSave()
             }
         }
     }
@@ -1656,49 +1687,55 @@ class NoteDetailActivity : BaseActivity() {
     override fun onPause() {
         super.onPause()
 
-        // Save current page
-        val saveJob = lifecycleScope.launch {
+        // Lưu trang hiện tại với cơ chế đồng bộ
+        runBlocking {
             try {
-                saveCurrentPage(false)
+                val saveJob = lifecycleScope.launch {
+                    saveCurrentPage(false)
+                }
+
+                // Đợi việc lưu hoàn tất với timeout
+                withTimeout(3000) {
+                    saveJob.join()
+                }
+
+                Log.d("NoteDetailActivity", "Page saved successfully in onPause")
             } catch (e: Exception) {
                 Log.e("NoteDetailActivity", "Error saving page in onPause", e)
             }
         }
 
-        // Wait for the save to complete
-        runBlocking {
-            try {
-                saveJob.join()
-            } catch (e: Exception) {
-                Log.e("NoteDetailActivity", "Error waiting for save job", e)
-            }
-        }
-
-        // Update user typing status
+        // Cập nhật trạng thái typing người dùng
         collaborationManager.setUserTyping(false)
     }
 
+
     override fun onDestroy() {
         try {
-            // Save current page before exiting
-            saveJob?.cancel() // Cancel any pending saves
-            stopAutoSave()
-            // Force an immediate save
+            // Lưu trang hiện tại với cơ chế đồng bộ
             if (currentPage != null) {
                 runBlocking {
                     try {
-                        saveCurrentPage(false)
+                        val saveJob = lifecycleScope.launch {
+                            saveCurrentPage(false)
+                        }
+
+                        // Đợi việc lưu hoàn tất với timeout
+                        withTimeout(3000) {
+                            saveJob.join()
+                        }
+
+                        Log.d("NoteDetailActivity", "Page saved successfully in onDestroy")
                     } catch (e: Exception) {
                         Log.e("NoteDetailActivity", "Error saving in onDestroy", e)
                     }
                 }
             }
 
-            // Ensure progress bars are hidden
+            // Dọn dẹp
             binding.saveProgressBar.visibility = View.GONE
             binding.progressBar.visibility = View.GONE
-
-            // Properly clean up collaboration manager
+            drawingManager?.cleanup()
             collaborationManager.cleanup()
         } catch (e: Exception) {
             Log.e("NoteDetailActivity", "Error during cleanup", e)
