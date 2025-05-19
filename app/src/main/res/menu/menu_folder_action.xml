@@ -13,8 +13,4 @@
         android:id="@+id/action_camera"
         android:title="@string/camera"
         android:icon="@drawable/camera" />
-    <item
-        android:id="@+id/action_scan"
-        android:title="@string/scan"
-        android:icon="@drawable/scan" />
 </menu>

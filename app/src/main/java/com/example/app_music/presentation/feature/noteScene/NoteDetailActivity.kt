@@ -311,22 +311,14 @@ class NoteDetailActivity : BaseActivity() {
                         repository.updatePage(page)
                     }
 
-                    // Update note's pageIds list
-                    val noteResult = repository.getNote(pageToDelete.noteId)
-                    if (noteResult.isSuccess) {
-                        val note = noteResult.getOrNull()!!
-                        note.pageIds.remove(pageToDelete.id)
-                        repository.updateNote(note)
-
-                        // Notify all collaborators of the page deletion
-                        collaborationManager.emitPageEvent(
-                            CollaborationManager.PageEventType.PAGE_DELETED,
-                            note.id,
-                            pageToDelete.id,
-                            deleteIndex,
-                            note.pageIds
-                        )
-                    }
+                    // Notify all collaborators of the page deletion
+                    collaborationManager.emitPageEvent(
+                        CollaborationManager.PageEventType.PAGE_DELETED,
+                        pageToDelete.noteId,
+                        pageToDelete.id,
+                        deleteIndex,
+                        pages.map { it.id }
+                    )
 
                     Toast.makeText(this@NoteDetailActivity, "Page deleted", Toast.LENGTH_SHORT).show()
 
@@ -340,18 +332,13 @@ class NoteDetailActivity : BaseActivity() {
                             currentPageIndex = 0
 
                             // Notify collaborators of new page
-                            noteResult.getOrNull()?.let { note ->
-                                note.pageIds.add(page.id)
-                                repository.updateNote(note)
-
-                                collaborationManager.emitPageEvent(
-                                    CollaborationManager.PageEventType.PAGE_DELETED,
-                                    note.id,
-                                    pageToDelete.id,
-                                    deleteIndex,
-                                    note.pageIds
-                                )
-                            }
+                            collaborationManager.emitPageEvent(
+                                CollaborationManager.PageEventType.PAGE_ADDED,
+                                pageToDelete.noteId,
+                                page.id,
+                                0,
+                                pages.map { it.id }
+                            )
                         }
                     } else {
                         // Navigate to previous page, or next if this was the first
@@ -1097,6 +1084,12 @@ class NoteDetailActivity : BaseActivity() {
 
                     // Add to pages list
                     pages.add(newPage)
+                    collaborationManager.emitPageEvent(
+                        CollaborationManager.PageEventType.PAGE_ADDED,
+                        noteId,
+                        newPage.id,
+                        pages.size - 1
+                    )
 
                     // Force reload of UI elements
                     updatePageIndicator()
@@ -1290,7 +1283,12 @@ class NoteDetailActivity : BaseActivity() {
 
                     // Add to pages list
                     pages.add(page)
-
+                    collaborationManager.emitPageEvent(
+                        CollaborationManager.PageEventType.PAGE_ADDED,
+                        noteId,
+                        page.id,
+                        pages.size - 1
+                    )
                     // Force reload of UI elements
                     updatePageIndicator()
                     updateNavigationButtons()
@@ -1558,7 +1556,7 @@ class NoteDetailActivity : BaseActivity() {
                 withTimeout(3000) {
                     saveJob.join()
                 }
-
+                collaborationManager.setUserTyping(false)
                 Log.d("NoteDetailActivity", "Page saved successfully in onPause")
             } catch (e: Exception) {
                 Log.e("NoteDetailActivity", "Error saving page in onPause", e)

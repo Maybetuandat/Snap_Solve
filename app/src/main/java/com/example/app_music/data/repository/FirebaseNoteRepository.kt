@@ -128,37 +128,6 @@ class FirebaseNoteRepository {
         }
     }
 
-    suspend fun createNote(title: String, folderId: String, imageBitmap: Bitmap? = null): Result<NoteFirebaseModel> {
-        return try {
-            val noteId = UUID.randomUUID().toString()
-            var imagePath: String? = null
-
-            if (imageBitmap != null) {
-                val baos = ByteArrayOutputStream()
-                imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-                val imageRef = storageRef.child("$noteId.jpg")
-                imageRef.putBytes(baos.toByteArray()).await()
-                imagePath = imageRef.path
-            }
-            
-            val note = NoteFirebaseModel(
-                id = noteId,
-                title = title,
-                createdAt = Date().time,
-                updatedAt = Date().time,
-                ownerId = currentUserId,
-                folderId = folderId,
-                imagePath = imagePath
-            )
-            
-            notesCollection.document(noteId).set(note).await()
-            Result.success(note)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating note", e)
-            Result.failure(e)
-        }
-    }
-
     suspend fun getNotes(folderId: String): Result<List<NoteFirebaseModel>> {
         return try {
             val snapshot = notesCollection
@@ -257,6 +226,27 @@ class FirebaseNoteRepository {
         return try {
             // Sử dụng ID đã có từ tham số
             val noteId = note.id
+
+            // Kiểm tra xem note có trang nào không
+            if (note.pageIds.isNotEmpty()) {
+                try {
+                    // Lấy trang đầu tiên
+                    val firstPageId = note.pageIds.first()
+                    val pageSnapshot = pagesCollection.document(firstPageId).get().await()
+                    val page = pageSnapshot.toObject(NotePage::class.java)
+
+                    // Nếu trang có ảnh, đặt đường dẫn ảnh vào note.imagePath
+                    if (page != null && page.imagePath != null) {
+                        // Sử dụng đường dẫn ảnh của trang đầu tiên làm imagePath của note
+                        // Điều này sẽ giúp sử dụng ảnh đầu tiên làm thumbnail
+                        note.imagePath = page.imagePath
+                        Log.d(TAG, "Using first page image as thumbnail: ${page.imagePath}")
+                    }
+                } catch (e: Exception) {
+                    // Chỉ log lỗi mà không làm gián đoạn quá trình tạo note
+                    Log.e(TAG, "Error getting first page image: ${e.message}")
+                }
+            }
 
             // Lưu note với ID đã có
             notesCollection.document(noteId).set(note).await()
@@ -572,6 +562,7 @@ class FirebaseNoteRepository {
         }
     }
 
+    // Thay thế phương thức deletePage hiện có bằng phương thức này
     suspend fun deletePage(pageId: String): Result<Boolean> {
         return try {
             // First find the page to get the note ID
@@ -582,24 +573,64 @@ class FirebaseNoteRepository {
 
             val page = pageResult.getOrNull()!!
             val noteId = page.noteId
+            val pagePath = page.imagePath
 
-            // Delete the page document
-            pagesCollection.document(pageId).delete().await()
-
-            // Update the note's page list
+            // Get the note
             val noteResult = getNote(noteId)
             if (noteResult.isSuccess) {
                 val note = noteResult.getOrNull()!!
+
+                // Check if the deleted page is the first page
+                val isFirstPage = note.pageIds.indexOf(pageId) == 0
+
+                // Remove the page ID from the list
                 note.pageIds.remove(pageId)
+
+                // Delete the page document
+                pagesCollection.document(pageId).delete().await()
+
+                // Delete page image if exists
+                if (pagePath != null) {
+                    try {
+                        storage.reference.child(pagePath).delete().await()
+                        Log.d(TAG, "Deleted page image: $pagePath")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error deleting page image: ${e.message}")
+                    }
+                }
+
+                // Update note's page list
                 notesCollection.document(noteId).update("pageIds", note.pageIds).await()
-            }
 
-            // Delete image if exists
-            page.imagePath?.let { path ->
-                storage.reference.child(path).delete().await()
-            }
+                // If the first page was deleted and there are other pages
+                if (isFirstPage && note.pageIds.isNotEmpty()) {
+                    // Get the new first page
+                    val newFirstPageId = note.pageIds.first()
+                    val newFirstPageResult = getPage(newFirstPageId)
 
-            Result.success(true)
+                    if (newFirstPageResult.isSuccess) {
+                        val newFirstPage = newFirstPageResult.getOrNull()!!
+
+                        // Update note's imagePath to use the new first page as thumbnail
+                        if (newFirstPage.imagePath != null) {
+                            notesCollection.document(noteId).update("imagePath", newFirstPage.imagePath).await()
+                            Log.d(TAG, "Updated note thumbnail to: ${newFirstPage.imagePath}")
+                        } else {
+                            // If new first page has no image, remove imagePath
+                            notesCollection.document(noteId).update("imagePath", null).await()
+                            Log.d(TAG, "Removed thumbnail as new first page has no image")
+                        }
+                    }
+                } else if (note.pageIds.isEmpty()) {
+                    // If no pages left, remove imagePath
+                    notesCollection.document(noteId).update("imagePath", null).await()
+                    Log.d(TAG, "Removed thumbnail as no pages remain")
+                }
+
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Could not get note"))
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting page", e)
             Result.failure(e)

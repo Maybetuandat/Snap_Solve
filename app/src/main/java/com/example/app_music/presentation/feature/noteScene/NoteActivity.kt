@@ -6,6 +6,8 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
@@ -411,28 +413,27 @@ class NoteActivity : BaseActivity() {
                 showCreateFolderDialog()
                 true
             }
-            R.id.action_createnote, R.id.action_camera -> {
+            R.id.action_createnote -> {
                 if (isInFolder) {
-                    checkCameraPermission()
+                    createBlankNote() // Hàm mới để tạo ghi chú trắng
                 } else {
-                    Toast.makeText(this, "Please enter a folder to create notes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Vui lòng chọn một thư mục trước", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
             R.id.action_uploadfile -> {
                 if (isInFolder) {
-                    checkStoragePermission()
+                    checkStoragePermission() // Mở gallery để chọn ảnh
                 } else {
-                    Toast.makeText(this, "Please enter a folder to upload notes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Vui lòng chọn một thư mục trước", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
-            R.id.action_scan -> {
+            R.id.action_camera -> {
                 if (isInFolder) {
-                    // Start QR code scanner
-                    startActivity(Intent(this, QRScannerActivity::class.java))
+                    checkCameraPermission() // Mở camera để chụp ảnh
                 } else {
-                    Toast.makeText(this, "Please enter a folder to scan", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Vui lòng chọn một thư mục trước", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
@@ -440,6 +441,93 @@ class NoteActivity : BaseActivity() {
         }
     }
 
+    private fun createBlankNote() {
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                // Tạo tên mặc định cho ghi chú
+                val noteName = "Note_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
+
+                // Tạo note mới
+                val noteId = UUID.randomUUID().toString()
+                val note = NoteFirebaseModel(
+                    id = noteId,
+                    title = noteName,
+                    createdAt = Date().time,
+                    updatedAt = Date().time,
+                    ownerId = currentUserId,
+                    folderId = currentFolderId!!
+                )
+
+                // Tạo trang trắng cho note
+                val pageId = UUID.randomUUID().toString()
+                val page = NotePage(
+                    id = pageId,
+                    noteId = noteId,
+                    pageIndex = 0,
+                    createdAt = Date().time,
+                    vectorDrawingData = """{"strokes":[],"width":800,"height":1200}"""
+                )
+
+                // Thêm pageId vào note
+                note.pageIds.add(pageId)
+
+                // Lưu note và page vào Firestore
+                val pageResult = repository.updatePage(page)
+                val noteResult = repository.createNoteWithId(note)
+
+                if (noteResult.isSuccess && pageResult.isSuccess) {
+                    // Tạo bitmap trắng làm thumbnail
+                    val whiteBitmap = createWhiteBackground(200, 300)
+                    val storageManager = StorageManager(applicationContext)
+                    storageManager.saveThumbnail(noteId, whiteBitmap)
+
+                    // Thêm vào danh sách hiển thị
+                    val noteItem = NoteItem(
+                        id = noteId,
+                        title = noteName,
+                        date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault()).format(Date()),
+                        isFolder = false,
+                        imagePreview = whiteBitmap
+                    )
+
+                    withContext(Dispatchers.Main) {
+                        notesList.add(0, noteItem)
+                        adapter.notifyDataSetChanged()
+
+                        Toast.makeText(this@NoteActivity, "Đã tạo ghi chú trắng", Toast.LENGTH_SHORT).show()
+
+                        // Mở note detail
+                        val intent = Intent(this@NoteActivity, NoteDetailActivity::class.java).apply {
+                            putExtra("note_id", noteId)
+                            putExtra("note_title", noteName)
+                        }
+                        startActivity(intent)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@NoteActivity, "Không thể tạo ghi chú", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@NoteActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    binding.progressBar.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun createWhiteBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+        return bitmap
+    }
     private fun showRenameDialog(item: NoteItem) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_rename, null)
         val editText = dialogView.findViewById<EditText>(R.id.edit_name)
