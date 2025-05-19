@@ -113,6 +113,9 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_postDetailFragment_to_editPostFragment"
+            app:destination="@id/editPostFragment" />
     </fragment>
 
     <fragment
@@ -121,6 +124,15 @@
         android:label="Reply Comments">
         <argument
             android:name="commentId"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editPostFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityEditPost.EditPostFragment"
+        android:label="EditPostFragment">
+        <argument
+            android:name="postId"
             app:argType="long" />
     </fragment>
 

@@ -57,7 +57,9 @@ class PostDetailFragment : Fragment() {
     private lateinit var tvImagesLabel: TextView
     private lateinit var rvSelectedCommentImages: RecyclerView
     private lateinit var tvCommentImageCount: TextView
+    private lateinit var btnEdit: ImageButton
 
+    private var currentPost: Post? = null
     private val imagesAdapter = PostImagesAdapter()
     private val maxCommentImageCount = 10
 
@@ -138,6 +140,7 @@ class PostDetailFragment : Fragment() {
         ivLike = view.findViewById(R.id.ivLike)
         rvPostImages = view.findViewById(R.id.rvPostImages)
         tvImagesLabel = view.findViewById(R.id.tvImagesLabel)
+        btnEdit = view.findViewById(R.id.btnEdit)
 
         // Tìm hoặc tạo các view cho comment images
         rvSelectedCommentImages = view.findViewById(R.id.rvSelectedCommentImages) ?: run {
@@ -254,6 +257,16 @@ class PostDetailFragment : Fragment() {
                 Toast.makeText(requireContext(), "Vui lòng nhập nội dung hoặc chọn ảnh", Toast.LENGTH_SHORT).show()
             }
         }
+
+        btnEdit.setOnClickListener {
+            currentPost?.let { post ->
+                // Điều hướng đến EditPostFragment
+                val bundle = Bundle().apply {
+                    putLong("postId", post.id)
+                }
+                findNavController().navigate(R.id.action_postDetailFragment_to_editPostFragment, bundle)
+            }
+        }
     }
 
     private fun observeViewModel() {
@@ -314,6 +327,10 @@ class PostDetailFragment : Fragment() {
         tvUserName.text = post.user.username
         tvTimeAgo.text = tinhThoiGianTruocDay(post.createDate)
         tvLikesCount.text = "${post.react.size} lượt thích"
+        currentPost = post
+
+        val isOwner = post.user.id == currentUserId
+        btnEdit.visibility = if (isOwner) View.VISIBLE else View.GONE
 
         // Kiểm tra xem người dùng hiện tại đã thích bài viết này chưa
         val hasUserLiked = post.react.any { it.user.id == currentUserId }

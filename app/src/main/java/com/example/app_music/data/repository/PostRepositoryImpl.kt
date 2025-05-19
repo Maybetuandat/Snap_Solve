@@ -1,5 +1,6 @@
 package com.example.app_music.data.repository
 
+import android.util.Log
 import com.example.app_music.domain.model.Comment
 import com.example.app_music.domain.model.CreatePostRequest
 import com.example.app_music.domain.model.Post
@@ -51,6 +52,59 @@ class PostRepositoryImpl : PostRepository {
 
         // Gọi API tạo bài đăng
         return RetrofitFactory.postApi.createPost(request)
+    }
+
+    override suspend fun updatePost(
+        postId: Long,
+        title: String,
+        content: String,
+        userId: Long,
+        topicIds: List<Long>,
+        imagePaths: List<String>
+    ): Response<Post> {
+        Log.d("PostRepositoryImpl", "updatePost called with:")
+        Log.d("PostRepositoryImpl", "- Image paths: ${imagePaths.size}")
+        imagePaths.forEachIndexed { index, path ->
+            Log.d("PostRepositoryImpl", "  Image [$index]: $path")
+        }
+
+        // Upload tất cả ảnh (cả cũ và mới) - giống logic createPost
+        val imageUrls = if (imagePaths.isNotEmpty()) {
+            // Tách ảnh cũ (URL) và ảnh mới (file path)
+            val existingUrls = imagePaths.filter { it.startsWith("/images/") || it.startsWith("http") }
+            val newPaths = imagePaths.filter { !it.startsWith("/images/") && !it.startsWith("http") }
+
+            Log.d("PostRepositoryImpl", "Existing URLs: ${existingUrls.size}")
+            Log.d("PostRepositoryImpl", "New paths to upload: ${newPaths.size}")
+
+            // Upload chỉ ảnh mới
+            val newUrls = if (newPaths.isNotEmpty()) {
+                uploadImages(newPaths)
+            } else {
+                emptyList()
+            }
+
+            // Kết hợp ảnh cũ và ảnh mới
+            existingUrls + newUrls
+        } else {
+            emptyList()
+        }
+
+        Log.d("PostRepositoryImpl", "Final image URLs: ${imageUrls.size}")
+
+        // Tạo request object - giống createPost
+        val request = CreatePostRequest(
+            title = title,
+            content = content,
+            userId = userId,
+            topicIds = topicIds,
+            images = imageUrls.ifEmpty { null }
+        )
+
+        Log.d("PostRepositoryImpl", "Sending update request with ${request.images?.size ?: 0} images")
+
+        // Gọi API cập nhật bài đăng
+        return RetrofitFactory.postApi.updatePost(postId, request)
     }
 
     private suspend fun uploadImages(imagePaths: List<String>): List<String> {

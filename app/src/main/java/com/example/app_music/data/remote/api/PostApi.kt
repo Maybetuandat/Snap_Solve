@@ -9,6 +9,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -42,6 +43,12 @@ interface PostApi {
     suspend fun unlikePost(
         @Path("id") postId: Long,
         @Query("userId") userId: Long
+    ): Response<Post>
+
+    @PUT("/api/post/{id}")
+    suspend fun updatePost(
+        @Path("id") postId: Long,
+        @Body request: CreatePostRequest
     ): Response<Post>
 
     @GET("/api/post/user/{userId}")
