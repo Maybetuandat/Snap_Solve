@@ -11,6 +11,7 @@ import com.example.app_music.R
 import com.example.app_music.databinding.FragmentHomeBinding
 import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
+import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
 
 class HomeFragment : Fragment() {
 
@@ -44,10 +45,16 @@ class HomeFragment : Fragment() {
             showMessage("Stars balance clicked")
         }
 
-        // Search functionality
+        // Search functionality - Click to open text search
+        binding.searchEditText.setOnClickListener {
+            startTextSearchActivity()
+        }
+
         binding.searchEditText.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                showMessage("Ready to type your question")
+                // Clear focus and open text search
+                binding.searchEditText.clearFocus()
+                startTextSearchActivity()
             }
         }
 
@@ -109,6 +116,11 @@ class HomeFragment : Fragment() {
 
     private fun startCameraActivity() {
         val intent = Intent(requireContext(), CameraActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun startTextSearchActivity() {
+        val intent = Intent(requireContext(), TextSearchActivity::class.java)
         startActivity(intent)
     }
 

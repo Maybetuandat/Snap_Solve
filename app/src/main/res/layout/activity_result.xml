@@ -22,13 +22,6 @@
             android:padding="8dp"
             android:src="@drawable/back_img" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Results"
-            android:textColor="@color/black"
-            android:textSize="18sp" />
     </androidx.appcompat.widget.Toolbar>
 
     <!-- Content ScrollView -->
@@ -36,13 +29,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/toolbar"
-        android:background="@color/scan_button_bg">
+        android:background="#EDD6C8"
+        android:padding="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="0dp">
 
             <!-- Cropped Image Card -->
             <androidx.cardview.widget.CardView
@@ -50,117 +44,26 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="8dp"
                 android:layout_marginVertical="12dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp">
+                app:cardElevation="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@color/utilities_bg"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
                     <ImageView
                         android:id="@+id/imageCropped"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/white"
                         android:adjustViewBounds="true"
                         android:maxHeight="250dp"
                         android:scaleType="fitCenter"
-                        android:padding="8dp"
                         android:layout_margin="4dp"
                         tools:src="@drawable/ic_person" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:text="your question (text/image)"
-                        android:textColor="@color/black"
-                        android:textSize="12sp" />
+
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-
-            <!-- Results Pagination - Using TextView circles as indicators -->
-            <LinearLayout
-                android:id="@+id/paginationContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="8dp"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:text="Results:"
-                    android:textColor="@color/black"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/pageIndicator1"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginHorizontal="4dp"
-                    android:background="@drawable/circle_selected"
-                    android:gravity="center"
-                    android:text="1"
-                    android:textAlignment="center"
-                    android:textColor="@color/white"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/pageIndicator2"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginHorizontal="4dp"
-                    android:background="@drawable/circle_unselected"
-                    android:gravity="center"
-                    android:text="2"
-                    android:textAlignment="center"
-                    android:textColor="@color/black"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/pageIndicator3"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginHorizontal="4dp"
-                    android:background="@drawable/circle_unselected"
-                    android:gravity="center"
-                    android:text="3"
-                    android:textAlignment="center"
-                    android:textColor="@color/black"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/pageIndicator4"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginHorizontal="4dp"
-                    android:background="@drawable/circle_unselected"
-                    android:gravity="center"
-                    android:text="4"
-                    android:textAlignment="center"
-                    android:textColor="@color/black"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/pageIndicator5"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginHorizontal="4dp"
-                    android:background="@drawable/circle_unselected"
-                    android:gravity="center"
-                    android:text="5"
-                    android:textAlignment="center"
-                    android:textColor="@color/black"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
             <!-- Loading Progress -->
             <ProgressBar
                 android:id="@+id/progressBar"
@@ -170,7 +73,6 @@
                 android:layout_marginTop="32dp"
                 android:indeterminateTint="@color/selectedicon"
                 android:visibility="visible" />
-
             <!-- Results Content -->
             <LinearLayout
                 android:id="@+id/linearResults"
@@ -183,6 +85,83 @@
                 android:padding="16dp"
                 android:visibility="gone"
                 tools:visibility="visible">
+                <!-- Results Pagination - Using TextView circles as indicators -->
+                <LinearLayout
+                    android:id="@+id/paginationContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="Results:"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/pageIndicator1"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="@drawable/circle_selected"
+                        android:gravity="center"
+                        android:text="1"
+                        android:textAlignment="center"
+                        android:textColor="@color/white"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/pageIndicator2"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="@drawable/circle_unselected"
+                        android:gravity="center"
+                        android:text="2"
+                        android:textAlignment="center"
+                        android:textColor="@color/black"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/pageIndicator3"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="@drawable/circle_unselected"
+                        android:gravity="center"
+                        android:text="3"
+                        android:textAlignment="center"
+                        android:textColor="@color/black"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/pageIndicator4"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="@drawable/circle_unselected"
+                        android:gravity="center"
+                        android:text="4"
+                        android:textAlignment="center"
+                        android:textColor="@color/black"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/pageIndicator5"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="@drawable/circle_unselected"
+                        android:gravity="center"
+                        android:text="5"
+                        android:textAlignment="center"
+                        android:textColor="@color/black"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
 
                 <WebView
                     android:id="@+id/webViewResult"
@@ -199,15 +178,19 @@
                     android:layout_marginTop="16dp"
                     android:text="You did not find the desired answer?"
                     android:textColor="@color/selectedicon"
-                    android:textSize="14sp"
-                    android:textStyle="italic" />
+                    android:textSize="16sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Post to community will be answered quickly"
+                    android:textColor="@color/black"
+                    android:textSize="14sp" />
 
                 <Button
                     android:id="@+id/btnPostCommunity"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/button_outline"
+                    android:layout_height="50dp"
+                    app:cornerRadius="10dp"
                     android:text="Post to community"
                     android:textAllCaps="false"
                     android:textColor="@color/white" />

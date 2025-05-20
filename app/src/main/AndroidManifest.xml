@@ -25,7 +25,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <!-- New Activities -->
+        <!-- Text Search Activity -->
+        <activity
+            android:name=".presentation.feature.textsearch.TextSearchActivity"
+            android:exported="false" />
+
+        <!-- Camera Activities -->
         <activity
             android:name=".presentation.feature.camera.CameraActivity"
             android:exported="false" />

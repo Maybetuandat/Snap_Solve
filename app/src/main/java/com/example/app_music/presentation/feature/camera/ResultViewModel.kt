@@ -6,12 +6,14 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.app_music.data.repository.ImageRepository
+import com.example.app_music.data.repository.TextSearchRepository
 import com.example.app_music.domain.model.Assignment
 import kotlinx.coroutines.launch
 import java.io.File
 
 class ResultViewModel : ViewModel() {
     private val imageRepository = ImageRepository()
+    private val textSearchRepository = TextSearchRepository()
 
     private val _uploadStatus = MutableLiveData<UploadStatus>()
     val uploadStatus: LiveData<UploadStatus> = _uploadStatus
@@ -58,6 +60,46 @@ class ResultViewModel : ViewModel() {
                 Log.e(TAG, "Error uploading image", e)
                 _uploadStatus.value = UploadStatus.Error(
                     "Upload error: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
+    }
+
+    // Search by text query
+    fun searchByText(query: String) {
+        _uploadStatus.value = UploadStatus.Loading
+
+        viewModelScope.launch {
+            try {
+                val response = textSearchRepository.searchByText(query)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val result = response.body()!!
+                    if (result.success) {
+                        _uploadStatus.value = UploadStatus.Success(
+                            imageUrl = null,
+                            imageId = null
+                        )
+
+                        // Process assignments if available
+                        if (!result.assignments.isNullOrEmpty()) {
+                            _assignments.value = result.assignments
+                            _currentAssignmentIndex.value = 0
+                        } else {
+                            _assignments.value = emptyList()
+                        }
+                    } else {
+                        _uploadStatus.value = UploadStatus.Error(result.message)
+                    }
+                } else {
+                    _uploadStatus.value = UploadStatus.Error(
+                        "Search failed: ${response.code()} - ${response.message()}"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching by text", e)
+                _uploadStatus.value = UploadStatus.Error(
+                    "Search error: ${e.message ?: "Unknown error"}"
                 )
             }
         }

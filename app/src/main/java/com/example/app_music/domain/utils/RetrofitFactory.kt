@@ -2,6 +2,7 @@ package com.example.app_music.domain.utils
 
 import com.example.app_music.data.remote.api.AuthApi
 import com.example.app_music.data.remote.api.ImageUploadApi
+import com.example.app_music.data.remote.api.TextSearchApi
 import com.example.app_music.data.remote.api.UserApi
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -39,5 +40,9 @@ object RetrofitFactory {
 
     val imageUploadApi: ImageUploadApi by lazy {
         retrofit.create(ImageUploadApi::class.java)
+    }
+
+    val textSearchApi: TextSearchApi by lazy {
+        retrofit.create(TextSearchApi::class.java)
     }
 }

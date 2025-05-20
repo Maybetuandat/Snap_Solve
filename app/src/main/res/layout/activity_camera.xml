@@ -77,9 +77,8 @@
                 android:layout_height="48dp"
                 android:layout_margin="16dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_search"
-                android:contentDescription="Gallery"
-                app:tint="@color/white" />
+                android:src="@drawable/ic_image_library"
+                android:contentDescription="Gallery" />
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/btnCapture"
@@ -88,7 +87,7 @@
                 android:layout_margin="16dp"
                 android:backgroundTint="@color/white"
                 android:contentDescription="Take photo"
-                app:borderWidth="2dp"
+                app:borderWidth="4dp"
                 app:fabCustomSize="64dp"
                 app:maxImageSize="48dp"
                 app:tint="@color/black" />
@@ -172,9 +171,19 @@
                 android:layout_height="48dp"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:background="@drawable/button_outline"
+                android:backgroundTint="@color/white"
                 android:text="Again"
-                android:textColor="@color/selectedicon" />
+                android:textColor="@color/black"
+                android:textAllCaps="false"/>
+
+            <Button
+                android:id="@+id/btnConfirm"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="Confirm"
+                android:textColor="@color/white"
+                android:textAllCaps="false"/>
 
             <Button
                 android:id="@+id/btnRotate"
@@ -182,19 +191,12 @@
                 android:layout_height="48dp"
                 android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
-                android:background="@drawable/button_filled"
+                android:backgroundTint="@color/white"
                 android:text="Rotate"
-                android:textColor="@color/white" />
+                android:textColor="@color/black"
+                android:textAllCaps="false"/>
 
-            <Button
-                android:id="@+id/btnConfirm"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_filled"
-                android:text="Confirm"
-                android:textColor="@color/white" />
+
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -19,6 +19,8 @@ class ResultActivity : BaseActivity() {
     private lateinit var binding: ActivityResultBinding
     private lateinit var viewModel: ResultViewModel
     private var imagePath: String? = null
+    private var searchQuery: String? = null
+    private var isTextSearch: Boolean = false
     private lateinit var pageIndicators: List<TextView>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,29 +52,51 @@ class ResultActivity : BaseActivity() {
             }
         }
 
-        // Get the cropped image path from intent
+        // Get data from intent
         imagePath = intent.getStringExtra("IMAGE_PATH")
+        searchQuery = intent.getStringExtra("SEARCH_QUERY")
+        isTextSearch = intent.getBooleanExtra("IS_TEXT_SEARCH", false)
 
-        if (imagePath != null) {
-            // Load and display the cropped image
-            displayCroppedImage()
-
-            // Setup observers
-            setupObservers()
-
-            // Show loading state
-            showLoadingState()
-
-            // Upload to server automatically
-            uploadImageToServer()
+        if (isTextSearch && !searchQuery.isNullOrEmpty()) {
+            // Handle text search
+            setupForTextSearch()
+        } else if (imagePath != null) {
+            // Handle image search
+            setupForImageSearch()
         } else {
-            // Handle error case - no image
-            Toast.makeText(this, "No image found", Toast.LENGTH_SHORT).show()
+            // Handle error case
+            Toast.makeText(this, "No image or query found", Toast.LENGTH_SHORT).show()
             finish()
         }
 
         // Setup button click listeners
         setupClickListeners()
+    }
+
+    private fun setupForTextSearch() {
+        // Hide image card for text search
+        binding.imageCropped.visibility = View.GONE
+
+        // Setup observers and search
+        setupObservers()
+        showLoadingState()
+        searchByText()
+    }
+
+    private fun setupForImageSearch() {
+        // Show and load image
+        displayCroppedImage()
+
+        // Setup observers and upload
+        setupObservers()
+        showLoadingState()
+        uploadImageToServer()
+    }
+
+    private fun searchByText() {
+        searchQuery?.let { query ->
+            viewModel.searchByText(query)
+        }
     }
 
     private fun displayCroppedImage() {
@@ -130,6 +154,7 @@ class ResultActivity : BaseActivity() {
                         "text/html",
                         "UTF-8"
                     )
+                    binding.webViewResult.visibility = View.VISIBLE
                 }
             }
         }
