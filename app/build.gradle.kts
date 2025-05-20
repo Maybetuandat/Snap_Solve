@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("kotlin-kapt")
+    id ("kotlin-kapt")
     id("com.google.gms.google-services")
 }
 
@@ -18,8 +18,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
-    buildFeatures {
+    buildFeatures{
         viewBinding = true
     }
 
@@ -32,19 +31,18 @@ android {
             )
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-
     kotlinOptions {
         jvmTarget = "1.8"
     }
 }
 
+
 dependencies {
-    // AndroidX and Material
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -52,7 +50,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    implementation("com.google.android.material:material:1.9.0") 
+    implementation("com.google.android.material:material:1.9.0")
 
     // Firebase
     implementation("com.google.firebase:firebase-auth:22.3.0")
@@ -105,7 +103,7 @@ dependencies {
     implementation("com.google.android.flexbox:flexbox:3.0.0")
 
     // ZaloPay SDK
-    implementation(files("/home/maybetuandat/PTIT/Android App/BTL/Snap_Solve/zpdk-release-v3.1.aar"))
+    implementation(files("D:\\CODE\\Snap_Solve\\zpdk-release-v3.1.aar"))
 
 
 

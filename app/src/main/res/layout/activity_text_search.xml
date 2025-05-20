@@ -44,8 +44,21 @@
             android:hint="Type your question..."
             android:padding="15dp"
             android:textColorHint="@color/selectedicon"
+            android:imeOptions="actionSearch"
             android:textSize="15sp"
             android:gravity="top|start"/>
+
+        <!-- Thêm sau EditText -->
+        <TextView
+            android:id="@+id/tvInputError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="4dp"
+            android:text="Please enter at least 20 characters"
+            android:textColor="@color/red"
+            android:textSize="12sp"
+            android:visibility="gone" />
 
         <!-- Search Button -->
         <Button

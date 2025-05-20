@@ -1,5 +1,6 @@
 package com.example.app_music.presentation.feature.camera
 
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
@@ -7,6 +8,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.bumptech.glide.Glide
+import com.example.app_music.MainActivity
 import com.example.app_music.R
 import com.example.app_music.databinding.ActivityResultBinding
 import com.example.app_music.domain.model.Assignment
@@ -21,6 +24,7 @@ class ResultActivity : BaseActivity() {
     private var imagePath: String? = null
     private var searchQuery: String? = null
     private var isTextSearch: Boolean = false
+    private var fromHistory: Boolean = false
     private lateinit var pageIndicators: List<TextView>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,7 +34,7 @@ class ResultActivity : BaseActivity() {
 
         // Initialize ViewModel
         viewModel = ViewModelProvider(this)[ResultViewModel::class.java]
-
+        setupToolbarNavigation()
         // Set toolbar back button
         binding.btnBack.setOnClickListener {
             finish()
@@ -56,8 +60,24 @@ class ResultActivity : BaseActivity() {
         imagePath = intent.getStringExtra("IMAGE_PATH")
         searchQuery = intent.getStringExtra("SEARCH_QUERY")
         isTextSearch = intent.getBooleanExtra("IS_TEXT_SEARCH", false)
+        fromHistory = intent.getBooleanExtra("FROM_HISTORY", false)
 
-        if (isTextSearch && !searchQuery.isNullOrEmpty()) {
+        if (isTextSearch || fromHistory) {
+            searchQuery?.let {
+                binding.tvSearchQuery.text = it
+                binding.tvSearchQuery.visibility = View.VISIBLE
+            }
+        } else {
+            binding.tvSearchQuery.visibility = View.GONE
+        }
+
+        // Setup observers
+        setupObservers()
+
+        if (fromHistory) {
+            // Handle opening from search history
+            setupFromHistory()
+        } else if (isTextSearch && !searchQuery.isNullOrEmpty()) {
             // Handle text search
             setupForTextSearch()
         } else if (imagePath != null) {
@@ -72,13 +92,87 @@ class ResultActivity : BaseActivity() {
         // Setup button click listeners
         setupClickListeners()
     }
+    private fun setupToolbarNavigation() {
+        // Set back button
+        binding.btnBack.setOnClickListener {
+            finish()
+        }
+
+        // Set home button
+        binding.btnHome.setOnClickListener {
+            // Tạo Intent để mở MainActivity
+            val intent = Intent(this, MainActivity::class.java).apply {
+                // Xóa tất cả các activities trước đó
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            startActivity(intent)
+            // Đóng ResultActivity
+            finish()
+        }
+    }
+
+
+    private fun setupFromHistory() {
+        // Show loading state
+        showLoadingState()
+
+        // Get image URL if exists
+        val imageUrl = intent.getStringExtra("IMAGE_URL")
+        if (!imageUrl.isNullOrEmpty()) {
+            // Show image from URL
+            binding.imageCropped.visibility = View.VISIBLE
+            Glide.with(this)
+                .load(imageUrl)
+                .placeholder(R.drawable.placeholder_image)
+                .into(binding.imageCropped)
+        } else {
+            // Hide image for text searches
+            binding.imageCropped.visibility = View.GONE
+        }
+        searchQuery?.let {
+            binding.tvSearchQuery.text = it
+            binding.tvSearchQuery.visibility = View.VISIBLE
+        }
+
+        // Get assignment IDs
+        val assignmentIds = mutableListOf<Long>()
+        val id1 = intent.getLongExtra("ASSIGNMENT_ID_1", 0)
+        val id2 = intent.getLongExtra("ASSIGNMENT_ID_2", 0)
+        val id3 = intent.getLongExtra("ASSIGNMENT_ID_3", 0)
+        val id4 = intent.getLongExtra("ASSIGNMENT_ID_4", 0)
+        val id5 = intent.getLongExtra("ASSIGNMENT_ID_5", 0)
+
+        // Add valid IDs to the list
+        if (id1 > 0) assignmentIds.add(id1)
+        if (id2 > 0) assignmentIds.add(id2)
+        if (id3 > 0) assignmentIds.add(id3)
+        if (id4 > 0) assignmentIds.add(id4)
+        if (id5 > 0) assignmentIds.add(id5)
+
+        // Load assignments if we have IDs
+        if (assignmentIds.isNotEmpty()) {
+            viewModel.loadAssignmentsByIds(assignmentIds)
+        } else {
+            binding.progressBar.visibility = View.GONE
+            binding.linearResults.visibility = View.VISIBLE
+            binding.webViewResult.loadData(
+                "<html><body><h3>No matching assignments found</h3></body></html>",
+                "text/html",
+                "UTF-8"
+            )
+            binding.webViewResult.visibility = View.VISIBLE
+        }
+    }
 
     private fun setupForTextSearch() {
         // Hide image card for text search
         binding.imageCropped.visibility = View.GONE
 
-        // Setup observers and search
-        setupObservers()
+        searchQuery?.let {
+            binding.tvSearchQuery.text = it
+            binding.tvSearchQuery.visibility = View.VISIBLE
+        }
+
         showLoadingState()
         searchByText()
     }
@@ -87,15 +181,14 @@ class ResultActivity : BaseActivity() {
         // Show and load image
         displayCroppedImage()
 
-        // Setup observers and upload
-        setupObservers()
+        // Show loading and upload
         showLoadingState()
         uploadImageToServer()
     }
 
     private fun searchByText() {
         searchQuery?.let { query ->
-            viewModel.searchByText(query)
+            viewModel.searchByText(query, this)
         }
     }
 
@@ -103,8 +196,10 @@ class ResultActivity : BaseActivity() {
         try {
             val bitmap = BitmapFactory.decodeFile(imagePath)
             binding.imageCropped.setImageBitmap(bitmap)
+            binding.imageCropped.visibility = View.VISIBLE
         } catch (e: Exception) {
             Toast.makeText(this, "Error displaying image: ${e.message}", Toast.LENGTH_SHORT).show()
+            binding.imageCropped.visibility = View.GONE
         }
     }
 
@@ -290,7 +385,7 @@ class ResultActivity : BaseActivity() {
 
     private fun uploadImageToServer() {
         imagePath?.let { path ->
-            viewModel.uploadImage(File(path))
+            viewModel.uploadImage(File(path), this)
         }
     }
 

@@ -16,7 +16,7 @@ interface ImageUploadApi {
     @POST("/api/images/upload")
     suspend fun uploadImage(
         @Part image: MultipartBody.Part,
-        @Part("description") description: RequestBody
+        @Part("description") description: RequestBody,
+        @Part("userId") userId: RequestBody
     ): Response<ImageUploadResponse>
 }
-

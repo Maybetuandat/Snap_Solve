@@ -133,6 +133,9 @@
         <string name="gethelp">Xem trợ giúp</string>
         <string name="xemgiaithich">Xem giải</string>
         <string name="share">Chia sẻ</string>
+
+        <string name="see_more_searches">See More Searches</string>
+        <string name="ic_search_history">Search History</string>
         <string name="ask_snapsolve">Ask SnapSolve anything</string>
         <string name="type_question">Type your question</string>
         <string name="utilities">Utilities</string>

@@ -7,7 +7,7 @@ import retrofit2.Response
 class TextSearchRepository {
     private val textSearchApi = RetrofitFactory.textSearchApi
 
-    suspend fun searchByText(query: String): Response<TextSearchResponse> {
-        return textSearchApi.searchByText(query)
+    suspend fun searchByText(query: String, userId: Long): Response<TextSearchResponse> {
+        return textSearchApi.searchByText(query, userId)
     }
 }

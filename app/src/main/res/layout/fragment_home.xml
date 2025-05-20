@@ -255,7 +255,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Today Missions Section -->
+            <!-- Update the search history section (previously missions) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -267,15 +267,16 @@
                 android:paddingTop="12dp">
 
                 <TextView
+                    android:id="@+id/missions_section_title"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="Today missions"
+                    android:text="@string/recent_searches"
                     android:textColor="@color/selectedicon"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <!-- Mission 1 -->
+                <!-- History Item 1 -->
                 <LinearLayout
                     android:id="@+id/mission_items_1"
                     android:layout_width="match_parent"
@@ -285,48 +286,39 @@
                     android:paddingHorizontal="0dp">
 
                     <ImageView
+                        android:id="@+id/search_history_image1"
                         android:layout_width="50dp"
                         android:layout_height="50dp"
-                        android:src="@drawable/ic_ad"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_search_history"
                         />
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="8dp"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/search_history_question1"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Xem quảng cáo"
+                            android:text="Search question example..."
+                            android:maxLines="1"
+                            android:ellipsize="end"
                             android:textColor="@color/selectedicon"
                             android:textStyle="bold"
                             android:textSize="12sp" />
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/search_history_date1"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="+10"
-                                android:textColor="#EAB258"
-                                android:textStyle="bold"
-                                android:textSize="12sp" />
-
-                            <ImageView
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
-                                android:layout_marginStart="4dp"
-                                android:src="@drawable/ic_star"
-                                app:tint="#F2D326" />
-                        </LinearLayout>
+                            android:text="21/05/2025"
+                            android:textColor="@color/gray"
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -340,12 +332,13 @@
 
                 <!-- Divider -->
                 <View
+                    android:id="@+id/divider1"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
                     android:background="#9E633E" />
 
-                <!-- Mission 2 -->
+                <!-- History Item 2 -->
                 <LinearLayout
                     android:id="@+id/mission_items_2"
                     android:layout_width="match_parent"
@@ -355,48 +348,39 @@
                     android:paddingHorizontal="0dp">
 
                     <ImageView
+                        android:id="@+id/search_history_image2"
                         android:layout_width="50dp"
                         android:layout_height="50dp"
-                        android:src="@drawable/ic_ad"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_search_history"
                         />
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="8dp"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/search_history_question2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Xem quảng cáo"
+                            android:text="Search question example..."
+                            android:maxLines="1"
+                            android:ellipsize="end"
                             android:textColor="@color/selectedicon"
                             android:textStyle="bold"
                             android:textSize="12sp" />
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/search_history_date2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="+10"
-                                android:textColor="#EAB258"
-                                android:textStyle="bold"
-                                android:textSize="12sp" />
-
-                            <ImageView
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
-                                android:layout_marginStart="4dp"
-                                android:src="@drawable/ic_star"
-                                app:tint="#F2D326" />
-                        </LinearLayout>
+                            android:text="20/05/2025"
+                            android:textColor="@color/gray"
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -407,14 +391,16 @@
                         android:rotation="180"
                         app:tint="@color/black" />
                 </LinearLayout>
+
                 <!-- Divider -->
                 <View
+                    android:id="@+id/divider2"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
                     android:background="#9E633E" />
 
-                <!-- Mission 3 -->
+                <!-- History Item 3 -->
                 <LinearLayout
                     android:id="@+id/mission_items_3"
                     android:layout_width="match_parent"
@@ -424,48 +410,39 @@
                     android:paddingHorizontal="0dp">
 
                     <ImageView
+                        android:id="@+id/search_history_image3"
                         android:layout_width="50dp"
                         android:layout_height="50dp"
-                        android:src="@drawable/ic_ad"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_search_history"
                         />
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="8dp"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/search_history_question3"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Xem quảng cáo"
+                            android:text="Search question example..."
+                            android:maxLines="1"
+                            android:ellipsize="end"
                             android:textColor="@color/selectedicon"
                             android:textStyle="bold"
                             android:textSize="12sp" />
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/search_history_date3"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="+10"
-                                android:textColor="#EAB258"
-                                android:textStyle="bold"
-                                android:textSize="12sp" />
-
-                            <ImageView
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
-                                android:layout_marginStart="4dp"
-                                android:src="@drawable/ic_star"
-                                app:tint="#F2D326" />
-                        </LinearLayout>
+                            android:text="19/05/2025"
+                            android:textColor="@color/gray"
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -477,7 +454,7 @@
                         app:tint="@color/black" />
                 </LinearLayout>
 
-                <!-- Open Mission Board Button -->
+                <!-- See more button -->
                 <Button
                     android:id="@+id/open_missions_button"
                     android:layout_width="match_parent"
@@ -485,7 +462,7 @@
                     android:layout_marginTop="16dp"
                     app:cornerRadius="10dp"
                     android:backgroundTint="#F3B24B"
-                    android:text="Open missions board"
+                    android:text="@string/see_more_searches"
                     android:textStyle="bold"
                     android:textSize="16sp"
                     android:textAllCaps="false"

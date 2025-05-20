@@ -15,7 +15,7 @@ class ImageRepository {
     /**
      * Upload an image file to the server
      */
-    suspend fun uploadImage(imageFile: File, description: String = "Uploaded image"): Response<ImageUploadResponse> {
+    suspend fun uploadImage(imageFile: File, description: String = "Uploaded image", userId: Long): Response<ImageUploadResponse> {
         // Create request body for the file
         val requestFile = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
 
@@ -29,7 +29,10 @@ class ImageRepository {
         // Create request body for description
         val descriptionBody = description.toRequestBody("text/plain".toMediaTypeOrNull())
 
+        // Create request body for userId
+        val userIdBody = userId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
         // Make the network request
-        return imageUploadApi.uploadImage(imagePart, descriptionBody)
+        return imageUploadApi.uploadImage(imagePart, descriptionBody, userIdBody)
     }
 }
