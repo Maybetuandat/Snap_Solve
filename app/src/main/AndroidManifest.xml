@@ -62,6 +62,10 @@
         <activity
             android:name=".presentation.feature.textsearch.TextSearchActivity"
             android:exported="false" />
+        <activity
+            android:name=".presentation.feature.searchhistory.SearchHistoryActivity"
+            android:exported="false" />
+
 
         <!-- Camera Activities -->
         <activity

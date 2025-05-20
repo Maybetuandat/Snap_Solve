@@ -18,6 +18,7 @@ import com.example.app_music.domain.utils.UrlUtils
 import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.camera.ResultActivity
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
+import com.example.app_music.presentation.feature.searchhistory.SearchHistoryActivity
 import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -190,14 +191,6 @@ class HomeFragment : Fragment() {
             showMessage("Profile clicked")
         }
 
-        binding.notificationIcon.setOnClickListener {
-            showMessage("Notifications clicked")
-        }
-
-        binding.starsContainer.setOnClickListener {
-            showMessage("Stars balance clicked")
-        }
-
         // Search functionality - Click to open text search
         binding.searchEditText.setOnClickListener {
             startTextSearchActivity()
@@ -236,8 +229,9 @@ class HomeFragment : Fragment() {
 
         // "See more searches" button (previously "Open missions")
         binding.openMissionsButton.setOnClickListener {
-            showMessage("View all search history")
-            // Here you could navigate to a full search history screen
+            // Navigate to SearchHistoryActivity
+            val intent = Intent(requireContext(), SearchHistoryActivity::class.java)
+            startActivity(intent)
         }
 
         // Social buttons
