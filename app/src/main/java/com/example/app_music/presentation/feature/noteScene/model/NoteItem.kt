@@ -10,19 +10,5 @@ class NoteItem(
     var isExpanded: Boolean = false,
     var imagePreview: Bitmap? = null
 ) {
-    private val childNotes: MutableList<NoteItem> = mutableListOf()
-
-    // Constructor for image note
-    constructor(id: String, title: String, date: String, imagePreview: Bitmap) :
-            this(id, title, date, false, false, imagePreview)
-
-    fun getChildNotes(): List<NoteItem> = childNotes
-
-    fun addChildNote(note: NoteItem) {
-        if (isFolder) {
-            childNotes.add(note)
-        }
-    }
-
     fun hasImage(): Boolean = imagePreview != null
 }

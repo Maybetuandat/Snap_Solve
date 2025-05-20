@@ -1,23 +1,18 @@
 package com.example.app_music.data.collaboration
 
-import android.graphics.Path
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.MotionEvent
-import com.example.app_music.presentation.feature.noteScene.views.DrawingView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.PropertyName
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 /**
@@ -95,6 +90,7 @@ class CollaborationManager(private val noteId: String) {
             }
         }
     }
+
 
     // Phương thức dọn dẹp người dùng cũ
     private fun cleanupStaleUsers() {
@@ -226,7 +222,8 @@ class CollaborationManager(private val noteId: String) {
         val username: String = "",
         val color: Int = 0,
         val lastActive: Long = 0,
-        val isTyping: Boolean = false
+        val isTyping: Boolean = false,
+        val isOffline: Boolean = false  // Thêm trường này
     )
 
     enum class ActionType {
@@ -243,7 +240,10 @@ class CollaborationManager(private val noteId: String) {
 
         // Set up disconnect handler to mark user as offline when disconnected
         userPresenceRef.onDisconnect().removeValue()
+        userPresenceRef.child("lastActive").onDisconnect().setValue(ServerValue.TIMESTAMP)
 
+        // Đánh dấu trạng thái offline khi ngắt kết nối
+        userPresenceRef.child("isOffline").onDisconnect().setValue(true)
         // Monitor connection state
         connectionListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -281,36 +281,16 @@ class CollaborationManager(private val noteId: String) {
             username = username,
             color = color,
             lastActive = System.currentTimeMillis(),
-            isTyping = false
+            isTyping = false,
+            isOffline = false  // Thêm trạng thái offline là false khi active
         )
-
         userPresenceRef.setValue(userInfo)
             .addOnSuccessListener {
                 Log.d(TAG, "User presence set successfully")
-
-                // Đặt lại phương thức xử lý ngắt kết nối sau mỗi lần kết nối lại
-                userPresenceRef.onDisconnect().removeValue()
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "Error setting user presence", e)
             }
-
-        // Hủy timer cũ nếu có
-        stopActiveUpdates()
-
-        // Tạo timer mới để cập nhật lastActive định kỳ
-        activeUpdateRunnable = object : Runnable {
-            override fun run() {
-                userPresenceRef.child("lastActive").setValue(System.currentTimeMillis())
-                updateHandler.postDelayed(this, 30000) // Cập nhật mỗi 30 giây
-            }
-        }
-
-
-        // Bắt đầu timer mới
-        activeUpdateRunnable?.let {
-            updateHandler.post(it)
-        }
     }
 
     private fun stopActiveUpdates() {
@@ -329,31 +309,7 @@ class CollaborationManager(private val noteId: String) {
         userPresenceRef.child("lastActive").setValue(System.currentTimeMillis())
     }
 
-    fun strokeToDrawingAction(stroke: DrawingView.Stroke): DrawingAction {
-        val pathPoints = stroke.points.map { point ->
-            PathPoint(
-                x = point.x,
-                y = point.y,
-                operation = when (point.type) {
-                    MotionEvent.ACTION_DOWN -> PathOperation.MOVE_TO
-                    MotionEvent.ACTION_MOVE -> PathOperation.LINE_TO
-                    MotionEvent.ACTION_UP -> PathOperation.LINE_TO
-                    else -> PathOperation.LINE_TO
-                }
-            )
-        }
 
-        return DrawingAction(
-            type = if (stroke.isEraser) ActionType.ERASE else ActionType.DRAW,
-            path = pathPoints,
-            color = stroke.color,
-            strokeWidth = stroke.strokeWidth
-        )
-    }
-
-    /**
-     * Remove user presence when they leave
-     */
     fun removeUserPresence() {
         userPresenceRef.removeValue()
     }
@@ -419,113 +375,9 @@ class CollaborationManager(private val noteId: String) {
         }
     }
 
-    /**
-     * Save a drawing action to Firebase
-     */
-    fun saveDrawingAction(action: DrawingAction) {
-        val actionId = action.actionId.ifEmpty {
-            database.reference.push().key ?: UUID.randomUUID().toString()
-        }
-
-        val actionWithIds = action.copy(
-            userId = currentUserId,
-            actionId = actionId,
-            timestamp = System.currentTimeMillis()
-        )
-
-        drawingRef.child(actionId).setValue(actionWithIds)
-    }
-
-    /**
-     * Convert a Path to a serializable list of PathPoints
-     */
-    fun pathToPointsList(path: Path): List<PathPoint> {
-        // This is simplified - in reality you'd need a custom path
-        // recorder to capture all path operations
-        // For now, return an empty list as a placeholder
-        return emptyList()
-    }
-
-    /**
-     * Get all drawing actions as a flow
-     */
-    fun getDrawingActions(): Flow<List<DrawingAction>> = callbackFlow {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val actions = mutableListOf<DrawingAction>()
-                for (actionSnapshot in snapshot.children) {
-                    val action = actionSnapshot.getValue(DrawingAction::class.java)
-                    if (action != null) {
-                        actions.add(action)
-                    }
-                }
-                trySend(actions)
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Error getting drawing actions", error.toException())
-            }
-        }
-
-        drawingRef.addValueEventListener(listener)
-
-        awaitClose {
-            drawingRef.removeEventListener(listener)
-        }
-    }
 
     companion object {
         private const val TAG = "CollaborationManager"
     }
 
-    // In CollaborationManager.kt
-    suspend fun getDrawingActionsForPage(pageId: String): List<DrawingAction> {
-        // Get a snapshot of current drawing actions filtered by page
-        val snapshot = drawingRef.orderByChild("pageId").equalTo(pageId).get().await()
-
-        val actions = mutableListOf<DrawingAction>()
-        for (actionSnapshot in snapshot.children) {
-            val action = actionSnapshot.getValue(DrawingAction::class.java)
-            if (action != null) {
-                actions.add(action)
-            }
-        }
-
-        // Sort by timestamp
-        return actions.sortedBy { it.timestamp }
-    }
-
-    // Add a stream for individual actions (more efficient than the full list)
-    fun getDrawingActionsFlow(): Flow<DrawingAction> = callbackFlow {
-        val listener = object : ChildEventListener {
-            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val action = snapshot.getValue(DrawingAction::class.java)
-                if (action != null) {
-                    trySend(action)
-                }
-            }
-
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                // Not used for drawing actions (they're immutable)
-            }
-
-            override fun onChildRemoved(snapshot: DataSnapshot) {
-                // Not handling removals in this flow
-            }
-
-            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
-                // Not used for drawing actions
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Error with drawing actions listener", error.toException())
-            }
-        }
-
-        drawingRef.addChildEventListener(listener)
-
-        awaitClose {
-            drawingRef.removeEventListener(listener)
-        }
-    }
 }

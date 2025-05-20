@@ -22,27 +22,23 @@ class UserPresenceView @JvmOverloads constructor(
 
     private val userViewMap = mutableMapOf<String, View>()
     private val maxUsersVisible = 3
-    private var currentUserId: String = "" // Store the current user ID
+    private var currentUserId = "" // Thêm biến lưu ID người dùng hiện tại
 
-    init {
-        orientation = HORIZONTAL
-    }
-
-    /**
-     * Set the current user ID for stale user detection
-     */
+    // Thêm method để đặt ID người dùng hiện tại
     fun setCurrentUserId(userId: String) {
-        currentUserId = userId
+        this.currentUserId = userId
     }
 
     /**
-     * Update the list of active users
+     * Update the list of active users - hiển thị tất cả ngoại trừ người dùng hiện tại
      */
     fun updateActiveUsers(users: List<UserInfo>) {
-        // Filter out stale users
-        val activeUsers = removeStaleUsers(users)
+        // Chỉ xét người dùng đang online (không offline) và không phải người dùng hiện tại
+        val activeUsers = users.filter {
+            !it.isOffline && it.userId != currentUserId
+        }
 
-        // First, remove any users that are no longer active
+        // Xóa bỏ người dùng không còn trong danh sách
         val currentUserIds = activeUsers.map { it.userId }
         val toRemove = userViewMap.keys.filter { it !in currentUserIds }
 
@@ -52,18 +48,18 @@ class UserPresenceView @JvmOverloads constructor(
             userViewMap.remove(userId)
         }
 
-        // Now add or update current users
+        // Cập nhật người dùng đang hoạt động
         activeUsers.take(maxUsersVisible).forEach { user ->
             if (user.userId in userViewMap) {
-                // Update existing user
+                // Cập nhật người dùng hiện tại
                 updateUserView(user)
             } else {
-                // Add new user
+                // Thêm người dùng mới
                 addUserView(user)
             }
         }
 
-        // Show additional users count if needed
+        // Hiển thị số người dùng thêm nếu cần
         if (activeUsers.size > maxUsersVisible) {
             showMoreUsersCount(activeUsers.size - maxUsersVisible)
         } else {
@@ -76,14 +72,19 @@ class UserPresenceView @JvmOverloads constructor(
         val indicator = view.findViewById<View>(R.id.user_color_indicator)
         val nameInitial = view.findViewById<TextView>(R.id.user_initial)
 
-        // Set user's color
+        // Đặt màu cho người dùng
         indicator.setBackgroundColor(user.color)
 
-        // Set user's initial
-        val initial = user.username.firstOrNull()?.toString() ?: "?"
+        // Đặt chữ cái đầu của tên người dùng, xử lý tên rỗng
+        val username = user.username.trim()
+        val initial = if (username.isNotEmpty()) {
+            username.first().toString()
+        } else {
+            "?"  // Chỉ hiển thị "?" nếu username hoàn toàn rỗng
+        }
         nameInitial.text = initial
 
-        // Show typing indicator if user is typing
+        // Hiển thị trạng thái đang nhập nếu người dùng đang nhập
         val typingIndicator = view.findViewById<View>(R.id.typing_indicator)
         typingIndicator.visibility = if (user.isTyping) View.VISIBLE else View.GONE
 
@@ -99,18 +100,6 @@ class UserPresenceView @JvmOverloads constructor(
         typingIndicator.visibility = if (user.isTyping) View.VISIBLE else View.GONE
     }
 
-    private fun removeStaleUsers(users: List<UserInfo>): List<UserInfo> {
-        val currentTime = System.currentTimeMillis()
-        val timeoutThreshold = 60000 // 1 minute timeout
-
-        return users.filter { user ->
-            // Keep users with recent activity or if they're the current user
-            val isCurrentUser = user.userId == currentUserId
-            val isRecentlyActive = currentTime - user.lastActive < timeoutThreshold
-
-            isCurrentUser || isRecentlyActive
-        }
-    }
 
     private fun showMoreUsersCount(count: Int) {
         // Check if the more count view already exists

@@ -186,6 +186,23 @@ class NotesAdapter(
                 // Lưu job vào tag để có thể hủy sau này
                 imagePreview.tag = job
             }
+            // Handle click for arrow button
+            expandButton.setOnClickListener {
+                onItemOptionsClick(it, note)
+            }
+
+            // Xử lý click vào note
+            val clickListener = View.OnClickListener {
+                Log.d("NotesAdapter", "Clicked note: id=${note.id}, title='${note.title}'")
+                val intent = Intent(context, NoteDetailActivity::class.java).apply {
+                    putExtra("note_id", note.id)
+                    putExtra("note_title", note.title)
+                }
+                context.startActivity(intent)
+            }
+
+            imagePreview.setOnClickListener(clickListener)
+            textTitle.setOnClickListener(clickListener)
         }
     }
 

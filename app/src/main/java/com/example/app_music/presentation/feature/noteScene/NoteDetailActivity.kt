@@ -8,8 +8,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.view.Menu
@@ -21,10 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.app_music.R
 import com.example.app_music.data.collaboration.CollaborationManager
 import com.example.app_music.data.model.NotePage
@@ -44,7 +39,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -52,16 +46,13 @@ import java.util.Locale
 import java.util.Random
 import java.util.UUID
 import android.Manifest
-import android.graphics.drawable.Drawable
+import android.graphics.Canvas
+import android.graphics.Matrix
 import android.os.Build
-import android.view.MotionEvent
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.transition.Transition
 import com.example.app_music.presentation.feature.noteScene.views.RealtimeDrawingManager
-import com.google.gson.Gson
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 class NoteDetailActivity : BaseActivity() {
@@ -102,8 +93,6 @@ class NoteDetailActivity : BaseActivity() {
     private var currentPage: NotePage? = null
     private val lastEditTimes = mutableMapOf<String, Long>()
     // Photo capture variables
-    private var photoUri: Uri? = null
-    private var currentPhotoPath: String? = null
     private var tempPhotoUri: Uri? = null
     private var tempPhotoPath: String? = null
     private var drawingManager: RealtimeDrawingManager? = null
@@ -415,27 +404,65 @@ class NoteDetailActivity : BaseActivity() {
             saveCurrentPage(false) // Save without toast
         }
     }
-    private var previousUserCount = 0
     private fun setupCollaboration() {
-        // Mark user as active
-        val username = currentUser?.displayName ?: "Anonymous"
+        // Lấy ID người dùng hiện tại
+        val currentUserId = currentUser?.uid ?: collaborationManager.getCurrentUserId()
+        val username = currentUser?.displayName ?: "Bno"
+
+        // Đặt ID người dùng hiện tại cho UserPresenceView
+        binding.activeUsersView.setCurrentUserId(currentUserId)
+
+        // Đánh dấu người dùng hiện tại là có mặt
         collaborationManager.setUserPresence(username, userColor)
 
-        // Observe active users with improved UI feedback
+        // Theo dõi người dùng với thời gian hết hạn
         lifecycleScope.launch {
-            collaborationManager.getActiveUsers().collectLatest { users ->
-                binding.activeUsersView.updateActiveUsers(users)
-                binding.userCount.text = "${users.size}"
+            // Map để lưu thời gian hoạt động cuối cùng của mỗi người dùng
+            val lastActiveTimes = mutableMapOf<String, Long>()
+            // Set để lưu các ID người dùng đã biết
+            val knownUserIds = HashSet<String>()
+            knownUserIds.add(currentUserId) // Thêm ID của chính mình
 
-                // Show toast when a new user joins (except for the first user, which is the current user)
-                if (previousUserCount > 0 && users.size > previousUserCount) {
-                    val newUser = users.lastOrNull { it.userId != currentUser?.uid }
-                    if (newUser != null) {
-                        Toast.makeText(this@NoteDetailActivity,
-                            "${newUser.username} joined", Toast.LENGTH_SHORT).show()
-                    }
+            // Thời gian tính là không hoạt động (10 giây)
+            val INACTIVE_THRESHOLD = 10000L
+
+            collaborationManager.getActiveUsers().collectLatest { allUsers ->
+                // Thời gian hiện tại
+                val currentTime = System.currentTimeMillis()
+
+                // Lọc ra người dùng đang hoạt động (không offline và trong thời gian hoạt động)
+                val activeUsers = allUsers.filter { user ->
+                    !user.isOffline && (currentTime - user.lastActive < INACTIVE_THRESHOLD)
                 }
-                previousUserCount = users.size
+
+                // Lọc ra người dùng mới thực sự
+                val newUsers = activeUsers.filter {
+                    !knownUserIds.contains(it.userId) && it.userId != currentUserId
+                }
+
+                // Cập nhật UI
+                binding.activeUsersView.updateActiveUsers(activeUsers)
+
+                // Chỉ hiển thị số lượng người dùng khác
+                val otherUsers = activeUsers.filter { it.userId != currentUserId }
+                binding.userCount.text = "${otherUsers.size}"
+
+                // Hiển thị thông báo cho người dùng mới
+                for (newUser in newUsers) {
+                    Toast.makeText(
+                        this@NoteDetailActivity,
+                        "${newUser.username} đã tham gia",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    // Thêm vào danh sách đã biết
+                    knownUserIds.add(newUser.userId)
+                }
+
+                // Cập nhật thời gian hoạt động cuối
+                for (user in activeUsers) {
+                    lastActiveTimes[user.userId] = user.lastActive
+                }
             }
         }
     }
@@ -563,10 +590,6 @@ class NoteDetailActivity : BaseActivity() {
             return
         }
 
-        Log.d("NoteDetailActivity", "==== LOADING PAGE $index =====")
-        Log.d("NoteDetailActivity", "Page ID: ${pages[index].id}")
-        Log.d("NoteDetailActivity", "Image path: ${pages[index].imagePath}")
-
         // Hiển thị loading indicator
         binding.progressBar.visibility = View.VISIBLE
 
@@ -693,10 +716,6 @@ class NoteDetailActivity : BaseActivity() {
 
         // Buộc giải phóng bộ nhớ
         System.gc()
-    }
-    private fun createWhiteBackground() {
-        binding.drawingView.setWhiteBackground(800, 1200)
-        binding.imageNote.visibility = View.GONE
     }
 
     private fun setupPageEventListener() {
@@ -867,44 +886,40 @@ class NoteDetailActivity : BaseActivity() {
             try {
                 binding.saveProgressBar.visibility = View.VISIBLE
 
-                // Cập nhật timestamp cho trang
-                val updatedPage = currentPage!!.copy(
-                    createdAt = System.currentTimeMillis()
-                )
+                // Sử dụng NonCancellable để đảm bảo công việc hoàn thành ngay cả khi job cha bị hủy
+                withContext(NonCancellable) {
+                    // Cập nhật timestamp cho trang
+                    val updatedPage = currentPage!!.copy(
+                        createdAt = System.currentTimeMillis()
+                    )
 
-                // Đánh dấu thời gian này để biết lần cập nhật cuối cùng
-                val saveTimestamp = System.currentTimeMillis()
+                    // Lưu trang vào repository
+                    val result = repository.updatePage(updatedPage)
 
-                // Lưu trang vào repository
-                val result = repository.updatePage(updatedPage)
+                    if (result.isSuccess) {
+                        // Cập nhật bản sao cục bộ
+                        currentPage = result.getOrNull()
+                        pages[currentPageIndex] = currentPage!!
 
-                if (result.isSuccess) {
-                    // Cập nhật bản sao cục bộ
-                    currentPage = result.getOrNull()
-                    pages[currentPageIndex] = currentPage!!
-
-                    // Thông báo cho người dùng nếu cần
-                    if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity, "Page saved", Toast.LENGTH_SHORT).show()
-                    }
-
-                    Log.d("NoteDetailActivity", "Page saved successfully at $saveTimestamp")
-                } else {
-                    Log.e("NoteDetailActivity", "Error saving page: ${result.exceptionOrNull()}")
-
-                    if (showToast) {
-                        Toast.makeText(this@NoteDetailActivity,
-                            "Error saving page: ${result.exceptionOrNull()?.message}",
-                            Toast.LENGTH_SHORT).show()
+                        Log.d("NoteDetailActivity", "Page saved successfully")
+                    } else {
+                        Log.e("NoteDetailActivity", "Error saving page: ${result.exceptionOrNull()}")
                     }
                 }
+
+                // Hiển thị toast nếu cần (bên ngoài NonCancellable)
+                if (showToast) {
+                    Toast.makeText(this@NoteDetailActivity, "Page saved", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: CancellationException) {
+                // Đánh log là bình thường, không phải lỗi
+                Log.d("NoteDetailActivity", "Save operation was cancelled during activity shutdown")
             } catch (e: Exception) {
                 Log.e("NoteDetailActivity", "Error in saveCurrentPage", e)
 
                 if (showToast) {
                     Toast.makeText(this@NoteDetailActivity,
-                        "Error: ${e.message}",
-                        Toast.LENGTH_SHORT).show()
+                        "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             } finally {
                 binding.saveProgressBar.visibility = View.GONE
@@ -912,6 +927,22 @@ class NoteDetailActivity : BaseActivity() {
         }
     }
 
+    private fun createThumbnail(bitmap: Bitmap): Bitmap {
+        // Scale the bitmap to thumbnail size (e.g., 200x200)
+        val width = bitmap.width
+        val height = bitmap.height
+        val maxSize = 200
+
+        val scale = Math.min(
+            maxSize.toFloat() / width.toFloat(),
+            maxSize.toFloat() / height.toFloat()
+        )
+
+        val matrix = Matrix()
+        matrix.postScale(scale, scale)
+
+        return Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true)
+    }
 
     // Add an automatic save timer
     private var autoSaveJob: Job? = null
@@ -1505,61 +1536,19 @@ class NoteDetailActivity : BaseActivity() {
             }
         }
     }
-    private fun showCollaborateDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_collaborator, null)
-        val editTextEmail = dialogView.findViewById<android.widget.EditText>(R.id.et_email)
-
-        AlertDialog.Builder(this)
-            .setTitle("Add Collaborator")
-            .setView(dialogView)
-            .setPositiveButton("Add") { _, _ ->
-                val email = editTextEmail.text.toString().trim()
-                if (email.isNotEmpty()) {
-                    addCollaborator(email)
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun addCollaborator(email: String) {
-        lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
-
-            try {
-                val result = repository.shareNoteWithUser(noteId, email)
-
-                if (result.isSuccess) {
-                    Toast.makeText(this@NoteDetailActivity, "Collaborator added", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@NoteDetailActivity, "Failed to add collaborator", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(this@NoteDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
-            }
-        }
-    }
 
     override fun onPause() {
         super.onPause()
 
         // Lưu trang hiện tại với cơ chế đồng bộ
-        runBlocking {
+        lifecycleScope.launch {
             try {
-                val saveJob = lifecycleScope.launch {
+                // Lưu trang hiện tại một cách an toàn
+                withContext(NonCancellable) {
                     saveCurrentPage(false)
                 }
-
-                // Đợi việc lưu hoàn tất với timeout
-                withTimeout(3000) {
-                    saveJob.join()
-                }
-                collaborationManager.setUserTyping(false)
-                Log.d("NoteDetailActivity", "Page saved successfully in onPause")
             } catch (e: Exception) {
-                Log.e("NoteDetailActivity", "Error saving page in onPause", e)
+                Log.e("NoteDetailActivity", "Error in onPause", e)
             }
         }
 
@@ -1570,42 +1559,50 @@ class NoteDetailActivity : BaseActivity() {
 
     override fun onDestroy() {
         try {
-            // Hủy auto save job trước khi lưu
+            // Hủy job auto save
             autoSaveJob?.cancel()
-            autoSaveJob = null
 
-            // Lưu trang hiện tại nếu cần
-            if (currentPage != null) {
-                runBlocking {
-                    try {
-                        val saveJob = lifecycleScope.launch {
-                            saveCurrentPage(false)
-                        }
-                        // Thêm timeout để tránh treo
-                        withTimeout(2000) {
-                            saveJob.join()
-                        }
-                        Log.d("NoteDetailActivity", "Page saved successfully in onDestroy")
-                    } catch (e: Exception) {
-                        Log.e("NoteDetailActivity", "Error saving in onDestroy", e)
+            // Tạo một coroutine scope mới độc lập với lifecycle
+            val cleanupJob = GlobalScope.launch(Dispatchers.IO + NonCancellable) {
+                try {
+                    if (currentPage != null) {
+                        // Lưu trang cuối cùng
+                        saveCurrentPage(false)
+                        Log.d("NoteDetailActivity", "Final save successful")
                     }
+                } catch (e: Exception) {
+                    Log.e("NoteDetailActivity", "Error during final save", e)
+                } finally {
+                    // Đảm bảo dọn dẹp các tài nguyên
+                    drawingManager?.cleanup()
+                    collaborationManager.removeUserPresence()
+                    collaborationManager.cleanup()
                 }
             }
 
-            // Dọn dẹp
-            drawingManager?.cleanup()
-            collaborationManager.cleanup()
+            // Đợi tối đa 2 giây cho việc lưu hoàn tất
+            runBlocking(Dispatchers.IO) {
+                try {
+                    withTimeout(2000) {
+                        cleanupJob.join()
+                    }
+                } catch (e: Exception) {
+                    Log.w("NoteDetailActivity", "Cleanup timed out, continuing with activity destruction")
+                }
+            }
         } catch (e: Exception) {
             Log.e("NoteDetailActivity", "Error during cleanup", e)
         }
+
         super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
 
-        // Do not reload note data here - it's already loaded in onCreate
-
+        if (noteTitle.isNotEmpty()) {
+            supportActionBar?.title = noteTitle
+        }
         // Just update UI elements if needed
         updateNavigationButtons()
         updatePageIndicator()

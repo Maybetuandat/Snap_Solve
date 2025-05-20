@@ -50,6 +50,7 @@
             android:textStyle="normal"
             android:background="@drawable/spinner_border_round"
             android:gravity="center"
+            android:layout_gravity="center"
             android:id="@+id/note_button_type"
             android:drawableEnd="@drawable/down"
             android:textAllCaps="false"

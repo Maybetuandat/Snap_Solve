@@ -272,23 +272,6 @@ class DrawingView @JvmOverloads constructor(
         return points
     }
 
-    private fun createPathFromStroke(stroke: Stroke): Path {
-        val path = Path()
-
-        if (stroke.points.isEmpty()) return path
-
-        // Start path at first point
-        val first = stroke.points.first()
-        path.moveTo(first.x, first.y)
-
-        // Add lines to subsequent points
-        for (i in 1 until stroke.points.size) {
-            val point = stroke.points[i]
-            path.lineTo(point.x, point.y)
-        }
-
-        return path
-    }
     // Thêm phương thức này để vẽ stroke một cách nhất quán
     private fun drawStrokeOnCanvas(canvas: Canvas, stroke: Stroke) {
         val path = stroke.toPath()
@@ -490,159 +473,12 @@ class DrawingView @JvmOverloads constructor(
         return mLastEditTime
     }
 
-    /**
-     * Xử lý sự kiện touch khi ở chế độ vẽ hoặc tẩy
-     */
-    /**
-     * Handle touch events for drawing and erasing
-     */
-    private fun handleDrawingTouch(event: MotionEvent) {
-        val x = event.x
-        val y = event.y
-
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                if (mCurrentMode == DrawMode.ERASE) {
-                    // Handle erasing
-                    val strokesToErase = findStrokesAt(x, y)
-                    if (strokesToErase.isNotEmpty()) {
-                        // Store for undo before removing
-                        mDeletedStrokes.addAll(strokesToErase)
-
-                        // Remove the strokes
-                        for (stroke in strokesToErase) {
-                            mStrokes.remove(stroke)
-                        }
-
-                        // Force save and update UI
-                        mForceSave = true
-                        invalidate()
-                        notifyDrawCompleted()
-                        return
-                    }
-                } else if (mCurrentMode == DrawMode.DRAW) {
-                    // Start a new stroke
-                    mCurrentStroke = Stroke(
-                        color = mPaint.color,
-                        strokeWidth = mPaint.strokeWidth,
-                        isEraser = false
-                    )
-
-                    // Add first point
-                    mCurrentStroke?.points?.add(StrokePoint(x, y, MotionEvent.ACTION_DOWN))
-                    invalidate()
-                }
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                if (mCurrentMode == DrawMode.ERASE) {
-                    // Continue erasing if dragging
-                    val strokesToErase = findStrokesAt(x, y)
-                    if (strokesToErase.isNotEmpty()) {
-                        // Store for undo before removing
-                        mDeletedStrokes.addAll(strokesToErase)
-
-                        // Remove the strokes
-                        for (stroke in strokesToErase) {
-                            mStrokes.remove(stroke)
-                        }
-
-                        // Force save and update UI
-                        mForceSave = true
-                        invalidate()
-                        notifyDrawCompleted()
-                    }
-                } else if (mCurrentMode == DrawMode.DRAW && mCurrentStroke != null) {
-                    // Add point to current stroke
-                    val lastPoint = mCurrentStroke?.points?.lastOrNull()
-                    if (lastPoint != null) {
-                        val dx = Math.abs(x - lastPoint.x)
-                        val dy = Math.abs(y - lastPoint.y)
-
-                        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                            mCurrentStroke?.points?.add(StrokePoint(x, y, MotionEvent.ACTION_MOVE))
-                            invalidate()
-                        }
-                    }
-                }
-            }
-
-            MotionEvent.ACTION_UP -> {
-                if (mCurrentMode == DrawMode.ERASE) {
-                    // Erasing completed - nothing special to do
-                } else if (mCurrentMode == DrawMode.DRAW && mCurrentStroke != null) {
-                    // Finalize the stroke
-                    mCurrentStroke?.points?.add(StrokePoint(x, y, MotionEvent.ACTION_UP))
-
-                    if (mCurrentStroke?.points?.size ?: 0 > 1) {
-                        // Add to strokes list
-                        mStrokes.add(mCurrentStroke!!)
-
-                        // Clear redos when adding a new stroke
-                        mDeletedStrokes.clear()
-
-                        // Force save
-                        mForceSave = true
-                        notifyDrawCompleted()
-                    }
-
-                    mCurrentStroke = null
-                    invalidate()
-                }
-            }
-        }
-    }
-
     fun setWhiteBackground(width: Int, height: Int) {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
         mBackgroundBitmap = bitmap
         invalidate()
-    }
-    private fun findStrokesAt(x: Float, y: Float): List<Stroke> {
-        val hitStrokes = mutableListOf<Stroke>()
-        val hitRadius = mPaint.strokeWidth * 2 // Make it easier to hit strokes
-
-        for (stroke in mStrokes) {
-            // Skip eraser strokes when erasing
-            if (stroke.isEraser) continue
-
-            // Check if point is near the stroke path
-            val path = stroke.toPath()
-            val bounds = RectF()
-            path.computeBounds(bounds, true)
-
-            // Expand bounds by stroke width and hit radius
-            bounds.inset(-(stroke.strokeWidth + hitRadius), -(stroke.strokeWidth + hitRadius))
-
-            if (bounds.contains(x, y)) {
-                hitStrokes.add(stroke)
-            }
-        }
-
-        return hitStrokes
-    }
-
-    /**
-     * Xử lý sự kiện touch khi ở chế độ chọn
-     */
-    private fun handleSelectionTouch(event: MotionEvent) {
-        when (event.action) {
-            MotionEvent.ACTION_UP -> {
-                // Điều chỉnh tọa độ theo scale và pan
-                val adjustedX = (event.x - mPosX) / mScaleFactor
-                val adjustedY = (event.y - mPosY) / mScaleFactor
-
-                // Chọn nét vẽ ở vị trí này
-                val strokeId = findStrokeAt(adjustedX, adjustedY)
-                if (strokeId != mSelectedStrokeId) {
-                    mSelectedStrokeId = strokeId
-                    mStrokeSelectedListener?.invoke(strokeId ?: "")
-                    invalidate()
-                }
-            }
-        }
     }
 
     /**
@@ -730,11 +566,6 @@ class DrawingView @JvmOverloads constructor(
             // Notify stroke deleted listener
             mStrokeDeletedListener?.onStrokeDeleted(stroke.id)
         }
-    }
-
-
-    fun getDrawingDataClass(): Class<DrawingData> {
-        return DrawingData::class.java
     }
 
 
@@ -940,30 +771,6 @@ class DrawingView @JvmOverloads constructor(
         mBackgroundRect.set(left, top, left + displayWidth, top + displayHeight)
 
         Log.d(TAG, "Background rect: $mBackgroundRect")
-    }
-    /**
-     * Set a white background with specific dimensions
-     */
-
-
-    /**
-     * Lấy dữ liệu vẽ
-     */
-    fun getDrawingData(): DrawingData {
-        return DrawingData(
-            strokes = mStrokes.toList(),
-            width = width,
-            height = height
-        )
-    }
-    fun deleteSelectedStroke() {
-        mSelectedStrokeId?.let { strokeId ->
-            val stroke = findStrokeById(strokeId)
-            if (stroke != null) {
-                deleteStroke(stroke)
-            }
-            mSelectedStrokeId = null
-        }
     }
 
     private var pageLoaded = false

@@ -248,7 +248,12 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-    
+
+    fun clearImageCache(noteId: String) {
+        // Clear both thumbnail and full image from cache
+        deleteThumbnailLocally(noteId)
+        deleteImageLocally(noteId)
+    }
     /**
      * Load a thumbnail from Firebase Storage
      */

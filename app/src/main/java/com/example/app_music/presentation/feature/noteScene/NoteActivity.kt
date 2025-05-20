@@ -274,7 +274,9 @@ class NoteActivity : BaseActivity() {
 
     private fun loadNotesInFolder(folderId: String) {
         binding.progressBar.visibility = View.VISIBLE
-        notesList.clear()
+
+        // Keep track of currently displayed notes to animate updates
+        val currentNoteIds = notesList.map { it.id }
 
         lifecycleScope.launch {
             try {
@@ -283,8 +285,8 @@ class NoteActivity : BaseActivity() {
                 if (notesResult.isSuccess) {
                     val notes = notesResult.getOrNull() ?: emptyList()
 
-                    // Convert to NoteItem objects
-                    val noteItems = notes.map { note ->
+                    // Create new note items with fresh data
+                    val updatedNotes = notes.map { note ->
                         NoteItem(
                             id = note.id,
                             title = note.title,
@@ -294,8 +296,19 @@ class NoteActivity : BaseActivity() {
                         )
                     }
 
-                    notesList.addAll(noteItems)
-                    adapter.notifyDataSetChanged()
+                    // Clear existing cached images to force reload
+                    // This is important when returning from NoteDetailActivity
+                    val storageManager = StorageManager(applicationContext);
+                    for (note in updatedNotes) {
+                        storageManager.clearImageCache(note.id)
+                    }
+
+                    // Update the list with new data
+                    withContext(Dispatchers.Main) {
+                        notesList.clear()
+                        notesList.addAll(updatedNotes)
+                        adapter.notifyDataSetChanged()
+                    }
                 } else {
                     Toast.makeText(this@NoteActivity, "Failed to load notes", Toast.LENGTH_SHORT).show()
                 }
@@ -1013,4 +1026,11 @@ class NoteActivity : BaseActivity() {
         adapter.notifyDataSetChanged()
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        if (isInFolder && currentFolderId != null) {
+            loadNotesInFolder(currentFolderId!!)
+        }
+    }
 }

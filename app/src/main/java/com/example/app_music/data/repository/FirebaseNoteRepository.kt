@@ -340,115 +340,10 @@ class FirebaseNoteRepository {
         }
     }
 
-    suspend fun shareNoteWithUser(noteId: String, userEmail: String): Result<Boolean> {
-        return try {
-            // First find the user by email
-            val userQuerySnapshot = db.collection("users")
-                .whereEqualTo("email", userEmail)
-                .get()
-                .await()
-                
-            if (userQuerySnapshot.documents.isEmpty()) {
-                return Result.failure(Exception("User not found"))
-            }
-            
-            val userId = userQuerySnapshot.documents[0].id
-            
-            // Add user to collaborators
-            val noteRef = notesCollection.document(noteId)
-            val note = noteRef.get().await().toObject(NoteFirebaseModel::class.java)
-            
-            if (note != null) {
-                val collaborators = note.collaborators.toMutableList()
-                if (!collaborators.contains(userId)) {
-                    collaborators.add(userId)
-                    noteRef.update("collaborators", collaborators).await()
-                }
-                Result.success(true)
-            } else {
-                Result.failure(Exception("Note not found"))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error sharing note", e)
-            Result.failure(e)
-        }
-    }
 
-    suspend fun getImageBitmap(imagePath: String): Result<Uri> {
-        return try {
-            // Đầu tiên kiểm tra xem đường dẫn đã có "images/" chưa
-            val fullPath = if (!imagePath.startsWith("images/")) {
-                "images/$imagePath"
-            } else {
-                imagePath
-            }
-
-            Log.d(TAG, "Đang tải ảnh từ: $fullPath")
-            val imageRef = storage.reference.child(fullPath)
-            val uri = imageRef.downloadUrl.await()
-            Result.success(uri)
-        } catch (e: Exception) {
-            Log.e(TAG, "Lỗi tải ảnh từ đường dẫn: $imagePath", e)
-            Result.failure(e)
-        }
-    }
-    
     companion object {
         private const val TAG = "FirebaseNoteRepository"
     }
-
-    suspend fun createPage(noteId: String, imageUri: Uri? = null, pageIndex: Int = -1): Result<NotePage> {
-        return try {
-            // Get the note first
-            val noteResult = getNote(noteId)
-            if (noteResult.isFailure) {
-                return Result.failure(Exception("Note not found"))
-            }
-
-            val note = noteResult.getOrNull()!!
-
-            // Generate a new page ID
-            val pageId = UUID.randomUUID().toString()
-
-            // Determine page index (add to end if not specified)
-            val index = if (pageIndex < 0) note.pageIds.size else pageIndex
-
-            // Upload image if provided
-            var imagePath: String? = null
-            if (imageUri != null) {
-                val imageName = "$pageId.jpg"
-                val imageRef = storageRef.child("pages/$imageName")
-
-                // Upload the image
-                imageRef.putFile(imageUri).await()
-
-                // Get the storage path
-                imagePath = "pages/$imageName"
-            }
-
-            // Create the page
-            val page = NotePage(
-                id = pageId,
-                noteId = noteId,
-                pageIndex = index,
-                imagePath = imagePath,
-                createdAt = Date().time
-            )
-
-            // Add the page to Firestore
-            pagesCollection.document(pageId).set(page).await()
-
-            // Update the note's page list
-            note.pageIds.add(pageId)
-            notesCollection.document(noteId).update("pageIds", note.pageIds).await()
-
-            Result.success(page)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating page", e)
-            Result.failure(e)
-        }
-    }
-
 
     suspend fun createBlankPage(noteId: String, pageIndex: Int = -1): Result<NotePage> {
         return try {
@@ -637,38 +532,4 @@ class FirebaseNoteRepository {
         }
     }
 
-    suspend fun reorderPages(noteId: String, pageIds: List<String>): Result<Boolean> {
-        return try {
-            // Get the note
-            val noteResult = getNote(noteId)
-            if (noteResult.isFailure) {
-                return Result.failure(Exception("Note not found"))
-            }
-
-            val note = noteResult.getOrNull()!!
-
-            // Verify that all provided page IDs belong to this note
-            if (!note.pageIds.containsAll(pageIds)) {
-                return Result.failure(Exception("Invalid page IDs"))
-            }
-
-            // Update the note's page list
-            note.pageIds.clear()
-            note.pageIds.addAll(pageIds)
-            notesCollection.document(noteId).update("pageIds", note.pageIds).await()
-
-            // Update page indices
-            val batch = db.batch()
-            for ((index, pageId) in pageIds.withIndex()) {
-                val pageRef = pagesCollection.document(pageId)
-                batch.update(pageRef, "pageIndex", index)
-            }
-            batch.commit().await()
-
-            Result.success(true)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error reordering pages", e)
-            Result.failure(e)
-        }
-    }
 }
