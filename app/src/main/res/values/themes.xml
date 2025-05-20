@@ -1,26 +1,40 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Base Theme -->
-    <style name="Base.Theme.App_music" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Làm status bar trong suốt -->
-        <item name="android:statusBarColor">@android:color/transparent</item>
+    <!-- Base Theme (updated to use MaterialComponents) -->
+    <style name="Base.Theme.App_music" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/selectedicon</item>
+        <item name="colorPrimaryVariant">@color/brown</item>
+        <item name="colorOnPrimary">@color/white</item>
 
-        <!-- Cho status bar icon hiển thị rõ: nên dùng nền sáng -->
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/selectedicon</item>
+        <item name="colorSecondaryVariant">@color/brown</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/white</item>
         <item name="android:windowLightStatusBar">true</item>
-
-        <!-- Navigation bar trắng + icon tối -->
-        <item name="android:navigationBarColor">@color/white</item>
-
     </style>
+
+    <!-- Tắt ripple cho 1 view nào đó -->
     <style name="NoRipple">
         <item name="android:background">@android:color/transparent</item>
         <item name="android:foreground">@null</item>
     </style>
-    <!-- res/values/styles.xml -->
 
+    <!-- Button Styles -->
+    <style name="Button.Orange" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/selectedicon</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="cornerRadius">24dp</item>
+    </style>
 
-
-
+    <style name="Button.White" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/selectedicon</item>
+        <item name="android:textColor">@color/selectedicon</item>
+        <item name="cornerRadius">24dp</item>
+    </style>
 
     <!-- App Theme kế thừa Base -->
     <style name="Theme.App_music" parent="Base.Theme.App_music" />

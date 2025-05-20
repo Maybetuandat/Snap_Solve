@@ -14,4 +14,14 @@
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
 
+    <!-- New colors for home screen -->
+    <color name="utilities_bg">#F9F2ED</color>
+    <color name="white_semi">#99FFFFFF</color>
+    <color name="gold">#F1BF6F</color>
+    <color name="brown">#955D3B</color>
+    <color name="facebook_blue">#156EB6</color>
+    <color name="tiktok_black">#2A2A2A</color>
+    <color name="scan_button_bg">#F6EBE4</color>
+    <color name="search_bg">#F6EBE4</color>
+
 </resources>

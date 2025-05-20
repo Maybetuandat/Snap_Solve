@@ -1,0 +1,7 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetBottom="6dp"> <!-- Chừa khoảng để lộ bóng -->
+
+    <shape android:shape="rectangle">
+        <corners android:radius="12dp" />
+    </shape>
+</inset>

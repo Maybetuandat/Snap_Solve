@@ -85,15 +85,26 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore:24.10.0")
     implementation("com.google.firebase:firebase-storage:20.3.0")
     implementation("com.google.firebase:firebase-auth:22.3.0")
+    // Camera X
+    val camerax_version = "1.3.0"
+    implementation ("androidx.camera:camera-core:${camerax_version}")
+    implementation ("androidx.camera:camera-camera2:${camerax_version}")
+    implementation ("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation ("androidx.camera:camera-view:${camerax_version}")
 
     // QR Code generation and scanning
     implementation ("com.google.zxing:core:3.5.2")
     implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
+    // OkHttp dependencies for network requests
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
     // Real-time collaboration
     implementation ("com.google.firebase:firebase-database-ktx:20.3.0")
     implementation("com.github.bumptech.glide:glide:4.15.1")
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
+    // Gson for JSON parsing
+    implementation("com.google.code.gson:gson:2.10.1")
 
 
 

@@ -1,16 +1,544 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     tools:context=".presentation.feature.home.HomeFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <!-- Top bar with profile, stars and notification -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/top_bar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:textColor="@color/white"
-        android:text="this is home fragment" />
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="5dp"
+        app:layout_constraintTop_toTopOf="parent">
 
-</FrameLayout>
+        <ImageView
+            android:id="@+id/profile_icon"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:src="@drawable/ic_home_avatar"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/black" />
+
+        <LinearLayout
+            android:id="@+id/stars_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/spinner_border_round_2"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="4dp"
+            android:layout_marginEnd="15dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/notification_icon"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10"
+                android:textColor="#F29E18"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_star"
+                app:tint="#F2D326" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/notification_icon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_outline_notifications"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/black" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Main content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- SnapSolve Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ask SnapSolve anything"
+                android:textAlignment="center"
+                android:textColor="@color/selectedicon"
+                android:textSize="24sp"
+                android:textStyle="bold"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/search_edit_text"
+                    android:layout_width="0dp"
+                    android:layout_height="53dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/border_round_12"
+                    android:drawableStart="@drawable/ic_home_search"
+                    android:drawablePadding="8dp"
+                    android:drawableTint="#9E633E"
+                    android:hint="Type your question"
+                    android:paddingHorizontal="15dp"
+                    android:textColorHint="@color/selectedicon"
+                    android:textSize="15sp" />
+
+                <ImageButton
+                    android:id="@+id/camera_button"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginStart="14dp"
+                    android:background="@drawable/spinner_border_round_orange_2"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_home_camera"
+                    app:tint="@color/white" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="30dp"
+                android:background="#9E633E" />
+
+            <!-- Utilities Section -->
+            <LinearLayout
+                android:id="@+id/utilities_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/border_round_16"
+                android:orientation="vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingBottom="14dp"
+                android:paddingTop="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Utilities"
+                    android:textColor="@color/selectedicon"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <!-- First Utility: Dictionary -->
+                    <LinearLayout
+                        android:id="@+id/dictionary_item"
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
+                        android:background="@drawable/back_utilities"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="10dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
+                            android:src="@drawable/image_dictionary"
+                            />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Từ điển"
+                            android:textColor="@color/selectedicon"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <!-- Second Utility: Calculator -->
+                    <LinearLayout
+                        android:id="@+id/calculator_item"
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
+                        android:background="@drawable/back_utilities"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="10dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
+                            android:src="@drawable/image_calculator"
+                            />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Máy tính"
+                            android:textColor="@color/selectedicon"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <!-- Third Utility: Entertainment 1 -->
+                    <LinearLayout
+                        android:id="@+id/entertainment_item1"
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
+                        android:background="@drawable/back_utilities"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="10dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
+                            android:src="@drawable/image_ghost"
+                            />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Giải trí"
+                            android:textColor="@color/selectedicon"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <!-- Fourth Utility: Entertainment 2 -->
+                    <LinearLayout
+                        android:id="@+id/entertainment_item2"
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
+                        android:background="@drawable/back_utilities"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
+                            android:src="@drawable/image_ghost"
+                            />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Giải trí"
+                            android:textColor="@color/selectedicon"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Today Missions Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/border_round_16"
+                android:paddingHorizontal="14dp"
+                android:paddingBottom="14dp"
+                android:paddingTop="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="Today missions"
+                    android:textColor="@color/selectedicon"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <!-- Mission 1 -->
+                <LinearLayout
+                    android:id="@+id/mission_items_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="4dp"
+                    android:paddingHorizontal="0dp">
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:src="@drawable/ic_ad"
+                        />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Xem quảng cáo"
+                            android:textColor="@color/selectedicon"
+                            android:textStyle="bold"
+                            android:textSize="12sp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="+10"
+                                android:textColor="#EAB258"
+                                android:textStyle="bold"
+                                android:textSize="12sp" />
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginStart="4dp"
+                                android:src="@drawable/ic_star"
+                                app:tint="#F2D326" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_arrow_back_left"
+                        android:rotation="180"
+                        app:tint="@color/black" />
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:background="#9E633E" />
+
+                <!-- Mission 2 -->
+                <LinearLayout
+                    android:id="@+id/mission_items_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="4dp"
+                    android:paddingHorizontal="0dp">
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:src="@drawable/ic_ad"
+                        />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Xem quảng cáo"
+                            android:textColor="@color/selectedicon"
+                            android:textStyle="bold"
+                            android:textSize="12sp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="+10"
+                                android:textColor="#EAB258"
+                                android:textStyle="bold"
+                                android:textSize="12sp" />
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginStart="4dp"
+                                android:src="@drawable/ic_star"
+                                app:tint="#F2D326" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_arrow_back_left"
+                        android:rotation="180"
+                        app:tint="@color/black" />
+                </LinearLayout>
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:background="#9E633E" />
+
+                <!-- Mission 3 -->
+                <LinearLayout
+                    android:id="@+id/mission_items_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="4dp"
+                    android:paddingHorizontal="0dp">
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:src="@drawable/ic_ad"
+                        />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Xem quảng cáo"
+                            android:textColor="@color/selectedicon"
+                            android:textStyle="bold"
+                            android:textSize="12sp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="+10"
+                                android:textColor="#EAB258"
+                                android:textStyle="bold"
+                                android:textSize="12sp" />
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginStart="4dp"
+                                android:src="@drawable/ic_star"
+                                app:tint="#F2D326" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_arrow_back_left"
+                        android:rotation="180"
+                        app:tint="@color/black" />
+                </LinearLayout>
+
+                <!-- Open Mission Board Button -->
+                <Button
+                    android:id="@+id/open_missions_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="16dp"
+                    app:cornerRadius="10dp"
+                    android:backgroundTint="#F3B24B"
+                    android:text="Open missions board"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:elevation="0dp"/>
+            </LinearLayout>
+
+            <!-- Social Media Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/facebook_button"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_marginEnd="14dp"
+                    android:layout_weight="1"
+                    app:cornerRadius="10dp"
+                    android:backgroundTint="#166EB7"
+                    android:drawableStart="@drawable/ic_baseline_facebook"
+                    android:drawableTint="@color/white"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="14dp"
+                    android:text="Facebook"
+                    android:textSize="14sp"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white" />
+
+                <Button
+                    android:id="@+id/tiktok_button"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    app:cornerRadius="10dp"                    android:backgroundTint="#2A2A2A"
+                    android:drawableStart="@drawable/ic_baseline_tiktok"
+                    android:drawableTint="@color/white"
+                    android:gravity="center"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="Tiktok"
+                    android:textSize="14sp"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white" />
+            </LinearLayout>
+
+            <!-- Extra space at bottom -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="40dp" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -4,9 +4,9 @@
         <string name="collaborators">Collaborators: </string>
         <string name="scan_qr_code">Quét mã QR</string>
         <string name="center_qr_code">Center the QR code in the frame to scan</string>
-        <string name="share_via_qr">Share via QR Code</string>
+        <string name="share_via_qr">Chia sẻ mã QR</string>
         <string name="scan_to_collaborate">Scan this QR code to collaborate on this note</string>
-        <string name="share_link">Share Link</string>
+        <string name="share_link">Chia sẻ Link</string>
         <string name="newbutton">Mới</string>
         <string name="noteTitle"> Ghi chú QANDA</string>
         <string name="restart_required">Yêu cầu khởi động lại</string>
@@ -52,9 +52,9 @@
         <string name="change">Thay đổi</string>
         <string name="username">Tên người dùng</string>
         <string name="status_message">Thông điệp trạng thái</string>
-        <string name="detail_status_message">hãy điền thông tin trạng thái của bạn</string>
+        <string name="detail_status_message">Tôi đói sau khi tập thể dục</string>
         <string name="student_information">Thông tin học sinh</string>
-        <string name="detail_student_infomation">Hãy cập nhật thông tin học sinh</string>
+        <string name="detail_student_infomation">Tôi đang học lớp mười lăm</string>
         <string name="account_information">Thông tin tài khoản</string>
         <string name="mailOfUser">trinhvinhtuandat@gmail.com</string>
         <string name="snap_solve_uid">UID Snap Solve</string>
@@ -85,12 +85,11 @@
         <string name="out_of_school">Tôi không đi học</string>
         <string name="btnComplete">Hoàn thành</string>
         <string-array name="spinnerNoteType">
-            <item>Ngày</item>
-            <item>Tên</item>
-            <item>Loại</item>
+                <item>Ngày</item>
+                <item>Tên</item>
+                <item>Loại</item>
         </string-array>
         <string name="system_language">Ngôn ngữ hệ thống</string>
-
         <string name="login">Đăng nhập</string>
         <string name="register">Đăng ký</string>
         <string name="forgot_password">Quên mật khẩu?</string>
@@ -130,7 +129,19 @@
         <string name="see_solve">Xem giải</string>
         <string name="gethelp">Xem trợ giúp</string>
         <string name="xemgiaithich">Xem giải</string>
-        <string name="share">Share</string>
+        <string name="share">Chia sẻ</string>
+        <string name="ask_snapsolve">Ask SnapSolve anything</string>
+        <string name="type_question">Type your question</string>
+        <string name="utilities">Utilities</string>
+        <string name="dictionary">Từ điển</string>
+        <string name="calculator">Máy tính</string>
+        <string name="entertainment">Giải trí</string>
+        <string name="today_missions">Today missions</string>
+        <string name="watch_ad">Xem quảng cáo</string>
+        <string name="ask_question">Đặt một câu hỏi</string>
+        <string name="points">+ 10</string>
+        <string name="open_missions">Open missions board</string>
+        <string name="tiktok">Tiktok</string>
         <string name="snap_solve_premium">Snap Solve Cao Cấp</string>
         <string name="unlimited_questions_and_answers">Không giới hạn câu hỏi và câu trả lời</string>
         <string name="ai_question_resolve">Bạn có thể sử dụng Trình giải câu hỏi AI và tìm kiếm nhiều câu hỏi\nmà không bị giới hạn</string>

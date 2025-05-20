@@ -6,6 +6,8 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
@@ -15,23 +17,19 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.PopupMenu
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import com.example.app_music.MainActivity
 import com.example.app_music.R
 import com.example.app_music.data.model.FolderFirebaseModel
 import com.example.app_music.data.model.NoteFirebaseModel
+import com.example.app_music.data.model.NotePage
 import com.example.app_music.data.repository.FirebaseNoteRepository
 import com.example.app_music.databinding.ActivityNoteBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
@@ -40,10 +38,6 @@ import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.presentation.feature.noteScene.noteAdapter.NotesAdapter
 import com.example.app_music.presentation.feature.qrscanner.QRScannerActivity
 import com.example.app_music.utils.StorageManager
-import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FirebaseFirestoreSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,7 +63,7 @@ class NoteActivity : BaseActivity() {
     // Firebase repository
     private val repository = FirebaseNoteRepository()
 
-    // Current user and folder info
+    // Current user info
     private val currentUserId: String
         get() = "test_user_1"
 
@@ -81,22 +75,6 @@ class NoteActivity : BaseActivity() {
     // Photo capture variables
     private var photoUri: Uri? = null
     private var currentPhotoPath: String? = null
-
-    // Permission launcher for newer Android versions
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            if (pendingAction == PendingAction.OPEN_CAMERA) {
-                openCamera()
-            } else if (pendingAction == PendingAction.OPEN_GALLERY) {
-                openFilePicker()
-            }
-            pendingAction = PendingAction.NONE
-        } else {
-            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     // For tracking pending actions after permission requests
     private enum class PendingAction {
@@ -111,9 +89,16 @@ class NoteActivity : BaseActivity() {
         binding = ActivityNoteBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //set click cho back button
         setupBackButton()
+
+        // set type button
         setupTypeButton()
+
+        // set recycle view
         setupRecyclerView()
+
+        //set button menu
         setupMenuButton()
 
         // Check if we're opening a specific folder (from QR code or deep link)
@@ -128,7 +113,6 @@ class NoteActivity : BaseActivity() {
                 }
             }
         } else {
-            // Load folders by default (top level)
             loadFolders()
         }
 
@@ -141,15 +125,31 @@ class NoteActivity : BaseActivity() {
     private fun setupBackButton() {
         binding.buttonBackNote.setOnClickListener {
             if (isInFolder) {
-                // Go back to folders view
                 showFoldersView()
             } else {
-                // Standard back behavior
-                onBackPressed()
+                val intent = Intent(this, MainActivity::class.java)
+                // Thêm flag để xóa các activity khác và không tạo instance mới của MainActivity
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                // Thêm extra để MainActivity biết chuyển đến HomeFragment
+                intent.putExtra("SELECT_HOME_TAB", true)
+                startActivity(intent)
+                finish()
             }
         }
     }
-
+    override fun onBackPressed() {
+        super.onBackPressed()
+        navigateToHome()
+    }
+    private fun navigateToHome() {
+        val intent = Intent(this, MainActivity::class.java)
+        // Thêm flag để xóa các activity khác và không tạo instance mới của MainActivity
+        //intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Thêm extra để MainActivity biết chuyển đến HomeFragment
+        intent.putExtra("SELECT_HOME_TAB", 100)
+        startActivity(intent)
+        finish()
+    }
     private fun setupTypeButton() {
         binding.noteButtonType.setOnClickListener {
             val popupMenu = PopupMenu(this, it)
@@ -165,11 +165,6 @@ class NoteActivity : BaseActivity() {
                     R.id.type_name -> {
                         binding.noteButtonType.text = getString(R.string.name)
                         sortItemsByName()
-                        true
-                    }
-                    R.id.type_type -> {
-                        binding.noteButtonType.text = getString(R.string.type)
-                        sortItemsByType()
                         true
                     }
                     else -> false
@@ -195,6 +190,7 @@ class NoteActivity : BaseActivity() {
         adapter = NotesAdapter(
             context = this,
             notesList = notesList,
+            lifecycleScope = lifecycleScope,
             onNewItemClick = { anchorView ->
                 showNewItemOptions(anchorView)
             },
@@ -202,33 +198,19 @@ class NoteActivity : BaseActivity() {
                 showItemOptions(anchorView, item)
             },
             onFolderClick = { folder ->
-                // Open folder
                 openFolder(folder.id, folder.title, true)
             }
         )
         binding.recycleViewNote.adapter = adapter
     }
 
-
-    // Add a method to show permission rationale
-    private fun showPermissionRationaleDialog(title: String, message: String, permission: String, action: PendingAction) {
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setPositiveButton("Grant") { _, _ ->
-                pendingAction = action
-                requestPermissionLauncher.launch(permission)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
     private fun setupMenuButton() {
         binding.noteButtonMenu.setOnClickListener {
             val menuRes = if (isInFolder) R.menu.menu_folder_action else R.menu.menu_note_action
             val popupMenu = PopupMenu(this, it)
             popupMenu.menuInflater.inflate(menuRes, popupMenu.menu)
 
-            // Enable icons
+            //enable icon
             try {
                 val menuField = PopupMenu::class.java.getDeclaredField("mPopup")
                 menuField.isAccessible = true
@@ -250,16 +232,14 @@ class NoteActivity : BaseActivity() {
     }
 
     private fun showFoldersView() {
-        // Reset folder navigation state
         isInFolder = false
         currentFolderId = null
         currentFolderTitle = null
 
-        // Update UI
+        //cap nhat text la QANDA Note
         binding.textTitle.text = getString(R.string.noteTitle)
+
         updateMenuForFolderView()
-        updatePathBar(null)
-        // Load folders
         loadFolders()
     }
 
@@ -307,14 +287,15 @@ class NoteActivity : BaseActivity() {
         // Update UI
         binding.textTitle.text = folderTitle
         updateMenuForNoteView()
-        updatePathBar(folderTitle)
         // Load notes in this folder
         loadNotesInFolder(folderId)
     }
 
     private fun loadNotesInFolder(folderId: String) {
         binding.progressBar.visibility = View.VISIBLE
-        notesList.clear()
+
+        // Keep track of currently displayed notes to animate updates
+        val currentNoteIds = notesList.map { it.id }
 
         lifecycleScope.launch {
             try {
@@ -323,8 +304,8 @@ class NoteActivity : BaseActivity() {
                 if (notesResult.isSuccess) {
                     val notes = notesResult.getOrNull() ?: emptyList()
 
-                    // Convert to NoteItem objects
-                    val noteItems = notes.map { note ->
+                    // Create new note items with fresh data
+                    val updatedNotes = notes.map { note ->
                         NoteItem(
                             id = note.id,
                             title = note.title,
@@ -334,8 +315,19 @@ class NoteActivity : BaseActivity() {
                         )
                     }
 
-                    notesList.addAll(noteItems)
-                    adapter.notifyDataSetChanged()
+                    // Clear existing cached images to force reload
+                    // This is important when returning from NoteDetailActivity
+                    val storageManager = StorageManager(applicationContext);
+                    for (note in updatedNotes) {
+                        storageManager.clearImageCache(note.id)
+                    }
+
+                    // Update the list with new data
+                    withContext(Dispatchers.Main) {
+                        notesList.clear()
+                        notesList.addAll(updatedNotes)
+                        adapter.notifyDataSetChanged()
+                    }
                 } else {
                     Toast.makeText(this@NoteActivity, "Failed to load notes", Toast.LENGTH_SHORT).show()
                 }
@@ -348,24 +340,20 @@ class NoteActivity : BaseActivity() {
     }
 
     private fun updateMenuForFolderView() {
-        // In folder view (top level), only show folder creation option
-        binding.noteButtonMenu.text = getString(R.string.create_new_folder)
+        binding.noteButtonMenu.text = getString(R.string.newbutton)
     }
 
     private fun updateMenuForNoteView() {
-        // In note view (inside folder), show note creation options
-        binding.noteButtonMenu.text = getString(R.string.create_new_note)
+        binding.noteButtonMenu.text = getString(R.string.newbutton)
     }
 
     private fun showNewItemOptions(anchorView: View?) {
         if (anchorView != null) {
             val popupMenu = if (isInFolder) {
-                // Inside folder - show note creation options
                 PopupMenu(this, anchorView).apply {
                     menuInflater.inflate(R.menu.menu_folder_action, menu)
                 }
             } else {
-                // Top level - show folder creation option
                 PopupMenu(this, anchorView).apply {
                     menuInflater.inflate(R.menu.menu_note_action, menu)
                 }
@@ -457,28 +445,27 @@ class NoteActivity : BaseActivity() {
                 showCreateFolderDialog()
                 true
             }
-            R.id.action_createnote, R.id.action_camera -> {
+            R.id.action_createnote -> {
                 if (isInFolder) {
-                    checkCameraPermission()
+                    createBlankNote() // Hàm mới để tạo ghi chú trắng
                 } else {
-                    Toast.makeText(this, "Please enter a folder to create notes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Vui lòng chọn một thư mục trước", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
             R.id.action_uploadfile -> {
                 if (isInFolder) {
-                    checkStoragePermission()
+                    checkStoragePermission() // Mở gallery để chọn ảnh
                 } else {
-                    Toast.makeText(this, "Please enter a folder to upload notes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Vui lòng chọn một thư mục trước", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
-            R.id.action_scan -> {
+            R.id.action_camera -> {
                 if (isInFolder) {
-                    // Start QR code scanner
-                    startActivity(Intent(this, QRScannerActivity::class.java))
+                    checkCameraPermission() // Mở camera để chụp ảnh
                 } else {
-                    Toast.makeText(this, "Please enter a folder to scan", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Vui lòng chọn một thư mục trước", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
@@ -486,6 +473,93 @@ class NoteActivity : BaseActivity() {
         }
     }
 
+    private fun createBlankNote() {
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                // Tạo tên mặc định cho ghi chú
+                val noteName = "Note_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
+
+                // Tạo note mới
+                val noteId = UUID.randomUUID().toString()
+                val note = NoteFirebaseModel(
+                    id = noteId,
+                    title = noteName,
+                    createdAt = Date().time,
+                    updatedAt = Date().time,
+                    ownerId = currentUserId,
+                    folderId = currentFolderId!!
+                )
+
+                // Tạo trang trắng cho note
+                val pageId = UUID.randomUUID().toString()
+                val page = NotePage(
+                    id = pageId,
+                    noteId = noteId,
+                    pageIndex = 0,
+                    createdAt = Date().time,
+                    vectorDrawingData = """{"strokes":[],"width":800,"height":1200}"""
+                )
+
+                // Thêm pageId vào note
+                note.pageIds.add(pageId)
+
+                // Lưu note và page vào Firestore
+                val pageResult = repository.updatePage(page)
+                val noteResult = repository.createNoteWithId(note)
+
+                if (noteResult.isSuccess && pageResult.isSuccess) {
+                    // Tạo bitmap trắng làm thumbnail
+                    val whiteBitmap = createWhiteBackground(200, 300)
+                    val storageManager = StorageManager(applicationContext)
+                    storageManager.saveThumbnail(noteId, whiteBitmap)
+
+                    // Thêm vào danh sách hiển thị
+                    val noteItem = NoteItem(
+                        id = noteId,
+                        title = noteName,
+                        date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault()).format(Date()),
+                        isFolder = false,
+                        imagePreview = whiteBitmap
+                    )
+
+                    withContext(Dispatchers.Main) {
+                        notesList.add(0, noteItem)
+                        adapter.notifyDataSetChanged()
+
+                        Toast.makeText(this@NoteActivity, "Đã tạo ghi chú trắng", Toast.LENGTH_SHORT).show()
+
+                        // Mở note detail
+                        val intent = Intent(this@NoteActivity, NoteDetailActivity::class.java).apply {
+                            putExtra("note_id", noteId)
+                            putExtra("note_title", noteName)
+                        }
+                        startActivity(intent)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@NoteActivity, "Không thể tạo ghi chú", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@NoteActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    binding.progressBar.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun createWhiteBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+        return bitmap
+    }
     private fun showRenameDialog(item: NoteItem) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_rename, null)
         val editText = dialogView.findViewById<EditText>(R.id.edit_name)
@@ -703,6 +777,7 @@ class NoteActivity : BaseActivity() {
             openFilePicker()
         }
     }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -767,17 +842,6 @@ class NoteActivity : BaseActivity() {
         }
     }
 
-    private fun updatePathBar(folderTitle: String?) {
-        val pathView = binding.tvPath
-        if (isInFolder && folderTitle != null) {
-            pathView.text = "Home > $folderTitle"
-            binding.pathBar.visibility = View.VISIBLE
-        } else {
-            pathView.text = "Home"
-            binding.pathBar.visibility = View.GONE
-        }
-    }
-
     private fun createTempImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_${timeStamp}_"
@@ -823,9 +887,10 @@ class NoteActivity : BaseActivity() {
             .show()
     }
 
+    // Tìm phương thức createNote() trong NoteActivity.kt và sửa như sau:
     private fun createNote(noteName: String) {
         if (currentFolderId == null) {
-            Toast.makeText(this, "Please enter a folder to create notes", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Vui lòng vào một thư mục để tạo ghi chú", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -835,7 +900,7 @@ class NoteActivity : BaseActivity() {
             try {
                 val contentResolver = applicationContext.contentResolver
 
-                // Thêm kiểm tra photoUri
+                // Kiểm tra photoUri
                 if (photoUri == null) {
                     Toast.makeText(this@NoteActivity, "Không có ảnh để tạo note", Toast.LENGTH_SHORT).show()
                     binding.progressBar.visibility = View.GONE
@@ -843,29 +908,26 @@ class NoteActivity : BaseActivity() {
                 }
 
                 val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, photoUri)
+                Log.d("NoteActivity", "Bitmap tạo được: ${bitmap.width}x${bitmap.height}")
 
-                // Thêm log để debug
-                Log.d("NoteActivity", "Bitmap created: ${bitmap.width}x${bitmap.height}")
-
-                // Tạo trực tiếp ID cho note - quan trọng cho việc tham chiếu
+                // Tạo ID cho note
                 val noteId = UUID.randomUUID().toString()
 
                 // Upload ảnh trước khi tạo note
                 val storageManager = StorageManager(applicationContext)
-                val imagePath = "${noteId}.jpg" // Đặt imagePath trước
+                val imagePath = "${noteId}.jpg"
 
                 // Upload ảnh lên Storage
                 val uploadSuccess = storageManager.saveImage(noteId, bitmap)
-                Log.d("NoteActivity", "Image upload success: $uploadSuccess")
+                Log.d("NoteActivity", "Upload ảnh thành công: $uploadSuccess")
 
                 // Upload thumbnail
                 val thumbnailBitmap = createThumbnail(bitmap)
                 val thumbnailSuccess = storageManager.saveThumbnail(noteId, thumbnailBitmap)
-                Log.d("NoteActivity", "Thumbnail upload success: $thumbnailSuccess")
+                Log.d("NoteActivity", "Upload thumbnail thành công: $thumbnailSuccess")
 
-                // Chỉ tạo note nếu upload thành công
                 if (uploadSuccess) {
-                    // Tạo note với imagePath đã có
+                    // Tạo note với imagePath
                     val newNote = NoteFirebaseModel(
                         id = noteId,
                         title = noteName,
@@ -873,45 +935,69 @@ class NoteActivity : BaseActivity() {
                         updatedAt = Date().time,
                         ownerId = currentUserId,
                         folderId = currentFolderId!!,
-                        imagePath = imagePath // Đặt imagePath ngay từ đầu
+                        imagePath = imagePath
                     )
 
-                    // Lưu note vào Firestore
+                    // QUAN TRỌNG: Thay đổi ở đây - KHÔNG tạo page trống mặc định
+                    // Cần tạo page với ảnh ngay từ đầu thay vì tạo note trước
+
+                    // Tạo một pageId mới
+                    val pageId = UUID.randomUUID().toString()
+
+                    // Tạo page chứa ảnh
+                    val page = NotePage(
+                        id = pageId,
+                        noteId = noteId,
+                        pageIndex = 0,
+                        imagePath = "pages/${pageId}.jpg",  // Xác định đường dẫn ảnh rõ ràng
+                        createdAt = Date().time
+                    )
+
+                    // Lưu ảnh cho page
+                    storageManager.savePageImage(pageId, bitmap)
+
+                    // Lưu page vào Firestore
+                    repository.updatePage(page)
+
+                    // Thêm pageId vào danh sách pageIds của note
+                    newNote.pageIds.add(pageId)
+
+                    // Lưu note với danh sách pageIds đã cập nhật
                     val result = repository.createNoteWithId(newNote)
 
                     if (result.isSuccess) {
-                        // Add to local list
+                        // Thêm vào danh sách cục bộ
                         val noteItem = NoteItem(
                             id = noteId,
                             title = noteName,
                             date = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
                                 .format(Date()),
                             isFolder = false,
-                            imagePreview = thumbnailBitmap // Lưu trực tiếp thumbnail vào item
+                            imagePreview = thumbnailBitmap
                         )
 
-                        notesList.add(0, noteItem) // Add at the top
+                        notesList.add(0, noteItem)
                         adapter.notifyDataSetChanged()
 
-                        Toast.makeText(this@NoteActivity, "Note created", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@NoteActivity, "Đã tạo ghi chú", Toast.LENGTH_SHORT).show()
 
-                        // Open the note detail activity
+                        // Mở note detail
                         val intent = Intent(this@NoteActivity, NoteDetailActivity::class.java).apply {
                             putExtra("note_id", noteId)
                             putExtra("note_title", noteName)
                         }
                         startActivity(intent)
                     } else {
-                        Toast.makeText(this@NoteActivity, "Failed to create note", Toast.LENGTH_SHORT).show()
-                        Log.e("NoteActivity", "Failed to create note: ${result.exceptionOrNull()?.message}")
+                        Toast.makeText(this@NoteActivity, "Không thể tạo ghi chú", Toast.LENGTH_SHORT).show()
+                        Log.e("NoteActivity", "Lỗi tạo ghi chú: ${result.exceptionOrNull()?.message}")
                     }
                 } else {
-                    Toast.makeText(this@NoteActivity, "Failed to upload image", Toast.LENGTH_SHORT).show()
-                    Log.e("NoteActivity", "Failed to upload image")
+                    Toast.makeText(this@NoteActivity, "Không thể tải lên ảnh", Toast.LENGTH_SHORT).show()
+                    Log.e("NoteActivity", "Không thể tải lên ảnh")
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@NoteActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("NoteActivity", "Error creating note", e)
+                Toast.makeText(this@NoteActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("NoteActivity", "Lỗi tạo ghi chú", e)
             } finally {
                 binding.progressBar.visibility = View.GONE
             }
@@ -931,6 +1017,7 @@ class NoteActivity : BaseActivity() {
 
             val matrix = Matrix()
             matrix.postScale(scale, scale)
+
 
             val result = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true)
             Log.d("NoteActivity", "Thumbnail created successfully: ${result.width}x${result.height}")
@@ -958,16 +1045,11 @@ class NoteActivity : BaseActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun sortItemsByType() {
-        notesList.sortWith(compareBy({ !it.isFolder }, { it.title.lowercase() }))
-        adapter.notifyDataSetChanged()
-    }
+    override fun onResume() {
+        super.onResume()
 
-    override fun onBackPressed() {
-        if (isInFolder) {
-            showFoldersView()
-        } else {
-            super.onBackPressed()
+        if (isInFolder && currentFolderId != null) {
+            loadNotesInFolder(currentFolderId!!)
         }
     }
 }

@@ -9,9 +9,9 @@
         android:label="Home" />
 
     <fragment
-        android:id="@+id/trendFragment"
-        android:name="com.example.app_music.presentation.trend.TrendFragment"
-        android:label="Trend" />
+        android:id="@+id/noteActivity"
+        android:name="com.example.app_music.presentation.feature.noteScene.NoteFragment"
+        android:label="Note" />
     <fragment
         android:id="@+id/searchFragment"
         android:name="com.example.app_music.presentation.search.SearchFragment"

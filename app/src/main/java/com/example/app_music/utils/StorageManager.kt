@@ -3,10 +3,14 @@ package com.example.app_music.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
+import com.example.app_music.data.repository.FirebaseNoteRepository
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -27,10 +31,198 @@ class StorageManager(private val context: Context) {
     private val THUMBNAILS_PATH = "thumbnails"
     private val IMAGES_PATH = "images"
     private val DRAWINGS_PATH = "drawings"
-    
+    private val PAGES_PATH = "pages"
+    private val PAGE_THUMBNAILS_PATH = "page_thumbnails"
     /**
      * Save a thumbnail to Firebase Storage
      */
+    suspend fun savePageImage(pageId: String, image: Bitmap): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val imageRef = storageRef.child("$PAGES_PATH/$pageId.jpg")
+
+                // Convert bitmap to byte array
+                val baos = ByteArrayOutputStream()
+                image.compress(Bitmap.CompressFormat.JPEG, 90, baos)
+                val data = baos.toByteArray()
+
+                // Upload to Firebase
+                imageRef.putBytes(data).await()
+
+                // Also save a thumbnail
+                    val thumbnailBitmap = createThumbnail(image)
+                savePageThumbnail(pageId, thumbnailBitmap)
+
+                Log.d(TAG, "Saved page image for page $pageId")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving page image for page $pageId", e)
+                false
+            }
+        }
+    }
+    /**
+     * Create a thumbnail from a full-size image
+     */
+    private fun createThumbnail(original: Bitmap): Bitmap {
+        try {
+            val width = original.width
+            val height = original.height
+            val maxSize = 200 // Thumbnail size
+
+            val scale = Math.min(
+                maxSize.toFloat() / width.toFloat(),
+                maxSize.toFloat() / height.toFloat()
+            )
+
+            val matrix = Matrix()
+            matrix.postScale(scale, scale)
+
+            return Bitmap.createBitmap(original, 0, 0, width, height, matrix, true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating thumbnail: ${e.message}")
+            // Return a smaller version of the original if we can't create a proper thumbnail
+            return if (original.width > 200 || original.height > 200) {
+                try {
+                    Bitmap.createScaledBitmap(original, 200, 200, true)
+                } catch (e2: Exception) {
+                    original // Last resort, return original
+                }
+            } else {
+                original
+            }
+        }
+    }
+    /**
+     * Save a page thumbnail
+     */
+    private suspend fun savePageThumbnail(pageId: String, thumbnail: Bitmap): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val thumbnailRef = storageRef.child("$PAGE_THUMBNAILS_PATH/$pageId.jpg")
+
+                // Convert bitmap to byte array
+                val baos = ByteArrayOutputStream()
+                thumbnail.compress(Bitmap.CompressFormat.JPEG, 70, baos)
+                val data = baos.toByteArray()
+
+                // Upload to Firebase
+                thumbnailRef.putBytes(data).await()
+
+                Log.d(TAG, "Saved page thumbnail for page $pageId")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving page thumbnail for page $pageId", e)
+                false
+            }
+        }
+    }
+
+    /**
+     * Load a page image from Firebase Storage
+     */
+    suspend fun loadPageImage(pageId: String): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Đang tải ảnh cho trang: $pageId")
+
+                // Xóa cache trước khi tải nếu cần thiết
+                val cachedFile = File(context.cacheDir, "pages/$pageId.jpg")
+                if (cachedFile.exists()) {
+                    Log.d(TAG, "Xóa ảnh cache cũ cho trang: $pageId")
+                    cachedFile.delete()
+                }
+
+                // Tạo đường dẫn chính xác cho ảnh
+                val imageRef = storage.reference.child("pages/$pageId.jpg")
+
+                // Tạo file tạm để lưu ảnh
+                val localFile = File.createTempFile("page", "jpg")
+
+                // Download ảnh
+                val downloadTask = imageRef.getFile(localFile)
+
+                // Thêm timeout để tránh treo
+                val result = withTimeout(5000) {
+                    downloadTask.await()
+                    true
+                }
+
+                // Kiểm tra tải thành công
+                if (result) {
+                    // Giải mã bitmap
+                    val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
+
+                    // Xóa file tạm
+                    localFile.delete()
+
+                    if (bitmap != null) {
+                        Log.d(TAG, "Tải ảnh thành công cho trang: $pageId, kích thước: ${bitmap.width}x${bitmap.height}")
+                    } else {
+                        Log.e(TAG, "Tải ảnh thất bại cho trang: $pageId (bitmap null)")
+                    }
+
+                    bitmap
+                } else {
+                    Log.e(TAG, "Tải ảnh thất bại cho trang: $pageId (timeout)")
+                    null
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi tải ảnh cho trang: $pageId", e)
+                null
+            }
+        }
+    }
+    /**
+     * Load a page thumbnail
+     */
+    suspend fun loadPageThumbnail(pageId: String): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val thumbnailRef = storageRef.child("$PAGE_THUMBNAILS_PATH/$pageId.jpg")
+
+                // Create a temporary file to store the downloaded image
+                val localFile = File.createTempFile("thumbnail", "jpg")
+
+                // Download to the local file
+                thumbnailRef.getFile(localFile).await()
+
+                // Decode the file into a bitmap
+                val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
+
+                // Delete the temporary file
+                localFile.delete()
+
+                Log.d(TAG, "Loaded page thumbnail for page $pageId")
+                bitmap
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading page thumbnail for page $pageId", e)
+                null
+            }
+        }
+    }
+
+    /**
+     * Delete a page image
+     */
+    suspend fun deletePageImage(pageId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val imageRef = storageRef.child("$PAGES_PATH/$pageId.jpg")
+                val thumbnailRef = storageRef.child("$PAGE_THUMBNAILS_PATH/$pageId.jpg")
+
+                // Delete both image and thumbnail
+                imageRef.delete().await()
+                thumbnailRef.delete().await()
+
+                Log.d(TAG, "Deleted page image and thumbnail for page $pageId")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Error deleting page image for page $pageId", e)
+                false
+            }
+        }
+    }
     suspend fun saveThumbnail(noteId: String, thumbnail: Bitmap): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -56,44 +248,67 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-    
+
+    fun clearImageCache(noteId: String) {
+        // Clear both thumbnail and full image from cache
+        deleteThumbnailLocally(noteId)
+        deleteImageLocally(noteId)
+    }
     /**
      * Load a thumbnail from Firebase Storage
      */
+    // Trong StorageManager.kt
     suspend fun loadThumbnail(noteId: String): Bitmap? {
         return withContext(Dispatchers.IO) {
             try {
-                // First try to load from local cache
+                // 1. Đầu tiên tìm trong bộ nhớ cache local
                 val localThumbnail = loadThumbnailLocally(noteId)
                 if (localThumbnail != null) {
-                    Log.d(TAG, "Loaded thumbnail for note $noteId from local cache")
+                    Log.d(TAG, "Loaded thumbnail from local cache")
                     return@withContext localThumbnail
                 }
-                
-                // If not in cache, download from Firebase
-                val thumbnailRef = storageRef.child("$THUMBNAILS_PATH/$noteId.jpg")
-                
-                // Create a temporary file to store the downloaded image
-                val localFile = File.createTempFile("thumbnail", "jpg")
-                
-                // Download to the local file
-                thumbnailRef.getFile(localFile).await()
-                
-                // Decode the file into a bitmap
-                val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
-                
-                // Save to local cache for faster access next time
-                if (bitmap != null) {
-                    saveThumbnailLocally(noteId, bitmap)
+
+                // 2. Nếu không có trong cache, tìm trong thumbnails folder
+                try {
+                    val thumbnailRef = storageRef.child("$THUMBNAILS_PATH/$noteId.jpg")
+                    val bytes = thumbnailRef.getBytes(1 * 1024 * 1024).await()
+
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bitmap != null) {
+                            saveThumbnailLocally(noteId, bitmap)
+                            return@withContext bitmap
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.d(TAG, "No thumbnail found, will try first page image")
                 }
-                
-                // Delete the temporary file
-                localFile.delete()
-                
-                Log.d(TAG, "Loaded thumbnail for note $noteId from Firebase")
-                bitmap
+
+                // 3. Nếu không có thumbnail, tìm ảnh trang đầu tiên
+                try {
+                    val noteRepository = FirebaseNoteRepository()
+                    val noteResult = noteRepository.getNote(noteId)
+
+                    if (noteResult.isSuccess) {
+                        val note = noteResult.getOrNull()!!
+                        if (note.pageIds.isNotEmpty()) {
+                            val firstPageId = note.pageIds.first()
+                            val pageImage = loadPageImage(firstPageId)
+
+                            if (pageImage != null) {
+                                val thumbnail = createThumbnail(pageImage)
+                                saveThumbnail(noteId, thumbnail)
+                                return@withContext thumbnail
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error getting first page image", e)
+                }
+
+                null
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading thumbnail for note $noteId from Firebase", e)
+                Log.e(TAG, "Error in loadThumbnail", e)
                 null
             }
         }
@@ -154,7 +369,76 @@ class StorageManager(private val context: Context) {
             }
         }
     }
-    
+
+    suspend fun loadImageFromPath(path: String): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Đầu tiên tìm trong bộ nhớ cache local
+                val filename = path.substringAfterLast("/")
+                val localImage = loadCachedImage(filename)
+                if (localImage != null) {
+                    return@withContext localImage
+                }
+
+                // Nếu không có trong cache, tải từ Firebase
+                val imageRef = storageRef.child(path)
+
+                // Tạo file tạm
+                val localFile = File.createTempFile("image", "jpg")
+
+                // Tải xuống file
+                imageRef.getFile(localFile).await()
+
+                // Giải mã file thành bitmap
+                val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
+
+                // Lưu vào cache cho lần sau
+                if (bitmap != null) {
+                    saveCachedImage(filename, bitmap)
+                }
+
+                // Xóa file tạm
+                localFile.delete()
+
+                bitmap
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading image from path: $path", e)
+                null
+            }
+        }
+    }
+
+    private fun loadCachedImage(filename: String): Bitmap? {
+        try {
+            val cacheDir = File(context.cacheDir, "images")
+            val file = File(cacheDir, filename)
+
+            if (file.exists()) {
+                return BitmapFactory.decodeFile(file.absolutePath)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading cached image", e)
+        }
+        return null
+    }
+
+    private fun saveCachedImage(filename: String, bitmap: Bitmap): Boolean {
+        try {
+            val cacheDir = File(context.cacheDir, "images")
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs()
+            }
+
+            val file = File(cacheDir, filename)
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving cached image", e)
+            return false
+        }
+    }
     /**
      * Load a full-size image from Firebase Storage
      */
@@ -342,7 +626,7 @@ class StorageManager(private val context: Context) {
         }
     }
     
-    private fun deleteThumbnailLocally(noteId: String): Boolean {
+    fun deleteThumbnailLocally(noteId: String): Boolean {
         return try {
             val thumbnailDir = File(context.cacheDir, THUMBNAILS_PATH)
             val file = File(thumbnailDir, "$noteId.jpg")
@@ -391,7 +675,7 @@ class StorageManager(private val context: Context) {
         }
     }
     
-    private fun deleteImageLocally(noteId: String): Boolean {
+    public fun deleteImageLocally(noteId: String): Boolean {
         return try {
             val imageDir = File(context.cacheDir, IMAGES_PATH)
             val file = File(imageDir, "$noteId.jpg")
