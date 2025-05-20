@@ -21,6 +21,7 @@ import java.util.UUID
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import com.example.app_music.data.local.preferences.UserPreference
 
 class FirebaseNoteRepository {
     private val db = FirebaseFirestore.getInstance()
@@ -33,14 +34,11 @@ class FirebaseNoteRepository {
     private val pagesCollection = db.collection("note_pages")
 
 
-    // Current user ID
-    private val currentUserId: String
-        get() = "test_user_1"
 
 
-    suspend fun createFolder(title: String): Result<FolderFirebaseModel> {
+    suspend fun createFolder(title: String, userId: String): Result<FolderFirebaseModel> {
         // Kiểm tra người dùng đã đăng nhập
-        if (currentUserId.isEmpty()) {
+        if (userId.isEmpty()) {
             return Result.failure(Exception("Người dùng chưa đăng nhập"))
         }
 
@@ -51,7 +49,7 @@ class FirebaseNoteRepository {
                 title = title,
                 createdAt = Date().time,
                 updatedAt = Date().time,
-                ownerId = currentUserId
+                ownerId = userId
             )
 
             foldersCollection.document(folderId).set(folder).await()
@@ -69,10 +67,10 @@ class FirebaseNoteRepository {
         }
     }
 
-    suspend fun getFolders(): Result<List<FolderFirebaseModel>> {
+    suspend fun getFolders(userId: String): Result<List<FolderFirebaseModel>> {
         return try {
             val snapshot = foldersCollection
-                .whereEqualTo("ownerId", "test_user_1")
+                .whereEqualTo("ownerId", userId)
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
