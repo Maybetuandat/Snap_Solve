@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.feature.setting.multilanguage
+package com.example.app_music.presentation.feature.menu.setting.multilanguage
 
 import android.app.Dialog
 import android.content.Context

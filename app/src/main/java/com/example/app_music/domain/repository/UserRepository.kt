@@ -9,4 +9,5 @@ interface UserRepository {
 
     suspend fun updateUser(id: Long, user: User): Response<User>
     suspend fun uploadAvatar(id: Long, imageFile: MultipartBody.Part): Response<User>
+    suspend fun deleteUserAccount(userId: Long): Response<Void>
 }

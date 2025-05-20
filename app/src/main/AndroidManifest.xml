@@ -88,7 +88,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".presentation.feature.setting.multilanguage.LanguageSettingsActivity"
+            android:name=".presentation.feature.menu.setting.multilanguage.LanguageSettingsActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.feature.menu.editstudentInformation.EditStudentInformation"
@@ -103,7 +103,7 @@
             android:name=".presentation.feature.menu.profile.ProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.feature.setting.SettingActivity"
+            android:name=".presentation.feature.menu.setting.SettingActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.feature.noteScene.NoteActivity"

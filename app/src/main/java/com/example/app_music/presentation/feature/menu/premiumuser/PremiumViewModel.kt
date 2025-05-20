@@ -12,6 +12,7 @@ import com.example.app_music.data.repository.UserRepository
 import com.example.app_music.domain.model.Payment
 import com.example.app_music.domain.usecase.payment.CreatePaymentUseCase
 import com.example.app_music.domain.usecase.user.UpdateUserRankUseCase
+import com.example.app_music.domain.utils.RetrofitFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,7 +27,7 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
     private val _paymentState = MutableLiveData<PaymentState>()
     val paymentState: LiveData<PaymentState> = _paymentState
 
-    private val userRepository = UserRepository()
+    private val userRepository = UserRepository(RetrofitFactory.userApi)
     private val updateUserRankUseCase = UpdateUserRankUseCase(userRepository)
     private val createPaymentUseCase = CreatePaymentUseCase()
 

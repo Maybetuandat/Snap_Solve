@@ -60,6 +60,7 @@
             android:layout_height="wrap_content"
             android:paddingBottom="16dp">
 
+            <!-- Profile Section -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardViewProfileIcon"
                 android:layout_width="60dp"
@@ -123,6 +124,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
+            <!-- Recommend/Premium Section -->
             <TextView
                 android:id="@+id/textViewRecommendTitle"
                 android:layout_width="wrap_content"
@@ -133,7 +135,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/divider1"/>
 
-            <!-- FrameLayout để chứa cả Premium và Transaction History -->
             <FrameLayout
                 android:id="@+id/frameLayoutPremium"
                 android:layout_width="0dp"
@@ -216,16 +217,13 @@
                     android:focusable="true"
                     android:visibility="gone">
 
-
                     <TextView
                         android:id="@+id/textViewTransactionLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="@string/history_receipt"
                         android:textColor="@android:color/black"
                         android:textSize="@dimen/text_medium"
-
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintBottom_toBottomOf="parent"/>
@@ -238,7 +236,6 @@
                         android:text="@string/premium_active"
                         android:textColor="@color/selectedicon"
                         android:textSize="12sp"
-
                         android:paddingStart="8dp"
                         android:paddingEnd="8dp"
                         android:paddingTop="2dp"
@@ -258,7 +255,6 @@
                         app:layout_constraintBottom_toBottomOf="parent" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
-
             </FrameLayout>
 
             <!-- Divider 2 -->
@@ -293,10 +289,10 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 android:paddingTop="10dp"
-                android:textColor="@color/black"
                 android:paddingBottom="10dp"
                 android:text="@string/recent_searches"
                 android:textSize="@dimen/text_medium"
+                android:textColor="@color/black"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?android:attr/selectableItemBackground"
@@ -304,24 +300,7 @@
                 app:layout_constraintTop_toBottomOf="@id/textViewHistoryTitle"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
-            <TextView
-                android:id="@+id/textViewRecentResearch"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:text="@string/recent_research"
-                android:textSize="@dimen/text_medium"
-                android:textColor="@color/black"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackground"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/textViewRecentSearches"
-                app:layout_constraintEnd_toEndOf="parent"/>
+
 
             <!-- Divider 3 -->
             <View
@@ -332,7 +311,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:background="@color/colorForDevider"
-                app:layout_constraintTop_toBottomOf="@id/textViewRecentResearch"
+                app:layout_constraintTop_toBottomOf="@id/textViewRecentSearches"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
@@ -358,32 +337,15 @@
                 android:paddingBottom="10dp"
                 android:text="@string/search"
                 android:textSize="@dimen/text_medium"
-                android:clickable="true"
                 android:textColor="@color/black"
+                android:clickable="true"
                 android:focusable="true"
                 android:background="?android:attr/selectableItemBackground"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/textViewQuestionTitle"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
-            <TextView
-                android:id="@+id/textViewResearch"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:text="@string/research"
-                android:textSize="@dimen/text_medium"
-                android:clickable="true"
-                android:textColor="@color/black"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackground"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/textViewSearch"
-                app:layout_constraintEnd_toEndOf="parent"/>
+
 
             <!-- Divider 4 -->
             <View
@@ -394,7 +356,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:background="@color/colorForDevider"
-                app:layout_constraintTop_toBottomOf="@id/textViewResearch"
+                app:layout_constraintTop_toBottomOf="@id/textViewSearch"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
@@ -420,8 +382,8 @@
                 android:paddingBottom="10dp"
                 android:text="@string/note"
                 android:textColor="@color/black"
-                android:clickable="true"
                 android:textSize="@dimen/text_medium"
+                android:clickable="true"
                 android:focusable="true"
                 android:background="?android:attr/selectableItemBackground"
                 app:layout_constraintStart_toStartOf="parent"
@@ -439,36 +401,6 @@
                 android:background="@color/colorForDevider"
                 app:layout_constraintTop_toBottomOf="@id/textViewNote"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
-
-            <!-- Support Section -->
-            <TextView
-                android:id="@+id/textViewSupportTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="16dp"
-                android:text="@string/support"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/divider5"/>
-
-            <TextView
-                android:id="@+id/textViewNotice"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:text="@string/notice"
-                android:textSize="@dimen/text_medium"
-                android:clickable="true"
-                android:textColor="@color/black"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackground"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/textViewSupportTitle"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

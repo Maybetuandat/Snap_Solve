@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.app_music.data.local.database.AppDatabase
 import com.example.app_music.data.local.database.entity.UserCredentials
 import com.example.app_music.data.repository.AuthRepository
+import com.example.app_music.data.repository.UserRepository
 import com.example.app_music.domain.model.User
 import com.example.app_music.domain.usecase.RegisterUseCase
 import com.example.app_music.domain.usecase.user.LoginUseCase
@@ -16,7 +17,7 @@ import com.example.app_music.domain.utils.RetrofitFactory
 import kotlinx.coroutines.launch
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
-    private val authRepository = AuthRepository(RetrofitFactory.authApi)
+
     private val database = AppDatabase.getDatabase(application)
     private val credentialsDao = database.userCredentialsDao()
 
@@ -39,6 +40,30 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val autoLoginCheckComplete: LiveData<Boolean> = _autoLoginCheckComplete
 
     private var registeredUser: User? = null
+
+
+
+    private val _deleteAccountResult = MutableLiveData<DeleteAccountResult>()
+    val deleteAccountResult: LiveData<DeleteAccountResult> = _deleteAccountResult
+
+    fun logoutUser() {
+        viewModelScope.launch {
+            try {
+
+                credentialsDao.deleteAllCredentials()
+                Log.d("AuthViewModel", "Logged out user, credentials cleared")
+            } catch (e: Exception) {
+                Log.e("AuthViewModel", "Error clearing credentials: ${e.message}")
+            }
+        }
+    }
+
+
+
+    data class DeleteAccountResult(
+        val isSuccess: Boolean,
+        val message: String
+    )
 
 
     private fun saveUserCredentials(username: String, password: String, rememberMe: Boolean) {

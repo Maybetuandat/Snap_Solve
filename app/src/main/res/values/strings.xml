@@ -244,5 +244,11 @@
     <string name="transaction_details">Transaction Details</string>
 
 
+    <string name="logout_confirmation_title">Confirm Logout</string>
+    <string name="logout_confirmation_message">Are you sure you want to logout?</string>
+    <string name="delete_account_confirmation_title">Confirm Account Deletion</string>
+    <string name="delete_account_confirmation_message">Warning: This action cannot be undone. All your data will be permanently deleted. Are you sure you want to continue?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 
 </resources>

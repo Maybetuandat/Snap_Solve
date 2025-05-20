@@ -1,6 +1,7 @@
 package com.example.app_music.data.remote.api
 
 
+import androidx.room.Delete
 import com.example.app_music.domain.model.AuthResponse
 import com.example.app_music.domain.model.User
 import retrofit2.Response
@@ -17,4 +18,6 @@ interface AuthApi {
 
     @POST("/api/auth/register")
     suspend fun register(@Body userCreate: User): Response<User>
+
+
 }

@@ -11,11 +11,13 @@ import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.example.app_music.databinding.FragmentMenuBinding
 import com.example.app_music.presentation.feature.menu.profile.ProfileActivity
-import com.example.app_music.presentation.feature.setting.SettingActivity
+import com.example.app_music.presentation.feature.menu.setting.SettingActivity
 import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
+import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.menu.premiumuser.PremiumUser
 import com.example.app_music.presentation.feature.menu.transactions.TransactionHistoryActivity
+import com.example.app_music.presentation.feature.noteScene.NoteActivity
 
 
 class MenuFragment : Fragment() {
@@ -81,6 +83,14 @@ class MenuFragment : Fragment() {
         }
         binding.layoutTransactionHistory.setOnClickListener {
             val intent = Intent(requireContext(), TransactionHistoryActivity::class.java)
+            startActivity(intent)
+        }
+        binding.textViewNote.setOnClickListener {
+            val intent = Intent(requireContext(), NoteActivity::class.java)
+            startActivity(intent)
+        }
+        binding.textViewSearch.setOnClickListener {
+            val intent = Intent(requireContext(), CameraActivity::class.java)
             startActivity(intent)
         }
 

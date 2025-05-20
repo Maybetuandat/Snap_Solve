@@ -10,6 +10,7 @@ import com.example.app_music.domain.model.User
 import com.example.app_music.domain.usecase.GetUserUseCase
 import com.example.app_music.domain.usecase.user.UpdateUserUseCase
 import com.example.app_music.domain.usecase.user.UploadAvatarUseCase
+import com.example.app_music.domain.utils.RetrofitFactory
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import java.io.File
@@ -18,7 +19,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 
 
 class ProfileEditViewModel : ViewModel() {
-    private val userRepository = UserRepository()
+    private val userRepository = UserRepository(RetrofitFactory.userApi)
     private val getUserUseCase = GetUserUseCase()
     private val updateUserUseCase = UpdateUserUseCase(userRepository)
     private val uploadAvatarUseCase = UploadAvatarUseCase()

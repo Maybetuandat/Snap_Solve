@@ -35,4 +35,10 @@ object UserPreference {
         val preference = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         return preference.getString(USER_NAME, "") ?: ""
     }
+    fun clearUserData(context: Context) {
+        val preference = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val editor = preference.edit()
+        editor.clear()
+        editor.apply()
+    }
 }

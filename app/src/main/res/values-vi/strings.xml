@@ -245,6 +245,12 @@
         <string name="post_search_filter">Bộ lọc</string>
         <string name="post_search_filter_topic">Bộ lọc: %1$s</string>
         <string name="post_search_no_result">Không tìm thấy kết quả nào</string>
+        <string name="logout_confirmation_title">Xác nhận Đăng xuất</string>
+        <string name="logout_confirmation_message">Bạn có chắc chắn muốn đăng xuất không?</string>
+        <string name="delete_account_confirmation_title">Xác nhận Xóa Tài khoản</string>
+        <string name="delete_account_confirmation_message">Cảnh báo: Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn. Bạn có chắc chắn muốn tiếp tục không?</string>
+        <string name="yes">Có</string>
+        <string name="no">Không</string>
 
 
 </resources>

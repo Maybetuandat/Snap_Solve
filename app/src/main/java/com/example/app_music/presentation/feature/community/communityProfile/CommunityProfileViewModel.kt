@@ -9,11 +9,12 @@ import com.example.app_music.domain.model.Post
 import com.example.app_music.domain.model.User
 import com.example.app_music.data.repository.PostRepositoryImpl
 import com.example.app_music.data.repository.UserRepository
+import com.example.app_music.domain.utils.RetrofitFactory
 import kotlinx.coroutines.launch
 
 class CommunityProfileViewModel : ViewModel() {
     private val postRepository = PostRepositoryImpl()
-    private val userRepository = UserRepository()
+    private val userRepository = UserRepository(RetrofitFactory.userApi)
 
     private val _userInfo = MutableLiveData<User?>()
     val userInfo: LiveData<User?> = _userInfo

@@ -8,7 +8,7 @@
     android:orientation="vertical"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".presentation.feature.setting.SettingActivity">
+    tools:context=".presentation.feature.menu.setting.SettingActivity">
 
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -77,17 +77,6 @@
                 android:paddingTop="16dp"
                 android:paddingBottom="8dp"/>
 
-            <TextView
-                android:id="@+id/tvNotice"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/notice"
-                android:textSize="16sp"
-                android:textColor="@android:color/black"
-                android:padding="16dp"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"/>
 
 
 
@@ -114,28 +103,8 @@
                 android:layout_marginEnd="16dp"/>
 
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/notifications"
-                android:textSize="14sp"
-                android:textColor="@android:color/darker_gray"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"/>
 
-            <TextView
-                android:id="@+id/tvPushSettings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/push_notification_settings"
-                android:textSize="16sp"
-                android:textColor="@android:color/black"
-                android:padding="16dp"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"/>
+
 
 
             <View
@@ -219,6 +188,7 @@
 
 
            <Button
+               android:id="@+id/btnLogout"
                android:layout_width="wrap_content"
                android:layout_height="wrap_content"
                android:text="@string/logout"
@@ -229,34 +199,7 @@
                />
 
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="end|center_vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="10dp"
-                android:layout_marginTop="8dp">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/note_delete_account"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="12sp"
-                    android:layout_marginEnd="16dp"/>
-
-                <Button
-                    android:id="@+id/btnDeleteAccount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/delete_account"
-                    app:backgroundTint="@color/selectedicon"
-                    android:layout_gravity="end"
-
-                    android:textColor="@color/white"/>
-            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
