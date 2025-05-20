@@ -25,6 +25,7 @@
         android:theme="@style/Theme.App_music"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
         <activity
             android:name=".presentation.feature.menu.premiumuser.PremiumUser"
             android:exported="true"

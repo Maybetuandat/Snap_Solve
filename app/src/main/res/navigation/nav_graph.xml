@@ -13,14 +13,126 @@
         android:name="com.example.app_music.presentation.feature.noteScene.NoteFragment"
         android:label="Note" />
     <fragment
-        android:id="@+id/searchFragment"
-        android:name="com.example.app_music.presentation.search.SearchFragment"
-        android:label="Search" />
+        android:id="@+id/communityFragment"
+        android:name="com.example.app_music.presentation.feature.community.CommunityFragment"
+        android:label="Community">
+        <action
+            android:id="@+id/action_communityFragment_to_searchPostFragment"
+            app:destination="@id/searchPostFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_communityFragment_to_communityProfileFragment"
+            app:destination="@id/communityProfileFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_communityFragment_to_communityPostingFragment"
+            app:destination="@id/communityPostingFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_communityFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/personalFragment"
         android:name="com.example.app_music.presentation.feature.menu.MenuFragment"
         android:label="Personal" />
 
+    <fragment
+        android:id="@+id/searchPostFragment"
+        android:name="com.example.app_music.presentation.feature.community.communitySearchPost.SearchPostFragment"
+        android:label="Search">
+        <action
+            android:id="@+id/action_searchPostFragment_to_searchResultFragment"
+            app:destination="@id/searchResultFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/searchResultFragment"
+        android:name="com.example.app_music.presentation.feature.community.communitySearchPost.SearchResultFragment"
+        android:label="Search Results">
+        <argument
+            android:name="searchQuery"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_searchResultFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/communityProfileFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityProfile.CommunityProfileFragment"
+        android:label="Profile">
+        <action
+            android:id="@+id/action_communityProfileFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/communityPostingFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityPosting.CommunityPostingFragment"
+        android:label="Posting" />
+
+    <fragment
+        android:id="@+id/postDetailFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityPostDetail.PostDetailFragment"
+        android:label="Post Details">
+        <argument
+            android:name="postId"
+            app:argType="long" />
+        <action
+            android:id="@+id/action_postDetailFragment_to_commentReplyFragment"
+            app:destination="@id/replyCommentFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_postDetailFragment_to_editPostFragment"
+            app:destination="@id/editPostFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/replyCommentFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityPostDetail.CommentReplyFragment"
+        android:label="Reply Comments">
+        <argument
+            android:name="commentId"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editPostFragment"
+        android:name="com.example.app_music.presentation.feature.community.communityEditPost.EditPostFragment"
+        android:label="EditPostFragment">
+        <argument
+            android:name="postId"
+            app:argType="long" />
+    </fragment>
 
 </navigation>

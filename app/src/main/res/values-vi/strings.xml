@@ -18,6 +18,7 @@
         <string name="confirm">Xác nhận</string>
         <string name="cancel">Hủy</string>
 
+        <string name="back">Quay lại</string>
         <string name="nameOfScreenMenu">Menu</string>
         <string name="btnEdit">Chỉnh sửa</string>
         <string name="my_follower">Người theo dõi tôi</string>
@@ -90,6 +91,11 @@
                 <item>Loại</item>
         </string-array>
         <string name="system_language">Ngôn ngữ hệ thống</string>
+
+        <string name="change_language_title">Thay đổi ngôn ngữ</string>
+        <string name="change_language_message">Bạn có chắc chắn muốn thay đổi ngôn ngữ? Ứng dụng sẽ khởi động lại để áp dụng thay đổi.</string>
+        <string name="confirm">Xác nhận</string>
+        <string name="cancel">Hủy</string>
         <string name="login">Đăng nhập</string>
         <string name="register">Đăng ký</string>
         <string name="forgot_password">Quên mật khẩu?</string>
@@ -197,6 +203,54 @@
         <string name="refresh">Làm mới</string>
         <string name="transaction_details">Chi Tiết Giao Dịch</string>
 
+
+
+    <string name="restart_required">Yêu cầu khởi động lại</string>
+    <string name="language_change_restart_message">Ngôn ngữ đã được thay đổi. Để áp dụng thay đổi hoàn toàn, ứng dụng cần được khởi động lại.</string>
+    <string name="restart_now">Khởi động lại ngay</string>
+    <string name="restart_later">Để sau</string>
+
+        <!-- Community -->
+        <string name="community_header">Cộng đồng</string>
+        <string name="community_profile_header">Hoạt động của tôi trong Cộng đồng</string>
+        <string name="community_profile_your_posts">Bài viết"</string>
+        <string name="community_profile_liked_posts">Đã thích</string>
+        <string name="community_all">Tất cả</string>
+        <string name="post_detail_header">Chi tiết bài viết</string>
+        <string name="post_detail_images">Hình ảnh</string>
+        <string name="post_detail_like">Thích</string>
+        <string name="post_detail_comment">Bình luận</string>
+        <string name="post_detail_comments">Bình luận</string>
+        <string name="post_detail_share">Chia sẻ</string>
+        <string name="post_detail_comment_hint">Nhập bình luận...</string>
+        <string name="post_comment_reply_header">Trả lời</string>
+        <string name="post_comment_reply_all">Tất cả trả lời</string>
+        <string name="post_comment_reply_image_selected">Ảnh đã chọn</string>
+        <string name="post_comment_reply_hint">Nhập trả lời...</string>
+        <string name="post_edit_header">Chỉnh sửa bài viết</string>
+        <string name="post_edit_edit">Chỉnh sửa</string>
+        <string name="post_filter_header">Lọc bằng chủ đề</string>
+        <string name="post_filter_reset">Đặt lại</string>
+        <string name="post_filter_apply">Áp dụng</string>
+        <string name="posting_title">Đăng bài</string>
+        <string name="posting_choose_topic">Hãy chọn chủ đề cho bài viết</string>
+        <string name="posting_hint_title">Nhập tiêu đề...</string>
+        <string name="posting_hint_content">Nhập nội dung...</string>
+        <string name="posting_add_image">Thêm ảnh</string>
+        <string name="posting_post">Đăng</string>
+        <string name="posting_select">Chọn</string>
+        <string name="posting_topic_header">Chủ đề</string>
+        <string name="posting_topic_selected">Chủ đề đã chọn</string>
+        <string name="posting_image_selected">Ảnh đã chọn</string>
+        <string name="post_search_hint">Hãy nhập từ khoá...</string>
+        <string name="post_search_recent">Tìm kiếm gần đây</string>
+        <string name="post_search_delete_all">Xoá toàn bộ</string>
+        <string name="post_search_header">Kết quả cho: %1$s</string>
+        <string name="post_search_newest">Mới nhất</string>
+        <string name="post_search_popular">Phổ biến</string>
+        <string name="post_search_filter">Bộ lọc</string>
+        <string name="post_search_filter_topic">Bộ lọc: %1$s</string>
+        <string name="post_search_no_result">Không tìm thấy kết quả nào</string>
 
 
 </resources>

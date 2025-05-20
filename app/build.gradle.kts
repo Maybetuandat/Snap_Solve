@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app_music"
-        minSdk = 24
+        minSdk = 31
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -40,12 +40,7 @@ android {
         jvmTarget = "1.8"
     }
 }
-buildscript {
-    dependencies {
-        // Add this line
-        classpath("com.google.gms:google-services:4.4.0")
-    }
-}
+
 
 dependencies {
 
@@ -56,7 +51,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    implementation(files("/home/maybetuandat/PTIT/Android App/BTL/Snap_Solve/zpdk-release-v3.1.aar"))
+    implementation(files("D:\\Desktop\\BTL Mobile\\SnapSolve\\zpdk-release-v3.1.aar"))
     implementation(libs.androidx.swiperefreshlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -105,10 +100,19 @@ dependencies {
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
     // Gson for JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation ("de.hdodenhof:circleimageview:3.1.0")
+    implementation ("com.github.bumptech.glide:glide:4.15.1")
+    kapt ("com.github.bumptech.glide:compiler:4.15.1")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
 
 
 
+    // Thêm thư viện Glide
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.3") // hoặc phiên bản mới hơn
 
-
+    // Thêm thư viện SwipeRefreshLayout
+    implementation ("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation ("com.google.android.flexbox:flexbox:3.0.0")
 }

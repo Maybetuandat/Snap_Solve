@@ -13,6 +13,7 @@
     <color name="gray">#757575</color>
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
+    <color name="colorForPost">#F6EBE4</color>
 
     <!-- New colors for home screen -->
     <color name="utilities_bg">#F9F2ED</color>
