@@ -7,6 +7,9 @@
     <color name="orange">#FF5722</color>
     <color name="unselectedicon">#A2A2A2</color>
     <color name="colorForDevider">#F9F9F9</color>
+    <color name="trans">#00FFFFFF</color>
+    <color name="blue">#0080FF</color>
+    <color name="delete_red">#FF0000</color>
 
     <!-- New colors for home screen -->
     <color name="utilities_bg">#F9F2ED</color>

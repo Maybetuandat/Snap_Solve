@@ -4,12 +4,14 @@ import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.app_music.databinding.ActivityMainBinding
 import com.example.app_music.domain.utils.MultiLanguage
 import com.example.app_music.presentation.feature.common.BaseActivity
 import com.example.app_music.presentation.feature.setting.multilanguage.RestartAppDialog
+import kotlinx.coroutines.cancelChildren
 
 
 class MainActivity : BaseActivity() {
@@ -35,6 +37,11 @@ class MainActivity : BaseActivity() {
 
 
     }
-
+    // Thêm vào phương thức onDestroy
+    override fun onDestroy() {
+        super.onDestroy()
+        // Hủy tất cả coroutine đang chạy
+        lifecycleScope.coroutineContext.cancelChildren()
+    }
 
 }

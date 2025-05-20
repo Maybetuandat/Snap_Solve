@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_uploadfile"
+        android:title="@string/up_load_file"
+        android:icon="@drawable/upload"/>
+    <item
+        android:id="@+id/action_createnote"
+        android:title="@string/create_new_note"
+        android:icon="@drawable/addnote"/>
+    <item
+        android:id="@+id/action_camera"
+        android:title="@string/camera"
+        android:icon="@drawable/camera" />
+</menu>

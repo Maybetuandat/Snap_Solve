@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-
-
+        <string name="collaborators">Collaborators: </string>
+        <string name="scan_qr_code">Quét mã QR</string>
+        <string name="center_qr_code">Center the QR code in the frame to scan</string>
+        <string name="share_via_qr">Share via QR Code</string>
+        <string name="scan_to_collaborate">Scan this QR code to collaborate on this note</string>
+        <string name="share_link">Share Link</string>
+        <string name="newbutton">Mới</string>
         <string name="noteTitle"> Ghi chú QANDA</string>
         <string name="restart_required">Yêu cầu khởi động lại</string>
         <string name="language_change_restart_message">Ngôn ngữ đã được thay đổi. Để áp dụng thay đổi hoàn toàn, ứng dụng cần được khởi động lại.</string>
@@ -47,9 +52,9 @@
         <string name="change">Thay đổi</string>
         <string name="username">Tên người dùng</string>
         <string name="status_message">Thông điệp trạng thái</string>
-        <string name="detail_status_message">Tôi đói sau khi tập thể dục</string>
+        <string name="detail_status_message">hãy điền thông tin trạng thái của bạn</string>
         <string name="student_information">Thông tin học sinh</string>
-        <string name="detail_student_infomation">Tôi đang học lớp mười lăm</string>
+        <string name="detail_student_infomation">Hãy cập nhật thông tin học sinh</string>
         <string name="account_information">Thông tin tài khoản</string>
         <string name="mailOfUser">trinhvinhtuandat@gmail.com</string>
         <string name="snap_solve_uid">UID Snap Solve</string>
@@ -109,5 +114,21 @@
         <string name="remember_me">Ghi nhớ đăng nhập</string>
         <string name="or">Hoặc</string>
         <string name="sign_in_with_google">Đăng nhập với google</string>
-
+        <string name="up_load_file">Thêm file</string>
+        <string name="create_new_note">Tạo ghi chú mới</string>
+        <string name="create_new_folder">Tạo tệp mới</string>
+        <string name="camera">Camera</string>
+        <string name="scan">Quét</string>
+        <string name="day">Ngày</string>
+        <string name="name">Tên</string>
+        <string name="type">Loại</string>
+        <string name="folder">Tệp</string>
+        <string name="new_text">Mới</string>
+        <string name="rename">Đổi tên</string>
+        <string name="delete">Xóa</string>
+        <string name="get_help">Xem trợ giúp</string>
+        <string name="see_solve">Xem giải</string>
+        <string name="gethelp">Xem trợ giúp</string>
+        <string name="xemgiaithich">Xem giải</string>
+        <string name="share">Chia sẻ</string>
 </resources>

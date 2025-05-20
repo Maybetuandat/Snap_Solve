@@ -8,10 +8,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
+import com.bumptech.glide.Glide
 import com.example.app_music.databinding.FragmentMenuBinding
-import com.example.app_music.presentation.feature.profile.ProfileActivity
+import com.example.app_music.presentation.feature.menu.profile.ProfileActivity
 import com.example.app_music.presentation.feature.setting.SettingActivity
-
+import com.example.app_music.R
+import com.example.app_music.data.local.preferences.UserPreference
 
 class MenuFragment : Fragment() {
    private var _binding : FragmentMenuBinding ?= null
@@ -39,9 +41,16 @@ class MenuFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupClickListeners()
-     //   setUpObserver()
-        viewModel.fetchUserData(1L)
+        setUpObserver()
+        val userId = UserPreference.getUserId(requireContext())
+        viewModel.fetchUserData(userId)
 
+    }
+
+    override fun onResume() {
+        val userId = UserPreference.getUserId(requireContext())
+        viewModel.fetchUserData(userId)
+        super.onResume()
     }
 
 
@@ -65,19 +74,32 @@ class MenuFragment : Fragment() {
         }
     }
 
-//    private fun setUpObserver()
-//    {
-//        viewModel.user.observe(viewLifecycleOwner) {user ->
-//            binding.textViewUserName.text = user.username ?: "User"
-//        }
-//        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-//            binding.progressBar.visibility= if(isLoading) View.VISIBLE else View.GONE
-//        }
-//        viewModel.error.observe(viewLifecycleOwner) { errorMsg ->
-//            if (!errorMsg.isNullOrEmpty()) {
-//                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show()
-//            }
-//        }
-//    }
+    private fun setUpObserver()
+    {
+        viewModel.user.observe(viewLifecycleOwner) {user ->
+            binding.textViewUserName.text = user.username ?: "User"
+            if (!user.avatarUrl.isNullOrEmpty()) {
+                Glide.with(requireContext())
+                    .load(user.avatarUrl)
+                    .placeholder(R.drawable.ic_person)
+                    .error(R.drawable.ic_person)
+                    .centerCrop()
+                    .into(binding.imageViewProfileIcon)
+            } else {
+
+                binding.imageViewProfileIcon.setImageResource(R.drawable.ic_person)
+            }
+
+        }
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility= if(isLoading) View.VISIBLE else View.GONE
+        }
+        viewModel.error.observe(viewLifecycleOwner) { errorMsg ->
+            if (!errorMsg.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show()
+            }
+        }
+
+    }
 
 }

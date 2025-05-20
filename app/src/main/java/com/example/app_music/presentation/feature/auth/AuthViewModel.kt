@@ -10,14 +10,18 @@ import com.example.app_music.data.local.database.AppDatabase
 import com.example.app_music.data.local.database.entity.UserCredentials
 import com.example.app_music.data.repository.AuthRepository
 import com.example.app_music.domain.model.User
+import com.example.app_music.domain.usecase.RegisterUseCase
+import com.example.app_music.domain.usecase.user.LoginUseCase
 import com.example.app_music.domain.utils.RetrofitFactory
 import kotlinx.coroutines.launch
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = AuthRepository(RetrofitFactory.authApi)
+    private val authRepository = AuthRepository(RetrofitFactory.authApi)
     private val database = AppDatabase.getDatabase(application)
     private val credentialsDao = database.userCredentialsDao()
 
+    private val loginUseCase = LoginUseCase()
+    private val registerUseCase = RegisterUseCase()
 
     private val _loginResult = MutableLiveData<LoginResult>()
     val loginResult: LiveData<LoginResult> = _loginResult
@@ -88,7 +92,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val response = repository.login(username, password)
+                val response = loginUseCase(username, password)
                 if (response.isSuccessful && response.body() != null) {
                     val authResponse = response.body()!!
 
@@ -130,7 +134,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     .phoneNumber(phoneNumber)
                     .password(password)
                     .build()
-                val response = repository.register(createUser)
+                val response = registerUseCase(createUser)
                 if (response.isSuccessful && response.body() != null) {
                     val user = response.body()!!
                     _registerResult.value = RegisterResult(

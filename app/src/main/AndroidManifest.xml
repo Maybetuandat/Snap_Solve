@@ -13,6 +13,7 @@
 
 
     <application
+        android:largeHeap="true"
         android:name=".SnapSolveApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -24,6 +25,19 @@
         android:theme="@style/Theme.App_music"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <activity
+            android:name=".presentation.feature.qrscanner.QRScannerActivity"
+            android:exported="false" />
 
         <!-- Text Search Activity -->
         <activity
@@ -67,28 +81,43 @@
             android:name=".presentation.feature.menu.editusernamescreen.EditUserNameActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.feature.profile.ProfileActivity"
+            android:name=".presentation.feature.menu.profile.ProfileActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.feature.setting.SettingActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.feature.noteScene.NoteActivity"
-            android:exported="false" />
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="snapsolve"
+                    android:host="folders" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".presentation.feature.noteScene.NoteDetailActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="snapsolve"
+                    android:host="notes" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".MainActivity"
             android:exported="false" />
-
-        <!-- FileProvider for camera photos -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
         <!-- Add material design library to use chip components -->
         <meta-data
