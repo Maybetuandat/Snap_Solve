@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.app_music.MainActivity
 import com.example.app_music.R
 import com.example.app_music.data.model.FolderFirebaseModel
 import com.example.app_music.data.model.NoteFirebaseModel
@@ -126,11 +127,29 @@ class NoteActivity : BaseActivity() {
             if (isInFolder) {
                 showFoldersView()
             } else {
-                onBackPressed()
+                val intent = Intent(this, MainActivity::class.java)
+                // Thêm flag để xóa các activity khác và không tạo instance mới của MainActivity
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                // Thêm extra để MainActivity biết chuyển đến HomeFragment
+                intent.putExtra("SELECT_HOME_TAB", true)
+                startActivity(intent)
+                finish()
             }
         }
     }
-
+    override fun onBackPressed() {
+        super.onBackPressed()
+        navigateToHome()
+    }
+    private fun navigateToHome() {
+        val intent = Intent(this, MainActivity::class.java)
+        // Thêm flag để xóa các activity khác và không tạo instance mới của MainActivity
+        //intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Thêm extra để MainActivity biết chuyển đến HomeFragment
+        intent.putExtra("SELECT_HOME_TAB", 100)
+        startActivity(intent)
+        finish()
+    }
     private fun setupTypeButton() {
         binding.noteButtonType.setOnClickListener {
             val popupMenu = PopupMenu(this, it)

@@ -129,6 +129,8 @@
     <string name="or">OR</string>
     <string name="sign_in_with_google">Sign in with Google</string>
     <string name="share">Share</string>
+
+
     <string name="ask_snapsolve">Ask SnapSolve anything</string>
     <string name="type_question">Type your question</string>
     <string name="utilities">Utilities</string>

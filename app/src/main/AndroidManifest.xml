@@ -62,6 +62,7 @@
         <activity
             android:name=".presentation.feature.auth.LoginActivity"
             android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -97,7 +98,6 @@
                     android:scheme="snapsolve"
                     android:host="folders" />
             </intent-filter>
-
         </activity>
         <activity
             android:name=".presentation.feature.noteScene.NoteDetailActivity"
