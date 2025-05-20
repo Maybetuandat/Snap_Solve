@@ -143,10 +143,7 @@ class NoteActivity : BaseActivity() {
     }
     private fun navigateToHome() {
         val intent = Intent(this, MainActivity::class.java)
-        // Thêm flag để xóa các activity khác và không tạo instance mới của MainActivity
-        //intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        // Thêm extra để MainActivity biết chuyển đến HomeFragment
-        intent.putExtra("SELECT_HOME_TAB", 100)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
         finish()
     }
