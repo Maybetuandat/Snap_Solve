@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.app_music.MainActivity
 import com.example.app_music.R
+import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.data.model.FolderFirebaseModel
 import com.example.app_music.data.model.NoteFirebaseModel
 import com.example.app_music.data.model.NotePage
@@ -65,7 +66,7 @@ class NoteActivity : BaseActivity() {
 
     // Current user info
     private val currentUserId: String
-        get() = "test_user_1"
+        get() = UserPreference.getUserId(this).toString();
 
     // Folder navigation
     private var currentFolderId: String? = null
@@ -105,7 +106,7 @@ class NoteActivity : BaseActivity() {
         val folderId = intent.getStringExtra("folder_id")
         if (folderId != null) {
             lifecycleScope.launch {
-                val folderResult = repository.getFolders().getOrNull()?.find { it.id == folderId }
+                val folderResult = repository.getFolders(currentUserId).getOrNull()?.find { it.id == folderId }
                 if (folderResult != null) {
                     openFolder(folderResult.id, folderResult.title, false)
                 } else {
@@ -246,7 +247,7 @@ class NoteActivity : BaseActivity() {
 
         lifecycleScope.launch {
             try {
-                val foldersResult = repository.getFolders()
+                val foldersResult = repository.getFolders(currentUserId)
 
                 if (foldersResult.isSuccess) {
                     val folders = foldersResult.getOrNull() ?: emptyList()
@@ -697,7 +698,7 @@ class NoteActivity : BaseActivity() {
                     return@launch
                 }
 
-                val result = repository.createFolder(folderName)
+                val result = repository.createFolder(folderName, currentUserId)
 
                 withContext(Dispatchers.Main) {
                     if (result.isSuccess) {

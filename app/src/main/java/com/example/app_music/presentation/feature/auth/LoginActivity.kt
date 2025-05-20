@@ -182,6 +182,7 @@ class LoginActivity : BaseActivity() {
             if (result.isSuccess) {
                 // Chuyển đến MainActivity
                 UserPreference.saveUserId(this, result.user?.id!!)
+                UserPreference.saveUserName(this, result.user.username!!)
                 Log.d("loginactivity", UserPreference.getUserId(this).toString() + " " + result.user.toString())
 
                 val intent = Intent(this, MainActivity::class.java)

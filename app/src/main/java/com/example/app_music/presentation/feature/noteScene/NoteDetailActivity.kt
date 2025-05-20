@@ -49,6 +49,7 @@ import android.Manifest
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.os.Build
+import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.presentation.feature.noteScene.views.RealtimeDrawingManager
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.NonCancellable
@@ -386,13 +387,6 @@ class NoteDetailActivity : BaseActivity() {
     }
 
     private fun setupHelpButtons() {
-        binding.buttonHelpAi.setOnClickListener {
-            Toast.makeText(this, "AI help feature coming soon", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.buttonViewExplanation.setOnClickListener {
-            Toast.makeText(this, "Explanation feature coming soon", Toast.LENGTH_SHORT).show()
-        }
     }
     private fun debouncedSaveCurrentPage() {
         // Cancel previous save job if it exists
@@ -407,7 +401,7 @@ class NoteDetailActivity : BaseActivity() {
     private fun setupCollaboration() {
         // Lấy ID người dùng hiện tại
         val currentUserId = currentUser?.uid ?: collaborationManager.getCurrentUserId()
-        val username = currentUser?.displayName ?: "Bno"
+        val username = currentUser?.displayName ?: UserPreference.getUserName(this)
 
         // Đặt ID người dùng hiện tại cho UserPresenceView
         binding.activeUsersView.setCurrentUserId(currentUserId)
