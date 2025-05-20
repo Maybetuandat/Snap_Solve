@@ -221,29 +221,6 @@ class RealtimeDrawingManager(
     }
 
     /**
-     * Xóa các nét vẽ hiện có khi chuyển trang
-     */
-    fun clearForPageChange() {
-        // Hủy listener
-        strokesListener?.let {
-            strokesRef.removeEventListener(it)
-            strokesListener = null
-        }
-
-        // Đảm bảo không nghe các sự kiện trong quá trình xóa
-        isLocalStroke = true
-
-        // Xóa hoàn toàn drawingView
-        drawingView.clearDrawing(false)
-
-        // Xóa theo dõi ID nét vẽ
-        activeStrokeIds.clear()
-
-        // Đặt lại cờ nét vẽ cục bộ
-        isLocalStroke = false
-    }
-
-    /**
      * Xóa và dọn dẹp tài nguyên
      */
     fun cleanup() {
