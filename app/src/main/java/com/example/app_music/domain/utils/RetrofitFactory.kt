@@ -37,7 +37,7 @@ object RetrofitFactory {
 
         Retrofit.Builder()
             .baseUrl(ApiInstance.baseUrl)
-            .addConverterFactory(GsonConverterFactory.create())
+
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
