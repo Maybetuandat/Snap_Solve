@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Transaction Icon -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardTransactionIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/selectedicon"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <ImageView
+                android:id="@+id/imageViewTransactionIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_diamond"
+                app:tint="@android:color/white" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Transaction Info -->
+        <TextView
+            android:id="@+id/textViewTransactionTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:text="Premium Monthly"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            app:layout_constraintTop_toTopOf="@id/cardTransactionIcon"
+            app:layout_constraintStart_toEndOf="@id/cardTransactionIcon"
+            app:layout_constraintEnd_toStartOf="@id/textViewAmount"
+            tools:text="Premium Monthly" />
+
+        <TextView
+            android:id="@+id/textViewTransactionDate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginTop="4dp"
+            android:text="15 Dec 2024, 2:30 PM"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            app:layout_constraintTop_toBottomOf="@id/textViewTransactionTitle"
+            app:layout_constraintStart_toEndOf="@id/cardTransactionIcon"
+            app:layout_constraintEnd_toStartOf="@id/textViewAmount"
+            tools:text="15 Dec 2024, 2:30 PM" />
+
+        <!-- Transaction Status -->
+        <TextView
+            android:id="@+id/textViewTransactionStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginTop="4dp"
+            android:text="Completed"
+            android:textSize="12sp"
+            android:textColor="@color/selectedicon"
+            android:background="@drawable/status_success_bg"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            app:layout_constraintTop_toBottomOf="@id/textViewTransactionDate"
+            app:layout_constraintStart_toEndOf="@id/cardTransactionIcon"
+            app:layout_constraintBottom_toBottomOf="@id/cardTransactionIcon" />
+
+        <!-- Amount -->
+        <TextView
+            android:id="@+id/textViewAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="₫99,000"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            app:layout_constraintTop_toTopOf="@id/cardTransactionIcon"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="₫99,000" />
+
+        <!-- Payment Method -->
+        <TextView
+            android:id="@+id/textViewPaymentMethod"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Visa •••• 1234"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            app:layout_constraintTop_toBottomOf="@id/textViewAmount"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="Visa •••• 1234" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>

@@ -8,10 +8,13 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.app_music.R
+import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.databinding.ActivityPremiumUserBinding
 import com.example.app_music.domain.utils.AppInfo
 import com.example.app_music.presentation.feature.common.BaseActivity
+import kotlinx.coroutines.launch
 import vn.zalopay.sdk.Environment
 import vn.zalopay.sdk.ZaloPaySDK
 import vn.zalopay.sdk.listeners.PayOrderListener
@@ -83,6 +86,7 @@ class PremiumUser : BaseActivity() {
                 Log.e(TAG, "Error: $errorMessage")
             }
         }
+
     }
 
     private fun handlePaymentState(state: PaymentState) {
@@ -253,28 +257,50 @@ class PremiumUser : BaseActivity() {
 
 
     private fun handlePremiumActivation(transactionId: String, transToken: String) {
-        val result = viewModel.handlePremiumActivation(transactionId, transToken)
+        lifecycleScope.launch {
+            try {
 
-        if (result.success) {
+                val paymentResult = viewModel.handlePremiumActivation(transactionId, transToken)
+
+                if (paymentResult.success) {
+
+                    val userId = UserPreference.getUserId(this@PremiumUser)
+                    viewModel.updateUserRankToPremium(userId)
 
 
-            // Return result to previous activity
-            val resultIntent = Intent().apply {
-                putExtra("payment_success", true)
-                putExtra("transaction_id", result.transactionId)
-                putExtra("amount", result.amount)
+                    viewModel.updateRankResult.observe(this@PremiumUser) { rankResult ->
+                        if (rankResult.isSuccess) {
+
+                            val resultIntent = Intent().apply {
+                                putExtra("payment_success", true)
+                                putExtra("transaction_id", paymentResult.transactionId)
+                                putExtra("amount", paymentResult.amount)
+                                putExtra("rank_updated", true)
+                            }
+                            setResult(RESULT_OK, resultIntent)
+                            finish()
+                        } else {
+
+                            showErrorDialog(
+                                "Warning",
+                                "Payment successful but failed to update profile. Please contact support."
+                            )
+                        }
+                    }
+                } else {
+
+                    showErrorDialog(
+                        getString(R.string.premium_activation_error_title),
+                        paymentResult.errorMessage ?: getString(R.string.premium_activation_error_message)
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("PremiumActivation", "Error during premium activation", e)
+                showErrorDialog("Error", "An unexpected error occurred. Please try again.")
             }
-            setResult(RESULT_OK, resultIntent)
-            finish()
-        } else {
-            // Handle activation failure
-            showErrorDialog(
-                getString(R.string.premium_activation_error_title),
-                result.errorMessage ?: getString(R.string.premium_activation_error_message)
-            )
-
         }
     }
+
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.app_music.data.repository.UserRepository
+import com.example.app_music.domain.usecase.user.UpdateUserRankUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -16,6 +18,10 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
 
     private val _paymentState = MutableLiveData<PaymentState>()
     val paymentState: LiveData<PaymentState> = _paymentState
+    private val userRepository = UserRepository()
+    private val updateUserRankUseCase = UpdateUserRankUseCase(userRepository)
+    private val _updateRankResult = MutableLiveData<UpdateRankResult>()
+    val updateRankResult: LiveData<UpdateRankResult> = _updateRankResult
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
@@ -35,6 +41,40 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         _paymentState.value = PaymentState.Idle
         _isLoading.value = false
     }
+    fun updateUserRankToPremium(userId: Long) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            try {
+                Log.d("PremiumViewModel", "Starting update user rank to premium for userId: $userId")
+
+                val response = updateUserRankUseCase(userId, "premium")
+
+                if (response.isSuccessful) {
+                    Log.d("PremiumViewModel", "User rank updated to premium successfully")
+                    _updateRankResult.value = UpdateRankResult(
+                        isSuccess = true,
+                        message = "Welcome to Premium!"
+                    )
+                } else {
+                    Log.e("PremiumViewModel", "Failed to update user rank: ${response.message()}")
+                    _updateRankResult.value = UpdateRankResult(
+                        isSuccess = false,
+                        message = "Failed to update user rank: ${response.message()}"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("PremiumViewModel", "Error updating user rank", e)
+                _updateRankResult.value = UpdateRankResult(
+                    isSuccess = false,
+                    message = "Error: ${e.message}"
+                )
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
 
     fun createOrderAndInitiatePayment() {
         if (_isLoading.value == true) {
@@ -169,5 +209,9 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         val transactionId: String,
         val amount: String,
         val errorMessage: String? = null
+    )
+    data class UpdateRankResult(
+        val isSuccess: Boolean,
+        val message: String
     )
 }

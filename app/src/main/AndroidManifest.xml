@@ -29,17 +29,20 @@
         android:theme="@style/Theme.App_music"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
         <activity
             android:name=".presentation.feature.menu.premiumuser.PremiumUser"
             android:exported="true"
-            android:launchMode="singleTask"
-            >
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="snapsolve"
-                    android:host="premium" />
+
+                <data
+                    android:host="premium"
+                    android:scheme="snapsolve" />
             </intent-filter>
         </activity>
 
@@ -91,7 +94,7 @@
             android:exported="false" />
         <activity
             android:name=".presentation.feature.noteScene.NoteActivity"
-            android:exported="true"/>
+            android:exported="true" />
         <activity
             android:name=".presentation.feature.noteScene.NoteDetailActivity"
             android:exported="false" />

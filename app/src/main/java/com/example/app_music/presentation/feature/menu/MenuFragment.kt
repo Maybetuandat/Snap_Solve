@@ -16,6 +16,7 @@ import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.presentation.feature.menu.premiumuser.PremiumUser
 
+
 class MenuFragment : Fragment() {
    private var _binding : FragmentMenuBinding ?= null
     private val binding get()= _binding!!
@@ -77,6 +78,7 @@ class MenuFragment : Fragment() {
             val intent = Intent(requireContext(), PremiumUser::class.java)
             startActivity(intent)
         }
+
     }
 
     private fun setUpObserver()
@@ -94,6 +96,7 @@ class MenuFragment : Fragment() {
 
                 binding.imageViewProfileIcon.setImageResource(R.drawable.ic_person)
             }
+            updatePremiumSection(user.userRank)
 
         }
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
@@ -105,6 +108,25 @@ class MenuFragment : Fragment() {
             }
         }
 
+    }
+    private fun updatePremiumSection(userRank: String?) {
+        when (userRank?.lowercase()) {
+             "premium" -> {
+
+                binding.layoutPremium.visibility = View.GONE
+                binding.layoutTransactionHistory.visibility = View.VISIBLE
+
+                 binding.textViewRecommendTitle.text = getString(R.string.transaction_history)
+
+
+
+            }
+            else -> {
+
+                binding.layoutPremium.visibility = View.VISIBLE
+                binding.layoutTransactionHistory.visibility = View.GONE
+            }
+        }
     }
 
 }

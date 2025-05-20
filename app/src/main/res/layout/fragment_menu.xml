@@ -7,7 +7,6 @@
     tools:context=".presentation.feature.menu.MenuFragment"
     android:background="@android:color/white">
 
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layoutTopBar"
         app:layout_constraintTop_toTopOf="parent"
@@ -37,7 +36,6 @@
             android:layout_height="32dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_setting"
-
             android:clickable="true"
             android:focusable="true"
             android:padding="4dp"
@@ -47,7 +45,6 @@
             app:layout_constraintBottom_toBottomOf="@id/textViewMenuTitle" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="0dp"
@@ -62,7 +59,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingBottom="16dp">
-
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardViewProfileIcon"
@@ -81,9 +77,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerInside"
-
-                    android:src="@drawable/ic_person"
-                     />
+                    android:src="@drawable/ic_person" />
             </androidx.cardview.widget.CardView>
 
             <TextView
@@ -102,7 +96,6 @@
 
             <Button
                 android:id="@+id/btnEditProfile"
-
                 android:layout_width="wrap_content"
                 android:layout_height="50dp"
                 android:layout_marginEnd="16dp"
@@ -118,9 +111,6 @@
                 app:layout_constraintTop_toTopOf="@id/textViewUserName"
                 app:layout_constraintBottom_toBottomOf="@id/textViewUserName"/>
 
-
-
-
             <View
                 android:id="@+id/divider1"
                 android:layout_width="0dp"
@@ -133,82 +123,143 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
-
             <TextView
                 android:id="@+id/textViewRecommendTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:text="@string/recommend_product"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/divider1"/>
 
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:text="@string/recommend_product"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/divider1"/>
-
-            <!-- Premium Row -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/layoutPremium"
+            <!-- FrameLayout để chứa cả Premium và Transaction History -->
+            <FrameLayout
+                android:id="@+id/frameLayoutPremium"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
                 app:layout_constraintTop_toBottomOf="@id/textViewRecommendTitle"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
-                <ImageView
-                    android:id="@+id/imageViewPremiumIcon"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_diamond"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                 />
-
-                <TextView
-                    android:id="@+id/textViewPremiumLabel"
-                    android:layout_width="wrap_content"
+                <!-- Premium Layout (cho user thường) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/layoutPremium"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:text="@string/premium"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="visible">
 
-                    android:textColor="@android:color/black"
-                    android:textSize="@dimen/text_medium"
-                    app:layout_constraintStart_toEndOf="@id/imageViewPremiumIcon"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
+                    <ImageView
+                        android:id="@+id/imageViewPremiumIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_diamond"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
 
-                <TextView
-                    android:id="@+id/textViewStartFree"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/textViewPremiumLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="@string/premium"
+                        android:textColor="@android:color/black"
+                        android:textSize="@dimen/text_medium"
+                        app:layout_constraintStart_toEndOf="@id/imageViewPremiumIcon"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <TextView
+                        android:id="@+id/textViewStartFree"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/start_for_free"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="14sp"
+                        app:layout_constraintEnd_toStartOf="@id/imageViewPremiumArrow"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <ImageView
+                        android:id="@+id/imageViewPremiumArrow"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@android:color/darker_gray"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Transaction History Layout (cho user premium) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/layoutTransactionHistory"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:text="@string/start_for_free"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="14sp"
-                    app:layout_constraintEnd_toStartOf="@id/imageViewPremiumArrow"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
 
-                <ImageView
-                    android:id="@+id/imageViewPremiumArrow"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_arrow_right"
-                    app:tint="@android:color/darker_gray"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    />
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    <TextView
+                        android:id="@+id/textViewTransactionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+
+                        android:text="@string/history_receipt"
+                        android:textColor="@android:color/black"
+                        android:textSize="@dimen/text_medium"
+
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <TextView
+                        android:id="@+id/textViewTransactionStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/premium_active"
+                        android:textColor="@color/selectedicon"
+                        android:textSize="12sp"
+
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        app:layout_constraintEnd_toStartOf="@id/imageViewTransactionArrow"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <ImageView
+                        android:id="@+id/imageViewTransactionArrow"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@android:color/darker_gray"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </FrameLayout>
 
             <!-- Divider 2 -->
             <View
@@ -219,14 +270,13 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:background="@color/colorForDevider"
-                app:layout_constraintTop_toBottomOf="@id/layoutPremium"
+                app:layout_constraintTop_toBottomOf="@id/frameLayoutPremium"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
             <!-- Question History Section -->
             <TextView
                 android:id="@+id/textViewHistoryTitle"
-
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -237,13 +287,13 @@
 
             <TextView
                 android:id="@+id/textViewRecentSearches"
-
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:paddingTop="10dp" android:textColor="@color/black"
+                android:paddingTop="10dp"
+                android:textColor="@color/black"
                 android:paddingBottom="10dp"
                 android:text="@string/recent_searches"
                 android:textSize="@dimen/text_medium"
@@ -289,7 +339,6 @@
             <!-- Question Section -->
             <TextView
                 android:id="@+id/textViewQuestionTitle"
-
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -300,7 +349,6 @@
 
             <TextView
                 android:id="@+id/textViewSearch"
-
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -320,13 +368,11 @@
 
             <TextView
                 android:id="@+id/textViewResearch"
-
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
                 android:text="@string/research"
@@ -355,7 +401,6 @@
             <!-- Tools Section -->
             <TextView
                 android:id="@+id/textViewToolsTitle"
-
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -366,7 +411,6 @@
 
             <TextView
                 android:id="@+id/textViewNote"
-
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -400,7 +444,6 @@
             <!-- Support Section -->
             <TextView
                 android:id="@+id/textViewSupportTitle"
-
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -411,7 +454,6 @@
 
             <TextView
                 android:id="@+id/textViewNotice"
-
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -428,10 +470,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/textViewSupportTitle"
                 app:layout_constraintEnd_toEndOf="parent"/>
-
-
-
-
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

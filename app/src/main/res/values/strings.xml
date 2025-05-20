@@ -159,4 +159,7 @@
     <string name="dialog_button_retry">Retry</string>
     <string name="premium_activation_error_title">Premium Activation Error</string>
     <string name="premium_activation_error_message">Unable to activate Premium account</string>
+    <string name="history_receipt">History Receipt</string>
+    <string name="premium_active">Premium Active</string>
+    <string name="transaction_history">Transaction History</string>
 </resources>

@@ -159,6 +159,9 @@
         <string name="dialog_button_retry">Thử lại</string>
         <string name="premium_activation_error_title">Lỗi kích hoạt Premium</string>
         <string name="premium_activation_error_message">Không thể kích hoạt tài khoản Premium</string>
+        <string name="history_receipt">Lịch sử thanh toán</string>
+        <string name="premium_active">Cao cấp</string>
+        <string name="transaction_history">Lịch sử giao dịch</string>
 
 
 
