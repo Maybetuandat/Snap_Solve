@@ -17,7 +17,7 @@
         <string name="change_language_message">Bạn có chắc chắn muốn thay đổi ngôn ngữ? Ứng dụng sẽ khởi động lại để áp dụng thay đổi.</string>
         <string name="confirm">Xác nhận</string>
         <string name="cancel">Hủy</string>
-        <string name="back">Quay lại</string>
+
         <string name="nameOfScreenMenu">Menu</string>
         <string name="btnEdit">Chỉnh sửa</string>
         <string name="my_follower">Người theo dõi tôi</string>
@@ -162,6 +162,29 @@
         <string name="history_receipt">Lịch sử thanh toán</string>
         <string name="premium_active">Cao cấp</string>
         <string name="transaction_history">Lịch sử giao dịch</string>
+
+
+        <string name="transaction_history_empty">Không tìm thấy giao dịch nào</string>
+        <string name="transaction_id">Mã Giao Dịch</string>
+        <string name="payment_method">Phương Thức</string>
+        <string name="payment_date">Ngày Thanh Toán</string>
+        <string name="payment_amount">Số Tiền</string>
+        <string name="payment_status">Trạng Thái</string>
+        <string name="payment_subscription">Gói Dịch Vụ</string>
+        <string name="payment_expiry">Ngày Hết Hạn</string>
+        <string name="payment_currency">VNĐ</string>
+        <string name="payment_day_remaining">Còn %d ngày</string>
+        <string name="payment_expired">Đã hết hạn</string>
+        <string name="payment_status_completed">Hoàn thành</string>
+        <string name="payment_status_pending">Đang xử lý</string>
+        <string name="payment_status_failed">Thất bại</string>
+        <string name="payment_status_cancelled">Đã hủy</string>
+        <string name="subscription_monthly">Hàng tháng</string>
+        <string name="subscription_quarterly">Hàng quý</string>
+        <string name="subscription_yearly">Hàng năm</string>
+        <string name="back">Quay lại</string>
+        <string name="refresh">Làm mới</string>
+        <string name="transaction_details">Chi Tiết Giao Dịch</string>
 
 
 

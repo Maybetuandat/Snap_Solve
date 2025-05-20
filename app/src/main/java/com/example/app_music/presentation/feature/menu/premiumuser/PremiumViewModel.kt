@@ -1,25 +1,35 @@
 package com.example.app_music.presentation.feature.menu.premiumuser
 
 import android.app.Application
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.app_music.data.repository.UserRepository
+import com.example.app_music.domain.model.Payment
+import com.example.app_music.domain.usecase.payment.CreatePaymentUseCase
 import com.example.app_music.domain.usecase.user.UpdateUserRankUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import vn.zalopay.sdk.ZaloPayError
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class PremiumViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _paymentState = MutableLiveData<PaymentState>()
     val paymentState: LiveData<PaymentState> = _paymentState
+
     private val userRepository = UserRepository()
     private val updateUserRankUseCase = UpdateUserRankUseCase(userRepository)
+    private val createPaymentUseCase = CreatePaymentUseCase()
+
     private val _updateRankResult = MutableLiveData<UpdateRankResult>()
     val updateRankResult: LiveData<UpdateRankResult> = _updateRankResult
 
@@ -30,17 +40,17 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
     val errorMessage: LiveData<String> = _errorMessage
 
     private val premiumPrice = "98000"
+    private var appTransId: String? = null
 
     companion object {
         private const val TAG = "PremiumViewModel"
     }
 
-
-
     init {
         _paymentState.value = PaymentState.Idle
         _isLoading.value = false
     }
+
     fun updateUserRankToPremium(userId: Long) {
         _isLoading.value = true
 
@@ -75,7 +85,6 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
     fun createOrderAndInitiatePayment() {
         if (_isLoading.value == true) {
             Log.w(TAG, "Payment already in progress")
@@ -85,13 +94,10 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 _isLoading.value = true
-                _paymentState.value = PaymentState.Processing  // o moi buoc thuc hien cap nhat trang thai cua payment de activity lang nghe
-
-             //   Log.d(TAG, "Creating order for amount: $premiumPrice")
+                _paymentState.value = PaymentState.Processing
 
                 val orderResponse = withContext(Dispatchers.IO) {
                     val result = CreateOrder().createOrder(premiumPrice)
-                   // Log.d("PremiumViewModel", "Order response: $result")
                     result
                 }
 
@@ -140,8 +146,11 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         when (returnCode) {
             "1" -> {
                 if (orderResponse.has("zp_trans_token")) {
-                    val zpTransToken = orderResponse.getString("zp_trans_token") // dai dien cho ordercreate duoc tra ve tu zalopay server
-                    Log.d(TAG, "Got zp_trans_token: $zpTransToken")
+                    val zpTransToken = orderResponse.getString("zp_trans_token")
+                    // Save app_trans_id for future reference
+                    appTransId = orderResponse.optString("app_trans_id", "")
+
+                    Log.d(TAG, "Got zp_trans_token: $zpTransToken, app_trans_id: $appTransId")
                     _paymentState.value = PaymentState.OrderCreated(zpTransToken)
                 } else {
                     Log.e(TAG, "No zp_trans_token found in response")
@@ -189,13 +198,45 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         _errorMessage.value = ""
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun handlePremiumActivation(transactionId: String, transToken: String): PremiumActivationResult {
-        // TODO: Implement server verification logic
-        // 1. Send transaction info to server for verification
-        // 2. Update premium status in local storage
-        // 3. Return activation result
+        // Save payment info
+        viewModelScope.launch {
+            try {
+                val userId = com.example.app_music.data.local.preferences.UserPreference.getUserId(getApplication())
 
-        Log.d(TAG, "Activating premium for transaction: $transactionId")
+                // Create payment object
+                val now = LocalDateTime.now()
+                val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+                val expiryDate = now.plusMonths(1) // 1 month subscription
+
+                val payment = Payment(
+                    transactionId = transactionId,
+                    orderId = appTransId ?: "order_${System.currentTimeMillis()}",
+                    amount = BigDecimal(premiumPrice),
+                    currency = "VND",
+                    paymentMethod = Payment.METHOD_ZALOPAY,
+                    paymentStatus = Payment.STATUS_COMPLETED,
+                    subscriptionType = Payment.TYPE_MONTHLY,
+                    durationMonths = 1,
+                    paymentDate = now.format(formatter),
+                    expiryDate = expiryDate.format(formatter),
+                    userId = userId
+                )
+
+                // Save payment to server
+                val result = createPaymentUseCase(payment, userId)
+
+                if (result.isSuccessful) {
+                    Log.d(TAG, "Payment saved successfully: ${result.body()}")
+                } else {
+                    Log.e(TAG, "Failed to save payment: ${result.errorBody()?.string()}")
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving payment", e)
+            }
+        }
 
         return PremiumActivationResult(
             success = true,
@@ -210,6 +251,7 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
         val amount: String,
         val errorMessage: String? = null
     )
+
     data class UpdateRankResult(
         val isSuccess: Boolean,
         val message: String

@@ -15,6 +15,7 @@ import com.example.app_music.presentation.feature.setting.SettingActivity
 import com.example.app_music.R
 import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.presentation.feature.menu.premiumuser.PremiumUser
+import com.example.app_music.presentation.feature.menu.transactions.TransactionHistoryActivity
 
 
 class MenuFragment : Fragment() {
@@ -76,6 +77,10 @@ class MenuFragment : Fragment() {
         }
         binding.layoutPremium.setOnClickListener {
             val intent = Intent(requireContext(), PremiumUser::class.java)
+            startActivity(intent)
+        }
+        binding.layoutTransactionHistory.setOnClickListener {
+            val intent = Intent(requireContext(), TransactionHistoryActivity::class.java)
             startActivity(intent)
         }
 

@@ -162,4 +162,27 @@
     <string name="history_receipt">History Receipt</string>
     <string name="premium_active">Premium Active</string>
     <string name="transaction_history">Transaction History</string>
+
+
+    <string name="transaction_history_empty">No transactions found</string>
+    <string name="transaction_id">Transaction ID</string>
+    <string name="payment_method">Payment Method</string>
+    <string name="payment_date">Payment Date</string>
+    <string name="payment_amount">Amount</string>
+    <string name="payment_status">Status</string>
+    <string name="payment_subscription">Subscription</string>
+    <string name="payment_expiry">Expiry Date</string>
+    <string name="payment_currency">VND</string>
+    <string name="payment_day_remaining">%d days remaining</string>
+    <string name="payment_expired">Expired</string>
+    <string name="payment_status_completed">Completed</string>
+    <string name="payment_status_pending">Pending</string>
+    <string name="payment_status_failed">Failed</string>
+    <string name="payment_status_cancelled">Cancelled</string>
+    <string name="subscription_monthly">Monthly</string>
+    <string name="subscription_quarterly">Quarterly</string>
+    <string name="subscription_yearly">Yearly</string>
+
+    <string name="refresh">Refresh</string>
+    <string name="transaction_details">Transaction Details</string>
 </resources>

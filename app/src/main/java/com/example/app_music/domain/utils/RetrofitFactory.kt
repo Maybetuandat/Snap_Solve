@@ -1,6 +1,7 @@
 package com.example.app_music.domain.utils
 
 import com.example.app_music.data.remote.api.AuthApi
+import com.example.app_music.data.remote.api.PaymentApi
 import com.example.app_music.data.remote.api.UserApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -18,9 +19,19 @@ object RetrofitFactory {
         retrofit.create(AuthApi::class.java)
     }
 
+
+
+    val paymentApi: PaymentApi by lazy {
+        retrofit.create(PaymentApi::class.java)
+    }
+
+
+
+
     val userApi: UserApi by lazy {
         retrofit.create(UserApi::class.java)
     }
+
 
 
 }
