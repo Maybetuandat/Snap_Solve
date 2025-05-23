@@ -106,5 +106,23 @@ dependencies {
     implementation(files("D:\\CODE\\Snap_Solve\\zpdk-release-v3.1.aar"))
 
 
+    // https://mvnrepository.com/artifact/org.java-websocket/Java-WebSocket
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+
+
+    // https://mvnrepository.com/artifact/androidx.work/work-runtime-ktx
+    runtimeOnly("androidx.work:work-runtime-ktx:2.8.1")
+    // https://mvnrepository.com/artifact/androidx.core/core-ktx
+    runtimeOnly("androidx.core:core-ktx:1.13.1")
+
+
+   
+
+    // For ua.naiksoftware.stomp:
+    implementation ("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
+    implementation ("io.reactivex.rxjava2:rxjava:2.2.21")
+    implementation ("io.reactivex.rxjava2:rxandroid:2.1.1")
+
+
 
 }

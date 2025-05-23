@@ -3,29 +3,42 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA"
+    <uses-permission
+        android:name="android.permission.CAMERA"
         tools:ignore="PermissionImpliesUnsupportedChromeOsHardware" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
-
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
 
     <application
-        android:largeHeap="true"
         android:name=".SnapSolveApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:largeHeap="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.App_music"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
-
+        <activity
+            android:name=".presentation.feature.detail_notification.NotificationDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.feature.notification.NotificationActivity"
+            android:exported="false" />
         <activity
             android:name=".presentation.feature.menu.premiumuser.PremiumUser"
             android:exported="true"
@@ -44,6 +57,7 @@
         <activity
             android:name=".presentation.feature.menu.transactions.TransactionHistoryActivity"
             android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -56,9 +70,7 @@
 
         <activity
             android:name=".presentation.feature.qrscanner.QRScannerActivity"
-            android:exported="false" />
-
-        <!-- Text Search Activity -->
+            android:exported="false" /> <!-- Text Search Activity -->
         <activity
             android:name=".presentation.feature.textsearch.TextSearchActivity"
             android:exported="false" />
@@ -68,14 +80,13 @@
 
 
         <!-- Camera Activities -->
+            android:exported="false" /> <!-- Camera Activities -->
         <activity
             android:name=".presentation.feature.camera.CameraActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.feature.camera.ResultActivity"
-            android:exported="false" />
-
-        <!-- Existing Activities -->
+            android:exported="false" /> <!-- Existing Activities -->
         <activity
             android:name=".presentation.feature.auth.UpdateProfileActivity"
             android:exported="false" />
@@ -114,11 +125,13 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
-                    android:scheme="snapsolve"
-                    android:host="folders" />
+                    android:host="folders"
+                    android:scheme="snapsolve" />
             </intent-filter>
         </activity>
         <activity
@@ -126,18 +139,18 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
-                    android:scheme="snapsolve"
-                    android:host="notes" />
+                    android:host="notes"
+                    android:scheme="snapsolve" />
             </intent-filter>
         </activity>
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
-
-        <!-- Add material design library to use chip components -->
+            android:exported="false" /> <!-- Add material design library to use chip components -->
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

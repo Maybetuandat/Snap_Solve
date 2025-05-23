@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
+import androidx.fragment.app.activityViewModels
 import com.example.app_music.R
 import com.example.app_music.databinding.FragmentHomeBinding
 import com.example.app_music.domain.model.SearchHistory
@@ -19,15 +20,26 @@ import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.camera.ResultActivity
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
 import com.example.app_music.presentation.feature.searchhistory.SearchHistoryActivity
+import com.example.app_music.presentation.feature.notification.NotificationActivity
+import com.example.app_music.MainViewModel
 import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+import com.example.app_music.utils.attachBadge
+import com.google.android.material.badge.BadgeDrawable
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: HomeViewModel
+
+    // Share ViewModel with Activity
+    private val mainViewModel: MainViewModel by activityViewModels()
+
+    // Notification badge for the notification icon
+    private var notificationBadge: BadgeDrawable? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -183,12 +195,57 @@ class HomeFragment : Fragment() {
             putExtra("ASSIGNMENT_ID_5", searchHistory.assignmentId5)
         }
         startActivity(intent)
+        setupNotificationBadge()
+        observeNotificationCount()
+    }
+
+    private fun setupNotificationBadge() {
+        notificationBadge = BadgeDrawable.create(requireContext()).apply {
+            backgroundColor = requireContext().getColor(R.color.red)
+            badgeTextColor = requireContext().getColor(R.color.white)
+            maxCharacterCount = 3
+            isVisible = false
+        }
+
+        // Attach badge to notification icon when the view is laid out
+        binding.notificationIcon.post {
+            // Position at top right of the notification icon
+            notificationBadge?.let { badge ->
+                badge.horizontalOffset = binding.notificationIcon.width / 4
+                badge.verticalOffset = -binding.notificationIcon.height / 4
+                binding.notificationIcon.attachBadge(badge)
+            }
+        }
+    }
+
+    private fun observeNotificationCount() {
+        mainViewModel.unreadNotificationCount.observe(viewLifecycleOwner) { count ->
+            updateNotificationBadge(count)
+        }
+    }
+
+    private fun updateNotificationBadge(count: Long) {
+        notificationBadge?.apply {
+            isVisible = count > 0
+            number = count.toInt()
+            invalidateSelf() // Force redraw
+        }
     }
 
     private fun setupClickListeners() {
         // Profile and notification
         binding.profileIcon.setOnClickListener {
             showMessage("Profile clicked")
+        }
+
+        binding.notificationIcon.setOnClickListener {
+            // Open NotificationActivity
+            val intent = Intent(requireContext(), NotificationActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.starsContainer.setOnClickListener {
+            showMessage("Stars balance clicked")
         }
 
         // Search functionality - Click to open text search
@@ -267,6 +324,12 @@ class HomeFragment : Fragment() {
 
     private fun showMessage(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh notification count when fragment resumes
+        mainViewModel.refreshNotifications()
     }
 
     override fun onDestroyView() {
