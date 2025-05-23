@@ -103,7 +103,7 @@ dependencies {
     implementation("com.google.android.flexbox:flexbox:3.0.0")
 
     // ZaloPay SDK
-    implementation(files("/home/maybetuandat/PTIT/Android App/BTL/Snap_Solve/zpdk-release-v3.1.aar"))
+    implementation(files("D:\\CODE\\Snap_Solve\\zpdk-release-v3.1.aar"))
 
 
     // https://mvnrepository.com/artifact/org.java-websocket/Java-WebSocket
@@ -122,7 +122,6 @@ dependencies {
     implementation ("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
     implementation ("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation ("io.reactivex.rxjava2:rxandroid:2.1.1")
-
 
 
 }

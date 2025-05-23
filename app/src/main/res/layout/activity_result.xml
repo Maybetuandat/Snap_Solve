@@ -83,7 +83,6 @@
                         android:layout_margin="4dp"
                         tools:src="@drawable/ic_person" />
 
-
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -232,6 +231,53 @@
                     android:text="Post to community"
                     android:textAllCaps="false"
                     android:textColor="@color/white" />
+
+                <!-- New "Ask AI" button -->
+                <Button
+                    android:id="@+id/btnAskAI"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="10dp"
+                    android:backgroundTint="@color/gold"
+                    android:text="Ask AI for Solution"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white" />
+
+                <!-- AI Response Section -->
+                <LinearLayout
+                    android:id="@+id/aiResponseSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="AI Solution"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="8dp"/>
+
+                    <ProgressBar
+                        android:id="@+id/aiProgressBar"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:indeterminateTint="@color/gold"
+                        android:visibility="gone" />
+
+                    <WebView
+                        android:id="@+id/webViewAIResult"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@color/white"
+                        android:minHeight="150dp"/>
+
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

@@ -10,17 +10,18 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.app_music.databinding.ActivityMainBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
-
+import kotlinx.coroutines.cancelChildren
 
 class MainActivity : BaseActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -40,11 +41,11 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-
+        // Initialize ViewModel
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        navController = navHostFragment.navController
-        binding.bottomNavigationView.setupWithNavController(navController)
+
+        // Setup Navigation
+        setupNavigation()
 
         // Create notification channel
         createNotificationChannel()
@@ -56,6 +57,51 @@ class MainActivity : BaseActivity() {
         observeNotifications()
     }
 
+    private fun setupNavigation() {
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+
+        if (navHostFragment != null) {
+            navController = navHostFragment.navController
+            binding.bottomNavigationView.setupWithNavController(navController)
+
+            // Handle intent from ResultActivity
+            handleResultActivityIntent()
+        } else {
+            Log.e(TAG, "NavController is null!")
+        }
+    }
+
+    private fun handleResultActivityIntent() {
+        if (intent.getBooleanExtra("NAVIGATE_TO_POSTING", false)) {
+            // Set Community tab as selected
+            binding.bottomNavigationView.selectedItemId = R.id.communityFragment
+
+            // Wait for navigation to complete
+            navController.addOnDestinationChangedListener(object : NavController.OnDestinationChangedListener {
+                override fun onDestinationChanged(
+                    controller: NavController,
+                    destination: NavDestination,
+                    arguments: Bundle?
+                ) {
+                    if (destination.id == R.id.communityFragment) {
+                        // Remove listener to avoid multiple calls
+                        navController.removeOnDestinationChangedListener(this)
+
+                        // Navigate to posting fragment with data from ResultActivity
+                        val bundle = Bundle().apply {
+                            putString("IMAGE_PATH", intent.getStringExtra("IMAGE_PATH"))
+                            putString("IMAGE_URL", intent.getStringExtra("IMAGE_URL"))
+                            putString("QUESTION_TEXT", intent.getStringExtra("QUESTION_TEXT"))
+                        }
+
+                        // Navigate to posting fragment
+                        navController.navigate(R.id.action_communityFragment_to_communityPostingFragment, bundle)
+                    }
+                }
+            })
+        }
+    }
+
     private fun observeNotifications() {
         mainViewModel.newNotification.observe(this) { (title, content) ->
             showPushNotification(title, content)
@@ -64,8 +110,8 @@ class MainActivity : BaseActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.notification_channel_name)    // dang ky thong bao voi system, ten la Snap ..
-            val descriptionText = getString(R.string.notification_channel_description)
+            val name = getString(R.string.app_name) // Use app_name or create notification_channel_name
+            val descriptionText = "Notifications from SnapSolve"
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
@@ -109,7 +155,7 @@ class MainActivity : BaseActivity() {
 
         val intent = Intent(this, )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_notification) // Make sure this icon exists or use android.R.drawable.ic_dialog_info
             .setContentTitle(title)
             .setContentText(content)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -129,10 +175,17 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         // Reconnect WebSocket if needed
-        if (!mainViewModel.isWebSocketConnected()) {
+        if (::mainViewModel.isInitialized && !mainViewModel.isWebSocketConnected()) {
             mainViewModel.connectWebSocket()
         }
         // Refresh notification count
-        mainViewModel.refreshNotifications()
+        if (::mainViewModel.isInitialized) {
+            mainViewModel.refreshNotifications()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        lifecycleScope.coroutineContext.cancelChildren()
     }
 }

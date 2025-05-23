@@ -1,17 +1,20 @@
 package com.example.app_music.presentation.feature.community.communityPosting
 
 import android.Manifest
-import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -83,14 +86,17 @@ class CommunityPostingFragment : Fragment() {
         // Thiết lập RecyclerView cho ảnh đã chọn
         setupImagesRecyclerView()
 
-        // Thiết lập các sự kiện
-        setupListeners()
+        // Thiết lập sự kiện
+        setupListeners() // Không truyền tham số view
 
         // Quan sát ViewModel
         observeViewModel()
 
         // Tải danh sách topic từ API
         viewModel.loadTopics()
+
+        // Xử lý arguments từ ResultActivity
+        handleArguments()
     }
 
     private fun findViews(view: View) {
@@ -405,5 +411,35 @@ class CommunityPostingFragment : Fragment() {
         }
 
         return null
+    }
+
+    private fun handleArguments() {
+        arguments?.let { args ->
+            // Xử lý đường dẫn hình ảnh local
+            val imagePath = args.getString("IMAGE_PATH")
+            if (!imagePath.isNullOrEmpty()) {
+                addImageFromPath(imagePath)
+            }
+
+        }
+    }
+
+    private fun addImageFromPath(path: String) {
+        try {
+            // Tạo URI từ đường dẫn file
+            val file = File(path)
+            val uri = Uri.fromFile(file)
+
+            // Thêm ảnh vào adapter
+            imageAdapter.addImage(uri)
+
+            // Cập nhật UI
+            updateImageCounter()
+            rvSelectedImages.visibility = View.VISIBLE
+            tvSelectedImagesTitle.visibility = View.VISIBLE
+        } catch (e: Exception) {
+            Log.e("CommunityPostingFragment", "Error adding image from path", e)
+            Toast.makeText(requireContext(), "Không thể thêm ảnh: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }

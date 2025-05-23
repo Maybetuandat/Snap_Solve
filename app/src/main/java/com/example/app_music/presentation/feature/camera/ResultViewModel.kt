@@ -10,6 +10,7 @@ import com.example.app_music.data.local.preferences.UserPreference
 import com.example.app_music.data.repository.AssignmentRepository
 import com.example.app_music.data.repository.ImageRepository
 import com.example.app_music.data.repository.TextSearchRepository
+import com.example.app_music.data.repository.AISolutionRepository
 import com.example.app_music.domain.model.Assignment
 import kotlinx.coroutines.launch
 import java.io.File
@@ -18,6 +19,7 @@ class ResultViewModel : ViewModel() {
     private val imageRepository = ImageRepository()
     private val textSearchRepository = TextSearchRepository()
     private val assignmentRepository = AssignmentRepository()
+    private val aiSolutionRepository = AISolutionRepository()
 
     private val _uploadStatus = MutableLiveData<UploadStatus>()
     val uploadStatus: LiveData<UploadStatus> = _uploadStatus
@@ -28,6 +30,10 @@ class ResultViewModel : ViewModel() {
     // Track current assignment index for pagination
     private val _currentAssignmentIndex = MutableLiveData<Int>(0)
     val currentAssignmentIndex: LiveData<Int> = _currentAssignmentIndex
+
+    // AI Solution status
+    private val _aiSolutionStatus = MutableLiveData<AISolutionStatus>()
+    val aiSolutionStatus: LiveData<AISolutionStatus> = _aiSolutionStatus
 
     // Upload the cropped image to server
     fun uploadImage(imageFile: File, context: Context) {
@@ -158,6 +164,51 @@ class ResultViewModel : ViewModel() {
         }
     }
 
+    // Get AI Solution
+    fun getAISolution(query: String, context: Context) {
+        _aiSolutionStatus.value = AISolutionStatus.Loading
+
+        // Get userId from preferences
+        val userId = UserPreference.getUserId(context)
+
+        if (userId <= 0) {
+            _aiSolutionStatus.value = AISolutionStatus.Error("User not logged in")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val response = aiSolutionRepository.getAISolution(query, userId)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val result = response.body()!!
+                    if (result["success"] == true) {
+                        val solution = result["solution"] as? String
+                        if (solution != null) {
+                            _aiSolutionStatus.value = AISolutionStatus.Success(solution)
+                        } else {
+                            _aiSolutionStatus.value = AISolutionStatus.Error("Invalid response format")
+                        }
+                    } else if (result["requirePremium"] == true) {
+                        _aiSolutionStatus.value = AISolutionStatus.PremiumRequired
+                    } else {
+                        val message = result["message"] as? String ?: "Unknown error"
+                        _aiSolutionStatus.value = AISolutionStatus.Error(message)
+                    }
+                } else {
+                    _aiSolutionStatus.value = AISolutionStatus.Error(
+                        "Request failed: ${response.code()} - ${response.message()}"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting AI solution", e)
+                _aiSolutionStatus.value = AISolutionStatus.Error(
+                    "Error: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
+    }
+
     // Functions to navigate between assignments
     fun nextAssignment() {
         val current = _currentAssignmentIndex.value ?: 0
@@ -192,6 +243,13 @@ class ResultViewModel : ViewModel() {
         object Loading : UploadStatus()
         data class Success(val imageUrl: String?, val imageId: String?) : UploadStatus()
         data class Error(val message: String) : UploadStatus()
+    }
+
+    sealed class AISolutionStatus {
+        object Loading : AISolutionStatus()
+        data class Success(val solution: String) : AISolutionStatus()
+        data class Error(val message: String) : AISolutionStatus()
+        object PremiumRequired : AISolutionStatus()
     }
 
     companion object {

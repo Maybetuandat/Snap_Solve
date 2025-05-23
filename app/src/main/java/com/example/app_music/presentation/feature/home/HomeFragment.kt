@@ -1,7 +1,11 @@
 package com.example.app_music.presentation.feature.home
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +19,7 @@ import androidx.fragment.app.activityViewModels
 import com.example.app_music.R
 import com.example.app_music.databinding.FragmentHomeBinding
 import com.example.app_music.domain.model.SearchHistory
+import com.example.app_music.domain.model.User
 import com.example.app_music.domain.utils.UrlUtils
 import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.camera.ResultActivity
@@ -23,6 +28,7 @@ import com.example.app_music.presentation.feature.searchhistory.SearchHistoryAct
 import com.example.app_music.presentation.feature.notification.NotificationActivity
 import com.example.app_music.MainViewModel
 import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
+import com.example.app_music.presentation.feature.translate.TranslateActivity
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -57,12 +63,17 @@ class HomeFragment : Fragment() {
         setupObservers()
 
         // Load search history when the fragment is created
+        viewModel.loadUserInfo(requireContext())
         viewModel.loadSearchHistory(requireContext())
     }
 
     private fun setupObservers() {
         viewModel.searchHistory.observe(viewLifecycleOwner) { historyList ->
             updateSearchHistoryUI(historyList)
+        }
+
+        viewModel.currentUser.observe(viewLifecycleOwner) { user ->
+            updateUserUI(user)
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
@@ -153,6 +164,7 @@ class HomeFragment : Fragment() {
                 .load(UrlUtils.getAbsoluteUrl(searchHistory.image))
                 .placeholder(R.drawable.placeholder_image)
                 .into(imageView)
+            Log.d("HistoryUrl:", UrlUtils.getAbsoluteUrl(searchHistory.image))
         } else {
             imageView.setImageResource(R.drawable.ic_search_history)
         }
@@ -261,8 +273,8 @@ class HomeFragment : Fragment() {
 
         // Utilities section
         val utilitiesLayout = view?.findViewById<ViewGroup>(R.id.utilities_container)
-        utilitiesLayout?.getChildAt(1)?.findViewById<ViewGroup>(R.id.dictionary_item)?.setOnClickListener {
-            showMessage("Dictionary feature clicked")
+        binding.dictionaryButton.setOnClickListener {
+            startTranslateActivity()
         }
 
         utilitiesLayout?.getChildAt(1)?.findViewById<ViewGroup>(R.id.calculator_item)?.setOnClickListener {
@@ -285,19 +297,23 @@ class HomeFragment : Fragment() {
         }
 
         // Social buttons
+        val facebookUrl = "https://www.facebook.com/" // hoặc profile cá nhân
+        val tiktokUrl = "https://www.tiktok.com/" // thay username
+
         view?.findViewById<View>(R.id.facebook_button)?.setOnClickListener {
-            showMessage("Share on Facebook clicked")
+            openLink(requireContext(), facebookUrl)
         }
 
         view?.findViewById<View>(R.id.tiktok_button)?.setOnClickListener {
-            showMessage("Share on TikTok clicked")
+            openLink(requireContext(), tiktokUrl)
         }
 
-        // Long press on dictionary to access notes (hidden feature)
-        utilitiesLayout?.getChildAt(1)?.findViewById<ViewGroup>(R.id.dictionary_item)?.setOnLongClickListener {
-            navigateToNoteActivity()
-            true
-        }
+
+    }
+
+    private fun startTranslateActivity() {
+        val intent = Intent(requireContext(), TranslateActivity::class.java)
+        startActivity(intent)
     }
 
     private fun startCameraActivity() {
@@ -334,5 +350,36 @@ class HomeFragment : Fragment() {
             viewModel.loadSearchHistory(requireContext())
         }
         mainViewModel.refreshNotifications()
+    }
+
+    private fun openLink(context: Context, url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(context, "Không tìm thấy ứng dụng để mở link", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateUserUI(user: User) {
+        // Update avatar
+        if (!user.avatarUrl.isNullOrEmpty()) {
+            Log.d("AvatarURL", user.avatarUrl ?: "null")
+            val avatarUrl = UrlUtils.getAbsoluteUrl(user.avatarUrl)
+
+
+            Glide.with(requireContext())
+                .load(avatarUrl)
+                .timeout(15000)
+                .placeholder(R.drawable.ic_home_avatar) // Default placeholder
+                .error(R.drawable.ic_home_avatar) // Error fallback
+                .circleCrop() // Make it circular
+                .into(binding.profileIcon)
+
+        } else {
+            // Use default avatar if no avatar URL
+            binding.profileIcon.setImageResource(R.drawable.ic_home_avatar)
+        }
     }
 }
