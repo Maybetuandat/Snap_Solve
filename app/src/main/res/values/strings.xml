@@ -274,6 +274,7 @@
 
     <string name="notification_channel_name">SnapSolve Notifications</string>
     <string name="notification_channel_description">Nhận thông báo từ SnapSolve</string>
+    <string name="no_notification">Dont have notification</string>
 
 
 </resources>

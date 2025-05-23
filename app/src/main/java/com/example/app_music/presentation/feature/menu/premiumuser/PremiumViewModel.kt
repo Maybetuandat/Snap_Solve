@@ -226,7 +226,7 @@ class PremiumViewModel(application: Application) : AndroidViewModel(application)
                 )
 
                 // Save payment to server
-                val result = createPaymentUseCase(payment, userId)
+                val result = createPaymentUseCase(payment)
 
                 if (result.isSuccessful) {
                     Log.d(TAG, "Payment saved successfully: ${result.body()}")

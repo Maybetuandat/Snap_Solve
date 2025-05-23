@@ -7,8 +7,7 @@ import retrofit2.http.*
 interface PaymentApi {
     @POST("/api/payments")
     suspend fun createPayment(
-        @Body payment: Payment,
-        @Query("userId") userId: Long
+        @Body payment: Payment
     ): Response<Payment>
 
     @GET("/api/payments/user/{userId}")

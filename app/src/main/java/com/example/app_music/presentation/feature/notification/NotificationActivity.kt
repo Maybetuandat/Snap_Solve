@@ -57,27 +57,16 @@ class NotificationActivity : BaseActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
 
-        // Mark all as read
-        binding.btnMarkAllRead.setOnClickListener {
-            viewModel.markAllAsRead()
-            Toast.makeText(this, "Đã đánh dấu tất cả là đã đọc", Toast.LENGTH_SHORT).show()
-        }
+
 
         // Swipe to refresh
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.loadNotifications()
         }
 
-        // Close ad button
-        binding.btnCloseAd.setOnClickListener {
-            viewModel.hideAdBanner()
-        }
 
-        // Upgrade button
-        binding.btnUpgrade.setOnClickListener {
-            val intent = Intent(this, PremiumUser::class.java)
-            startActivity(intent)
-        }
+
+
     }
 
     private fun setupObservers() {
@@ -118,10 +107,7 @@ class NotificationActivity : BaseActivity() {
             }
         }
 
-        // Observe ad banner visibility
-        viewModel.showAdBanner.observe(this) { showAd ->
-            binding.adBanner.visibility = if (showAd) View.VISIBLE else View.GONE
-        }
+
     }
 
     private fun onNotificationClicked(notification: Notification) {

@@ -275,5 +275,9 @@
         <string name="notification_channel_description">Nhận thông báo từ SnapSolve</string>
 
 
+        <string name="no_notification">Không có thông báo nào</string>
+        <string name="download_model_failed">Tải mô hình dịch thất bại</string>
+        <string name="today_missions">Nhiệm vụ hôm nay</string>
+        <string name="open_missions">Mở bảng nhiệm vụ</string>
 
 </resources>

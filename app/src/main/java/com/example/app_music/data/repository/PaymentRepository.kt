@@ -9,8 +9,8 @@ import retrofit2.Response
 class PaymentRepository : PaymentRepository {
     private val paymentApi = RetrofitFactory.paymentApi
 
-    override suspend fun createPayment(payment: Payment, userId: Long): Response<Payment> {
-        return paymentApi.createPayment(payment, userId)
+    override suspend fun createPayment(payment: Payment): Response<Payment> {
+        return paymentApi.createPayment(payment)
     }
 
     override suspend fun getUserPayments(userId: Long): Response<List<Payment>> {

@@ -60,6 +60,7 @@ class NotificationActivityViewModel(application: Application) : AndroidViewModel
                 if (response.isSuccessful) {
                     val notifications = response.body() ?: emptyList()
                     _notifications.value = notifications
+
                 } else {
                     _error.value = "Lỗi: ${response.message()}"
                 }
