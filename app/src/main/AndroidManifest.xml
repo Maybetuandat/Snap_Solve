@@ -77,10 +77,6 @@
         <activity
             android:name=".presentation.feature.searchhistory.SearchHistoryActivity"
             android:exported="false" />
-
-
-        <!-- Camera Activities -->
-            android:exported="false" /> <!-- Camera Activities -->
         <activity
             android:name=".presentation.feature.camera.CameraActivity"
             android:exported="false" />
@@ -150,7 +146,7 @@
         </activity>
         <activity
             android:name=".MainActivity"
-            android:exported="false" /> <!-- Add material design library to use chip components -->
+            android:exported="false" />
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

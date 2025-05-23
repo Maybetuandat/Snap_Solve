@@ -207,15 +207,15 @@ class HomeFragment : Fragment() {
             isVisible = false
         }
 
-        // Attach badge to notification icon when the view is laid out
-        binding.notificationIcon.post {
-            // Position at top right of the notification icon
-            notificationBadge?.let { badge ->
-                badge.horizontalOffset = binding.notificationIcon.width / 4
-                badge.verticalOffset = -binding.notificationIcon.height / 4
-                binding.notificationIcon.attachBadge(badge)
-            }
-        }
+//        // Attach badge to notification icon when the view is laid out
+//        binding.notificationIcon.post {
+//            // Position at top right of the notification icon
+//            notificationBadge?.let { badge ->
+//                badge.horizontalOffset = binding.notificationIcon.width / 4
+//                badge.verticalOffset = -binding.notificationIcon.height / 4
+//                binding.notificationIcon.attachBadge(badge)
+//            }
+//        }
     }
 
     private fun observeNotificationCount() {
@@ -238,15 +238,8 @@ class HomeFragment : Fragment() {
             showMessage("Profile clicked")
         }
 
-        binding.notificationIcon.setOnClickListener {
-            // Open NotificationActivity
-            val intent = Intent(requireContext(), NotificationActivity::class.java)
-            startActivity(intent)
-        }
 
-        binding.starsContainer.setOnClickListener {
-            showMessage("Stars balance clicked")
-        }
+
 
         // Search functionality - Click to open text search
         binding.searchEditText.setOnClickListener {
@@ -326,11 +319,7 @@ class HomeFragment : Fragment() {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Refresh notification count when fragment resumes
-        mainViewModel.refreshNotifications()
-    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -344,5 +333,6 @@ class HomeFragment : Fragment() {
         if (::viewModel.isInitialized) {
             viewModel.loadSearchHistory(requireContext())
         }
+        mainViewModel.refreshNotifications()
     }
 }
