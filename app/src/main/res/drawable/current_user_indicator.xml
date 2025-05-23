@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- app/src/main/res/drawable/current_user_indicator.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <!-- Viền màu vàng để đánh dấu user hiện tại -->
+    <stroke
+        android:width="3dp"
+        android:color="@color/gold" />
+
+    <!-- Nền màu sẽ được set programmatically -->
+    <solid android:color="@android:color/transparent" />
+
+</shape>
