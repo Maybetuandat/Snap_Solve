@@ -27,6 +27,7 @@ import com.example.app_music.presentation.feature.noteScene.NoteActivity
 import com.example.app_music.presentation.feature.searchhistory.SearchHistoryActivity
 import com.example.app_music.presentation.feature.notification.NotificationActivity
 import com.example.app_music.MainViewModel
+import com.example.app_music.presentation.feature.menu.profile.ProfileActivity
 import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
 import com.example.app_music.presentation.feature.translate.TranslateActivity
 import java.time.format.DateTimeFormatter
@@ -245,11 +246,16 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // Profile and notification
+
         binding.profileIcon.setOnClickListener {
-            showMessage("Profile clicked")
+            val intent = Intent(requireContext(), ProfileActivity::class.java)
+            startActivity(intent)
         }
 
+        binding.notificationIcon.setOnClickListener {
+            val intent = Intent(requireContext(), NotificationActivity::class.java)
+            startActivity(intent)
+        }
 
 
 

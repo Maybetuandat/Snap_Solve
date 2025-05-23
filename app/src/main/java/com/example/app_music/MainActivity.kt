@@ -153,7 +153,7 @@ class MainActivity : BaseActivity() {
         }
 
 
-        val intent = Intent(this, )
+      //  val intent = Intent(this, )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification) // Make sure this icon exists or use android.R.drawable.ic_dialog_info
             .setContentTitle(title)
