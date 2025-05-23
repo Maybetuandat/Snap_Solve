@@ -54,7 +54,7 @@ class TopicSelectionBottomSheet : BottomSheetDialogFragment() {
         val view = inflater.inflate(R.layout.layout_topic_selection, container, false)
 
         // Thêm background cho dialog
-        view.setBackgroundResource(R.drawable.topic_dialog_background)
+       // view.setBackgroundResource(R.drawable.topic_dialog_background)
 
         return view
     }
