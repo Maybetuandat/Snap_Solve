@@ -13,20 +13,18 @@ import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.app_music.databinding.ActivityMainBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
-import com.example.app_music.presentation.feature.notification.NotificationViewModel
 
 
 class MainActivity : BaseActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
-
-    // Use the ViewModel
-    private val notificationViewModel: NotificationViewModel by viewModels()
+    private lateinit var mainViewModel: MainViewModel
 
     companion object {
         private const val TAG = "MainActivity"
@@ -41,6 +39,8 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+
+        mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
         binding.bottomNavigationView.setupWithNavController(navController)
@@ -56,14 +56,14 @@ class MainActivity : BaseActivity() {
     }
 
     private fun observeNotifications() {
-        notificationViewModel.newNotification.observe(this) { (title, content) ->
+        mainViewModel.newNotification.observe(this) { (title, content) ->
             showPushNotification(title, content)
         }
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.notification_channel_name)
+            val name = getString(R.string.notification_channel_name)    // dang ky thong bao voi system, ten la Snap ..
             val descriptionText = getString(R.string.notification_channel_description)
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
@@ -126,10 +126,10 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         // Reconnect WebSocket if needed
-        if (!notificationViewModel.isWebSocketConnected()) {
-            notificationViewModel.connectWebSocket()
+        if (!mainViewModel.isWebSocketConnected()) {
+            mainViewModel.connectWebSocket()
         }
         // Refresh notification count
-        notificationViewModel.refreshNotifications()
+        mainViewModel.refreshNotifications()
     }
 }

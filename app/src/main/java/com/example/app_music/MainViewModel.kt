@@ -1,4 +1,4 @@
-package com.example.app_music.presentation.feature.notification
+package com.example.app_music
 
 import android.app.Application
 import android.util.Log
@@ -17,7 +17,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-class NotificationViewModel(application: Application) : AndroidViewModel(application) {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "NotificationViewModel"
     private val gson = Gson()
 

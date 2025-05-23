@@ -13,7 +13,7 @@ import com.example.app_music.databinding.FragmentHomeBinding
 import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
 import com.example.app_music.presentation.feature.notification.NotificationActivity
-import com.example.app_music.presentation.feature.notification.NotificationViewModel
+import com.example.app_music.MainViewModel
 import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
 
 import com.example.app_music.utils.attachBadge
@@ -25,7 +25,7 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
 
     // Share ViewModel with Activity
-    private val notificationViewModel: NotificationViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     // Notification badge for the notification icon
     private var notificationBadge: BadgeDrawable? = null
@@ -65,7 +65,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun observeNotificationCount() {
-        notificationViewModel.unreadNotificationCount.observe(viewLifecycleOwner) { count ->
+        mainViewModel.unreadNotificationCount.observe(viewLifecycleOwner) { count ->
             updateNotificationBadge(count)
         }
     }
@@ -185,7 +185,7 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         // Refresh notification count when fragment resumes
-        notificationViewModel.refreshNotifications()
+        mainViewModel.refreshNotifications()
     }
 
     override fun onDestroyView() {
