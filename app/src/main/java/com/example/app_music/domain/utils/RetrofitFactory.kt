@@ -5,6 +5,8 @@ import com.example.app_music.data.remote.api.AuthApi
 import com.example.app_music.data.remote.api.CommentApi
 import com.example.app_music.data.remote.api.ImageUploadApi
 import com.example.app_music.data.remote.api.PaymentApi
+
+import com.example.app_music.data.remote.api.NotificationApi
 import com.example.app_music.data.remote.api.PostApi
 import com.example.app_music.data.remote.api.SearchHistoryApi
 import com.example.app_music.data.remote.api.TextSearchApi
@@ -87,5 +89,8 @@ object RetrofitFactory {
 
     val commentApi: CommentApi by lazy {
         retrofit.create(CommentApi::class.java)
+    }
+    val notificationApi: NotificationApi by lazy {
+        retrofit.create(NotificationApi::class.java)
     }
 }

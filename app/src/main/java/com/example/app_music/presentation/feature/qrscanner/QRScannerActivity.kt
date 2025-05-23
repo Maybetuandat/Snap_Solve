@@ -28,7 +28,6 @@ class QRScannerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_qrscanner)
 
-        // Ánh xạ view
         barcodeScanner = findViewById(R.id.barcode_scanner)
         toolbar = findViewById(R.id.toolbar)
         progressBar = findViewById(R.id.progressBar)
@@ -47,7 +46,7 @@ class QRScannerActivity : AppCompatActivity() {
         captureManager = CaptureManager(this, barcodeScanner)
         captureManager.initializeFromIntent(intent, savedInstanceState)
 
-        // Setup callback for scan results
+        // Setup callback cho kết quả quét
         barcodeScanner.decodeSingle(object : BarcodeCallback {
             override fun barcodeResult(result: BarcodeResult) {
                 if (isProcessingResult) return
@@ -58,7 +57,6 @@ class QRScannerActivity : AppCompatActivity() {
             }
 
             override fun possibleResultPoints(resultPoints: List<ResultPoint>) {
-                // Not used
             }
         })
     }
@@ -92,7 +90,6 @@ class QRScannerActivity : AppCompatActivity() {
     }
 
     private fun openNoteDetail(noteId: String) {
-        // Open the NoteDetailActivity with the scanned note ID
         val intent = Intent(this, NoteDetailActivity::class.java).apply {
             putExtra("note_id", noteId)
             putExtra("from_qr_code", true)
@@ -102,7 +99,6 @@ class QRScannerActivity : AppCompatActivity() {
     }
 
     private fun openFolder(folderId: String) {
-        // Open the NoteActivity with the scanned folder ID
         val intent = Intent(this, NoteActivity::class.java).apply {
             putExtra("folder_id", folderId)
             putExtra("from_qr_code", true)

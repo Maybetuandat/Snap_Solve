@@ -1,5 +1,6 @@
 package com.example.app_music.presentation.feature.noteScene.views
 
+import android.content.Context
 import android.graphics.Color
 import android.util.Log
 import com.example.app_music.data.collaboration.CollaborationManager
@@ -13,26 +14,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Quản lý vẽ thời gian thực và đồng bộ hóa
- */
 class RealtimeDrawingManager(
     private val drawingView: DrawingView,
     private val collaborationManager: CollaborationManager,
     private val scope: CoroutineScope,
-    private val currentPageId: String
-) {
+    private val currentPageId: String,
+    private val context: Context
+)
+{
     private val TAG = "RealtimeDrawingManager"
     private var isLocalStroke = false
-    private var activeStrokeIds = HashSet<String>() // Theo dõi ID cho trang hiện tại
-    private val strokesRepository = StrokesRepository()
+    private var activeStrokeIds = HashSet<String>()
+    private val strokesRepository = StrokesRepository(context)
 
-    // Reference trực tiếp đến node strokes trong Realtime Database
     private val strokesRef = FirebaseDatabase.getInstance().getReference("strokes").child(currentPageId)
     private var strokesListener: ChildEventListener? = null
 
     init {
-        // Đặt listener cho các nét vẽ cục bộ
+        // Đặt listener khi vẽ xong
         drawingView.setOnDrawCompletedListener(object : DrawingView.OnDrawCompletedListener {
             override fun onDrawCompleted() {
                 // Lấy nét vẽ cuối cùng và đồng bộ hóa
@@ -44,19 +43,11 @@ class RealtimeDrawingManager(
                     // Thêm ID nét vẽ vào tập theo dõi
                     activeStrokeIds.add(lastStroke.id)
 
-                    // Lưu nét vẽ vào repository
+                    // Lưu nét vẽ vào repository, tạo 1 couroutine riêng để không chặn luồng UI
                     scope.launch {
                         try {
                             val saveResult = strokesRepository.saveStroke(currentPageId, lastStroke)
 
-                            if (saveResult.isSuccess) {
-                                Log.d(TAG, "Stroke saved successfully: ${lastStroke.id}")
-
-                                // Không cần chuyển đổi và gửi drawingAction riêng nữa
-                                // vì listener thực hiện điều này tự động
-                            } else {
-                                Log.e(TAG, "Failed to save stroke: ${saveResult.exceptionOrNull()?.message}")
-                            }
                         } catch (e: Exception) {
                             Log.e(TAG, "Error saving stroke", e)
                         } finally {
@@ -66,30 +57,27 @@ class RealtimeDrawingManager(
                 }
             }
         })
+
         drawingView.setOnStrokeDeletedListener(object : DrawingView.OnStrokeDeletedListener {
             override fun onStrokeDeleted(strokeId: String) {
                 // Remove from Firebase
                 strokesRef.child(strokeId).removeValue()
                     .addOnSuccessListener {
-                        Log.d(TAG, "Stroke deleted from database: $strokeId")
                         // Also remove from tracking set
                         activeStrokeIds.remove(strokeId)
                     }
                     .addOnFailureListener { e ->
-                        Log.e(TAG, "Failed to delete stroke from database: ${e.message}")
                     }
             }
         })
-        // Tải các nét vẽ hiện có khi khởi tạo
+
         loadExistingStrokes()
 
-        // Thiết lập listener cho các thay đổi theo thời gian thực
+        //set up các listener
         setupRealtimeListener()
     }
 
-    /**
-     * Tải các nét vẽ hiện có cho trang
-     */
+    //tải các nét vẽ cho trang
     private fun loadExistingStrokes() {
         scope.launch {
             try {
@@ -100,17 +88,13 @@ class RealtimeDrawingManager(
 
                     if (strokes.isNotEmpty()) {
                         withContext(Dispatchers.Main) {
-                            // Xóa view trước khi áp dụng các nét vẽ đã tải
+                            // Xóa view
                             drawingView.clearDrawing(false)
 
-                            // Áp dụng các nét vẽ hiện có theo thứ tự
                             for (stroke in strokes) {
-                                Log.d(TAG, "Loading existing stroke: ${stroke.id} for page $currentPageId")
-
-                                // Thêm vào ID đã theo dõi
+                                // Thêm id stroke vào list để theo dõi
                                 activeStrokeIds.add(stroke.id)
-
-                                // Thêm vào bản vẽ
+                                // vẽ các nét
                                 drawingView.addRemoteStroke(stroke)
                             }
                         }
@@ -124,22 +108,17 @@ class RealtimeDrawingManager(
         }
     }
 
-    /**
-     * Thiết lập listener cho các thay đổi theo thời gian thực
-     */
     private fun setupRealtimeListener() {
-        // Chỉ thiết lập nếu chưa có listener
         if (strokesListener != null) return
 
-        // Tạo listener mới
         strokesListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 try {
-                    // Kiểm tra nếu là nét vẽ của chính chúng ta
+                    // Kiểm tra nếu là nét vẽ của mình
                     val createdBy = snapshot.child("createdBy").getValue(String::class.java) ?: ""
                     val strokeId = snapshot.child("id").getValue(String::class.java) ?: ""
 
-                    // Bỏ qua nếu là nét vẽ của chúng ta hoặc đã có trong view
+                    // Bỏ qua nếu là nét vẽ của mình hoặc đã vẽ rồi
                     if (createdBy == collaborationManager.getCurrentUserId() ||
                         activeStrokeIds.contains(strokeId)) {
                         return
@@ -150,7 +129,7 @@ class RealtimeDrawingManager(
                     val strokeWidth = snapshot.child("strokeWidth").getValue(Double::class.java)?.toFloat() ?: 5f
                     val isEraser = snapshot.child("isEraser").getValue(Boolean::class.java) ?: false
 
-                    // Parse dữ liệu points
+                    // Parse dữ liệu points - sử dụng tọa độ chuẩn hóa
                     val pointsSnapshot = snapshot.child("points")
                     val points = mutableListOf<DrawingView.StrokePoint>()
 
@@ -159,6 +138,7 @@ class RealtimeDrawingManager(
                         val y = pointSnapshot.child("y").getValue(Double::class.java)?.toFloat() ?: 0f
                         val type = pointSnapshot.child("type").getValue(Int::class.java) ?: 0
 
+                        // Tạo điểm với tọa độ chuẩn hóa
                         points.add(DrawingView.StrokePoint(x, y, type))
                     }
 
@@ -184,7 +164,6 @@ class RealtimeDrawingManager(
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                // Strokes thường không thay đổi sau khi tạo
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
@@ -208,7 +187,6 @@ class RealtimeDrawingManager(
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
-                // Không cần xử lý
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -220,9 +198,7 @@ class RealtimeDrawingManager(
         strokesRef.addChildEventListener(strokesListener!!)
     }
 
-    /**
-     * Xóa và dọn dẹp tài nguyên
-     */
+    //xóa và dọn dẹp
     fun cleanup() {
         // Hủy listener
         strokesListener?.let {

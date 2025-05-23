@@ -147,7 +147,6 @@
     <string name="post_search_no_result">No results</string>
 
 
-
     <string name="change_language_title">Change Language</string>
     <string name="change_language_message">Are you sure you want to change the language? The app will restart to apply changes.</string>
     <string name="confirm">Confirm</string>
@@ -271,5 +270,10 @@
     <string name="delete_account_confirmation_message">Warning: This action cannot be undone. All your data will be permanently deleted. Are you sure you want to continue?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+
+
+    <string name="notification_channel_name">SnapSolve Notifications</string>
+    <string name="notification_channel_description">Nhận thông báo từ SnapSolve</string>
+
 
 </resources>

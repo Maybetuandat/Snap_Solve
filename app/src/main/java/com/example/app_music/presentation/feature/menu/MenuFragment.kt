@@ -21,7 +21,7 @@ import com.example.app_music.presentation.feature.noteScene.NoteActivity
 
 
 class MenuFragment : Fragment() {
-   private var _binding : FragmentMenuBinding ?= null
+    private var _binding : FragmentMenuBinding ?= null
     private val binding get()= _binding!!
 
     private lateinit var  viewModel: MenuViewModel
@@ -126,12 +126,12 @@ class MenuFragment : Fragment() {
     }
     private fun updatePremiumSection(userRank: String?) {
         when (userRank?.lowercase()) {
-             "premium" -> {
+            "premium" -> {
 
                 binding.layoutPremium.visibility = View.GONE
                 binding.layoutTransactionHistory.visibility = View.VISIBLE
 
-                 binding.textViewRecommendTitle.text = getString(R.string.transaction_history)
+                binding.textViewRecommendTitle.text = getString(R.string.transaction_history)
 
 
 

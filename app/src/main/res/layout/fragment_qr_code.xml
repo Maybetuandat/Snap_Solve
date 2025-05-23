@@ -36,45 +36,6 @@
         android:layout_marginBottom="16dp"
         android:contentDescription="QR Code" />
 
-    <!-- Pages container - only visible for notes -->
-    <LinearLayout
-        android:id="@+id/pages_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="visible">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="8dp">
-
-            <CheckBox
-                android:id="@+id/select_all_pages"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select All Pages"
-                android:textColor="@android:color/black"
-                android:textStyle="bold"
-                android:textSize="16sp" />
-        </LinearLayout>
-
-        <!-- This will contain page checkboxes -->
-        <LinearLayout
-            android:id="@+id/pages_layout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingTop="8dp" />
-    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

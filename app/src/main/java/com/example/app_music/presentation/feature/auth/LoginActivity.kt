@@ -14,6 +14,7 @@ import com.example.app_music.databinding.ActivityLoginBinding
 import com.example.app_music.domain.utils.MultiLanguage
 import com.example.app_music.presentation.feature.common.BaseActivity
 
+
 class LoginActivity : BaseActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var viewModel: AuthViewModel
