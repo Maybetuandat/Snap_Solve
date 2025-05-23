@@ -1,21 +1,21 @@
 package com.example.app_music.domain.usecase.notification
 
+import com.example.app_music.data.remote.websocket.WebSocket
 import com.example.app_music.domain.model.WebSocketMessage
-import com.example.app_music.domain.repository.WebSocketRepository
 import kotlinx.coroutines.flow.Flow
 
 class ConnectWebSocketUseCase(
-    private val repository: WebSocketRepository
+    private val socket: WebSocket
 ) {
     operator fun invoke(userId: Long): Flow<WebSocketMessage> {
-        return repository.connect(userId)
+        return socket.connect(userId)
     }
 
     fun disconnect() {
-        repository.disconnect()
+        socket.disconnect()
     }
 
     fun isConnected(): Boolean {
-        return repository.isConnected()
+        return socket.isConnected()
     }
 }

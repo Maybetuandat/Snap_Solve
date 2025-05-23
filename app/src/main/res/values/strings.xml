@@ -251,4 +251,9 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
 
+
+    <string name="notification_channel_name">SnapSolve Notifications</string>
+    <string name="notification_channel_description">Nhận thông báo từ SnapSolve</string>
+
+
 </resources>

@@ -1,15 +1,15 @@
 package com.example.app_music.domain.model
 
+/**
+ * This class is used as a wrapper for different types of WebSocket messages
+ * It can contain either a notification or an unread count update
+ */
 data class WebSocketMessage(
-    val type: String = "",
-    val notification: Notification? = null,
-    val unreadCount: Long = 0,
-    val userId: Long = 0,
-    val timestamp: Long = System.currentTimeMillis()
-)
-
-enum class WebSocketMessageType {
-    NOTIFICATION,
-    UNREAD_COUNT,
-    CONNECTION_STATUS
+    val type: String,  // Type of message: "notification" or "unread_count"
+    val notification: NotificationDTO? = null,
+    val unreadCount: Long? = null
+) {
+    override fun toString(): String {
+        return "WebSocketMessage(type='$type', notification=$notification, unreadCount=$unreadCount)"
+    }
 }

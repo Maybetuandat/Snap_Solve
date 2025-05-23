@@ -118,4 +118,13 @@ dependencies {
     runtimeOnly("androidx.core:core-ktx:1.13.1")
 
 
+   
+
+    // For ua.naiksoftware.stomp:
+    implementation ("com.github.NaikSoftware:StompProtocolAndroid:1.6.6") // Check for latest version
+    implementation ("io.reactivex.rxjava2:rxjava:2.2.21") // StompProtocolAndroid uses RxJava2
+    implementation ("io.reactivex.rxjava2:rxandroid:2.1.1")
+
+
+
 }
