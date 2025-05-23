@@ -544,12 +544,37 @@ class ResultActivity : BaseActivity() {
     private fun setupClickListeners() {
         // Setup community post button
         binding.btnPostCommunity.setOnClickListener {
-            // Toggle button state
-            if (binding.btnPostCommunity.text.contains("Post")) {
-                binding.btnPostCommunity.text = "Posted to community"
-                binding.btnPostCommunity.isEnabled = false
-                Toast.makeText(this, "Your question has been posted to the community", Toast.LENGTH_SHORT).show()
+            // Tạo Intent để mở MainActivity
+            val intent = Intent(this, MainActivity::class.java).apply {
+                // Thêm thông tin để chuyển hướng đến CommunityPostingFragment
+                putExtra("NAVIGATE_TO_POSTING", true)
+
+                // Thêm đường dẫn hình ảnh (từ máy hoặc URL)
+                if (imagePath != null) {
+                    putExtra("IMAGE_PATH", imagePath)
+                } else {
+                    // Nếu không có imagePath, sử dụng URL của hình ảnh đã tải lên (nếu có)
+                    val uploadStatus = viewModel.uploadStatus.value
+                    if (uploadStatus is ResultViewModel.UploadStatus.Success && !uploadStatus.imageUrl.isNullOrEmpty()) {
+                        putExtra("IMAGE_URL", uploadStatus.imageUrl)
+                    }
+                }
+
+                // Thêm nội dung câu hỏi nếu có
+                if (!searchQuery.isNullOrEmpty()) {
+                    putExtra("QUESTION_TEXT", searchQuery)
+                } else {
+                    // Nếu không có searchQuery, sử dụng nội dung từ assignment hiện tại nếu có
+                    val assignments = viewModel.assignments.value
+                    val currentIndex = viewModel.currentAssignmentIndex.value ?: 0
+                    if (assignments != null && assignments.isNotEmpty() && currentIndex < assignments.size) {
+                        putExtra("QUESTION_TEXT", assignments[currentIndex].question)
+                    }
+                }
             }
+
+            startActivity(intent)
+            // Không đóng ResultActivity để người dùng có thể quay lại nếu cần
         }
 
         // Setup Ask AI button
