@@ -11,4 +11,10 @@ interface TextSearchApi {
         @Query("query") query: String,
         @Query("userId") userId: Long
     ): Response<TextSearchResponse>
+
+    @POST("/api/ai/solution")
+    suspend fun getAISolution(
+        @Query("query") query: String,
+        @Query("userId") userId: Long
+    ): Response<Map<String, Any>>
 }

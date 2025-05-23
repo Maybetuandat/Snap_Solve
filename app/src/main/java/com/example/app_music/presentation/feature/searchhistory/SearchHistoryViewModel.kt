@@ -6,6 +6,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app_music.data.local.preferences.UserPreference
+import com.example.app_music.data.repository.SearchHistoryRepository
 import com.example.app_music.domain.model.SearchHistory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,6 +18,8 @@ class SearchHistoryViewModel : ViewModel() {
     private companion object {
         private const val TAG = "SearchHistoryViewModel"
     }
+
+    private val searchHistoryRepository = SearchHistoryRepository()
 
     private val _searchHistory = MutableLiveData<List<SearchHistory>>()
     val searchHistory: LiveData<List<SearchHistory>> = _searchHistory
@@ -37,109 +41,174 @@ class SearchHistoryViewModel : ViewModel() {
     private var currentQuery: String? = null
     private val pageSize = 10
 
-    // Dữ liệu mẫu cố định
-    private val dummyData = listOf(
-        SearchHistory(
-            id = 1,
-            question = "What is photosynthesis?",
-            image = null,
-            createDate = "2025-05-20",
-            assignmentId1 = 101,
-            assignmentId2 = null,
-            assignmentId3 = null,
-            assignmentId4 = null,
-            assignmentId5 = null
-        ),
-        SearchHistory(
-            id = 2,
-            question = "Calculate the area of a circle",
-            image = "/images/circle.jpg",
-            createDate = "2025-05-19",
-            assignmentId1 = 102,
-            assignmentId2 = 103,
-            assignmentId3 = null,
-            assignmentId4 = null,
-            assignmentId5 = null
-        ),
-        SearchHistory(
-            id = 3,
-            question = "How to solve quadratic equations?",
-            image = null,
-            createDate = "2025-05-18",
-            assignmentId1 = 104,
-            assignmentId2 = null,
-            assignmentId3 = null,
-            assignmentId4 = null,
-            assignmentId5 = null
-        )
-    )
-
-    // Initialize load - đặt dữ liệu mẫu ngay từ đầu
+    // Initialize load with real data
     fun initializeSearchHistory(context: Context) {
         Log.d(TAG, "initializeSearchHistory called")
         _isLoading.value = true
+        currentPage = 0
 
-        // Đặt dữ liệu mẫu và ẩn loading
-        viewModelScope.launch {
-            delay(500) // Giả lập delay tải
-            _searchHistory.value = dummyData
-            Log.d(TAG, "Initial data loaded: ${dummyData.size} items")
+        val userId = UserPreference.getUserId(context)
+        if (userId <= 0) {
+            _errorMessage.value = "User not logged in"
             _isLoading.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val response = searchHistoryRepository.getSearchHistoryPaginated(userId, pageSize, 0)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val historyList = response.body() ?: emptyList()
+                    _searchHistory.value = historyList
+                    _hasMoreData.value = historyList.size >= pageSize
+                    Log.d(TAG, "Initial data loaded: ${historyList.size} items")
+                } else {
+                    _errorMessage.value = "Failed to load search history: ${response.message()}"
+                    Log.e(TAG, "Error loading search history: ${response.code()} - ${response.message()}")
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error: ${e.message}"
+                Log.e(TAG, "Exception during data load", e)
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    // Load next page - để trống vì chúng ta chỉ dùng dữ liệu mẫu
+    // Load next page of data
     fun loadNextPage(context: Context) {
-        Log.d(TAG, "loadNextPage called - no additional data in test mode")
+        Log.d(TAG, "loadNextPage called")
+        if (_isLoadingMore.value == true || _hasMoreData.value != true) {
+            return
+        }
+
+        _isLoadingMore.value = true
+        currentPage++
+
+        val userId = UserPreference.getUserId(context)
+        if (userId <= 0) {
+            _errorMessage.value = "User not logged in"
+            _isLoadingMore.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val response = if (currentQuery.isNullOrBlank()) {
+                    searchHistoryRepository.getSearchHistoryPaginated(userId, pageSize, currentPage)
+                } else {
+                    searchHistoryRepository.searchHistoryByQueryPaginated(userId, currentQuery!!, pageSize, currentPage)
+                }
+
+                if (response.isSuccessful && response.body() != null) {
+                    val newItems = response.body() ?: emptyList()
+
+                    // Combine with existing items
+                    val currentItems = _searchHistory.value ?: emptyList()
+                    val combinedItems = currentItems + newItems
+
+                    _searchHistory.value = combinedItems
+                    _hasMoreData.value = newItems.size >= pageSize
+
+                    Log.d(TAG, "Loaded page $currentPage with ${newItems.size} items")
+                } else {
+                    _errorMessage.value = "Failed to load more data: ${response.message()}"
+                    Log.e(TAG, "Error loading more data: ${response.code()} - ${response.message()}")
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error: ${e.message}"
+                Log.e(TAG, "Exception during pagination", e)
+            } finally {
+                _isLoadingMore.value = false
+            }
+        }
     }
 
-    // Refresh - chỉ tải lại dữ liệu mẫu
+    // Refresh - reload first page of data
     fun refreshSearchHistory(context: Context) {
         Log.d(TAG, "refreshSearchHistory called")
         _isLoading.value = true
+        currentPage = 0
+
+        val userId = UserPreference.getUserId(context)
+        if (userId <= 0) {
+            _errorMessage.value = "User not logged in"
+            _isLoading.value = false
+            return
+        }
 
         viewModelScope.launch {
-            delay(500) // Giả lập delay làm mới
-            _searchHistory.value = dummyData
-            Log.d(TAG, "Data refreshed: ${dummyData.size} items")
-            _isLoading.value = false
+            try {
+                val response = if (currentQuery.isNullOrBlank()) {
+                    searchHistoryRepository.getSearchHistoryPaginated(userId, pageSize, 0)
+                } else {
+                    searchHistoryRepository.searchHistoryByQueryPaginated(userId, currentQuery!!, pageSize, 0)
+                }
+
+                if (response.isSuccessful && response.body() != null) {
+                    val historyList = response.body() ?: emptyList()
+                    _searchHistory.value = historyList
+                    _hasMoreData.value = historyList.size >= pageSize
+                    Log.d(TAG, "Data refreshed: ${historyList.size} items")
+                } else {
+                    _errorMessage.value = "Failed to refresh search history: ${response.message()}"
+                    Log.e(TAG, "Error refreshing data: ${response.code()} - ${response.message()}")
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error: ${e.message}"
+                Log.e(TAG, "Exception during refresh", e)
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    // Hàm tìm kiếm đơn giản - lọc dữ liệu mẫu sẵn có
+    // Search with query
     fun searchHistory(context: Context, query: String) {
         Log.d(TAG, "searchHistory called with query: '$query'")
 
-        // Hủy job tìm kiếm trước đó nếu có
+        // Cancel previous search job if any
         searchJob?.cancel()
 
-        // Cập nhật query hiện tại
-        currentQuery = query
+        // Update current query
+        currentQuery = query.trim()
+        currentPage = 0
 
-        // Hiển thị loading
+        // Show loading
         _isLoading.value = true
 
-        // Khởi tạo tìm kiếm mới
+        val userId = UserPreference.getUserId(context)
+        if (userId <= 0) {
+            _errorMessage.value = "User not logged in"
+            _isLoading.value = false
+            return
+        }
+
+        // Start new search
         searchJob = viewModelScope.launch {
-            delay(300) // Giả lập độ trễ mạng
+            // Add a small delay to avoid too many API calls while typing
+            delay(300)
 
             try {
-                // Lọc dữ liệu
-                val filteredData = if (query.isBlank()) {
-                    dummyData // Nếu query trống, hiển thị tất cả dữ liệu mẫu
+                val response = if (currentQuery.isNullOrBlank()) {
+                    searchHistoryRepository.getSearchHistoryPaginated(userId, pageSize, 0)
                 } else {
-                    dummyData.filter {
-                        it.question.contains(query, ignoreCase = true)
-                    }
+                    searchHistoryRepository.searchHistoryByQueryPaginated(userId, currentQuery!!, pageSize, 0)
                 }
 
-                Log.d(TAG, "Search completed with ${filteredData.size} results")
-
-                // Cập nhật dữ liệu
-                _searchHistory.value = filteredData
+                if (response.isSuccessful && response.body() != null) {
+                    val searchResults = response.body() ?: emptyList()
+                    _searchHistory.value = searchResults
+                    _hasMoreData.value = searchResults.size >= pageSize
+                    Log.d(TAG, "Search completed with ${searchResults.size} results")
+                } else {
+                    _errorMessage.value = "Search failed: ${response.message()}"
+                    Log.e(TAG, "Error during search: ${response.code()} - ${response.message()}")
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error during search", e)
                 _errorMessage.value = "Error during search: ${e.message}"
+                Log.e(TAG, "Exception during search", e)
             } finally {
                 _isLoading.value = false
             }

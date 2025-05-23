@@ -1,5 +1,6 @@
 package com.example.app_music.presentation.feature.camera
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -14,6 +15,7 @@ import com.example.app_music.R
 import com.example.app_music.databinding.ActivityResultBinding
 import com.example.app_music.domain.model.Assignment
 import com.example.app_music.presentation.feature.common.BaseActivity
+import com.example.app_music.presentation.feature.menu.premiumuser.PremiumUser
 import java.io.File
 
 
@@ -92,6 +94,7 @@ class ResultActivity : BaseActivity() {
         // Setup button click listeners
         setupClickListeners()
     }
+
     private fun setupToolbarNavigation() {
         // Set back button
         binding.btnBack.setOnClickListener {
@@ -265,6 +268,31 @@ class ResultActivity : BaseActivity() {
                 displayAssignment(assignments[index])
             }
         }
+
+        // Observe AI solution status
+        viewModel.aiSolutionStatus.observe(this) { status ->
+            when (status) {
+                is ResultViewModel.AISolutionStatus.Loading -> {
+                    binding.aiResponseSection.visibility = View.VISIBLE
+                    binding.aiProgressBar.visibility = View.VISIBLE
+                    binding.webViewAIResult.visibility = View.GONE
+                }
+                is ResultViewModel.AISolutionStatus.Success -> {
+                    binding.aiProgressBar.visibility = View.GONE
+                    binding.webViewAIResult.visibility = View.VISIBLE
+                    displayAISolution(status.solution)
+                }
+                is ResultViewModel.AISolutionStatus.Error -> {
+                    binding.aiProgressBar.visibility = View.GONE
+                    binding.webViewAIResult.visibility = View.VISIBLE
+                    displayAIError(status.message)
+                }
+                is ResultViewModel.AISolutionStatus.PremiumRequired -> {
+                    binding.aiProgressBar.visibility = View.GONE
+                    showPremiumRequiredDialog()
+                }
+            }
+        }
     }
 
     private fun updatePaginationVisibility(count: Int) {
@@ -360,6 +388,130 @@ class ResultActivity : BaseActivity() {
         )
     }
 
+    private fun displayAISolution(solution: String) {
+        // Configure AI WebView
+        binding.webViewAIResult.settings.javaScriptEnabled = true
+
+        // Process the AI solution to handle LaTeX syntax
+        val processedSolution = preprocessLatex(solution)
+
+        // Create HTML content with MathJax for rendering LaTeX
+        val htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+            <script type="text/x-mathjax-config">
+                MathJax.Hub.Config({
+                    tex2jax: {
+                        inlineMath: [['\\(','\\)']],
+                        displayMath: [['\\[','\\]']]
+                    }
+                });
+            </script>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    line-height: 1.5;
+                    font-size: 14px;
+                    color: #333;
+                    padding: 8px;
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                }
+                h1, h2, h3, h4 { 
+                    color: #C67C4E;
+                    margin-top: 16px; 
+                    margin-bottom: 8px; 
+                }
+                p { margin-bottom: 12px; }
+                ol, ul { margin-left: 20px; margin-bottom: 12px; }
+                li { margin-bottom: 8px; }
+                .step { 
+                    background-color: #fff; 
+                    padding: 12px; 
+                    margin: 8px 0; 
+                    border-left: 4px solid #C67C4E; 
+                    border-radius: 4px;
+                }
+                .formula { 
+                    background-color: #f0f7ff; 
+                    padding: 8px; 
+                    margin: 8px 0; 
+                    border-radius: 4px; 
+                    text-align: center;
+                }
+            </style>
+        </head>
+        <body>
+            ${processedSolution}
+        </body>
+        </html>
+        """.trimIndent()
+
+        // Load content into AI WebView
+        binding.webViewAIResult.loadDataWithBaseURL(
+            null,
+            htmlContent,
+            "text/html",
+            "UTF-8",
+            null
+        )
+    }
+
+    private fun displayAIError(message: String) {
+        val htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    line-height: 1.4;
+                    font-size: 14px;
+                    color: #dc3545;
+                    padding: 16px;
+                    text-align: center;
+                }
+            </style>
+        </head>
+        <body>
+            <h3>Error</h3>
+            <p>$message</p>
+            <p>Please try again later.</p>
+        </body>
+        </html>
+        """.trimIndent()
+
+        binding.webViewAIResult.loadDataWithBaseURL(
+            null,
+            htmlContent,
+            "text/html",
+            "UTF-8",
+            null
+        )
+    }
+
+    private fun showPremiumRequiredDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.premium_required))
+            .setMessage(getString(R.string.premium_required_message))
+            .setPositiveButton(getString(R.string.upgrade_now)) { _, _ ->
+                // Navigate to Premium User Activity
+                val intent = Intent(this, PremiumUser::class.java)
+                startActivity(intent)
+            }
+            .setNegativeButton(getString(R.string.maybe_later)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
     // Function to handle LaTeX formatting
     private fun preprocessLatex(text: String): String {
 
@@ -397,6 +549,16 @@ class ResultActivity : BaseActivity() {
                 binding.btnPostCommunity.text = "Posted to community"
                 binding.btnPostCommunity.isEnabled = false
                 Toast.makeText(this, "Your question has been posted to the community", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Setup Ask AI button
+        binding.btnAskAI.setOnClickListener {
+            val query = searchQuery ?: binding.tvSearchQuery.text.toString()
+            if (query.isNotEmpty()) {
+                viewModel.getAISolution(query, this)
+            } else {
+                Toast.makeText(this, "No question available for AI analysis", Toast.LENGTH_SHORT).show()
             }
         }
     }
