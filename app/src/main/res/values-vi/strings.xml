@@ -8,7 +8,7 @@
         <string name="scan_to_collaborate">Scan this QR code to collaborate on this note</string>
         <string name="share_link">Chia sẻ Link</string>
         <string name="newbutton">Mới</string>
-        <string name="noteTitle"> Ghi chú QANDA</string>
+        <string name="noteTitle"> Ghi chú</string>
         <string name="restart_required">Yêu cầu khởi động lại</string>
         <string name="language_change_restart_message">Ngôn ngữ đã được thay đổi. Để áp dụng thay đổi hoàn toàn, ứng dụng cần được khởi động lại.</string>
         <string name="restart_now">Khởi động lại ngay</string>

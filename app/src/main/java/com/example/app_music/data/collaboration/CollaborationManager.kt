@@ -67,6 +67,7 @@ class CollaborationManager(private val noteId: String, private val context: Cont
                     // khong hoat dong qua 1p va khong phai nguoi dung hien tai thi remove
                     if (lastActive < cutoffTime && userId != currentUserId) {
                         usersRef.child(userId).removeValue()
+                        Log.d("Collaboration", "Xóa " + userId)
                     }
                 }
             }
@@ -103,6 +104,7 @@ class CollaborationManager(private val noteId: String, private val context: Cont
                         sortedEntries.forEachIndexed { index, (userId, _) ->
                             if (index > 0 && userId != currentUserId) {
                                 usersRef.child(userId).removeValue()
+                                Log.d("Collaboration", "Xóa " + userId)
                             }
                         }
                     }
@@ -261,12 +263,14 @@ class CollaborationManager(private val noteId: String, private val context: Cont
                         // Lọc các người dùng không hoạt động quá 2 phút
                         val currentTime = System.currentTimeMillis()
                         val timeoutThreshold = 120000 // 2 phút
+                        Log.d("Collaboration", user.userId)
 
-                        if (currentTime - user.lastActive < timeoutThreshold || user.userId == currentUserId) {
+                        if (currentTime - user.lastActive < timeoutThreshold) {
                             users.add(user)
                         } else {
                             // Xóa người dùng không hoạt động
                             usersRef.child(user.userId).removeValue()
+                            Log.d("Collaboration", "Xóa " + user.userId)
                         }
                     }
                 }

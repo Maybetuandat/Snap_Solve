@@ -1,37 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- app/src/main/res/layout/item_active_user.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
+    android:orientation="vertical"
+    android:gravity="center"
     android:padding="4dp">
 
-    <FrameLayout
-        android:layout_width="32dp"
-        android:layout_height="32dp">
+    <RelativeLayout
+        android:layout_width="36dp"
+        android:layout_height="36dp">
 
+        <!-- User color indicator (circle) -->
         <View
             android:id="@+id/user_color_indicator"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:background="@android:color/holo_blue_light" />
+            android:layout_centerInParent="true"
+            android:background="@drawable/current_user_indicator" />
 
+        <!-- User initial text -->
         <TextView
             android:id="@+id/user_initial"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
             android:text="A"
-            android:textColor="@android:color/white"
-            android:textSize="16sp"
+            android:textColor="@color/white"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
+        <!-- Typing indicator -->
         <View
             android:id="@+id/typing_indicator"
             android:layout_width="8dp"
             android:layout_height="8dp"
-            android:layout_gravity="bottom|end"
+            android:layout_alignEnd="@+id/user_color_indicator"
+            android:layout_alignBottom="@+id/user_color_indicator"
             android:background="@drawable/typing_indicator"
             android:visibility="gone" />
-    </FrameLayout>
+
+    </RelativeLayout>
+
+    <!-- Label "You" cho user hiện tại -->
+    <TextView
+        android:id="@+id/me_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="You"
+        android:textSize="8sp"
+        android:textColor="@color/selectedicon"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
 </LinearLayout>
