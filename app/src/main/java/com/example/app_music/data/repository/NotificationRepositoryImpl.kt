@@ -5,16 +5,18 @@ import com.example.app_music.domain.model.Notification
 import com.example.app_music.domain.repository.NotificationRepository
 import retrofit2.Response
 
-class NotificationRepositoryImpl(
-    private val notificationApi: NotificationApi
-) : NotificationRepository {
+class NotificationRepositoryImpl(private val notificationApi: NotificationApi) : NotificationRepository {
+
+    override suspend fun getUnreadCount(userId: Long): Response<Long> {
+        return notificationApi.getUnreadNotificationCount(userId)
+    }
 
     override suspend fun getNotificationsByUserId(userId: Long): Response<List<Notification>> {
         return notificationApi.getNotificationsByUserId(userId)
     }
 
-    override suspend fun getUnreadNotificationCount(userId: Long): Response<Long> {
-        return notificationApi.getUnreadNotificationCount(userId)
+    override suspend fun getNotificationById(notificationId: Long): Response<Notification> {
+        return notificationApi.getNotificationById(notificationId)
     }
 
     override suspend fun markAllAsRead(userId: Long): Response<Unit> {

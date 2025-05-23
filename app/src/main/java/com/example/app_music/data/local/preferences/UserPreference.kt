@@ -6,6 +6,7 @@ object UserPreference {
 
     private const val PREF_NAME = "user_preference"
     private const val USER_ID = "user_id"
+    private const val USER_RANK = "user_rank"
     private const val USER_NAME = "user_name"  // Sửa tên hằng số cho đúng quy chuẩn
 
     fun saveUserId(context: Context, id: Long): Boolean {
@@ -15,7 +16,18 @@ object UserPreference {
 
         return editor.commit()
     }
+    fun saveUserRank(context: Context, rank: String): Boolean {
+        val preference = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val editor = preference.edit()
+        editor.putString(USER_RANK, rank)
 
+        return editor.commit()
+    }
+
+    fun getUserRank(context: Context): String {
+        val preference = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        return preference.getString(USER_RANK, "free") ?: "free"
+    }
     fun getUserId(context: Context): Long {
         val preference = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         return preference.getString(USER_ID, null)?.toLong() ?: 0

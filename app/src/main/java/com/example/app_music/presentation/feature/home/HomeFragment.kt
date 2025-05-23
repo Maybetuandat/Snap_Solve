@@ -12,12 +12,12 @@ import com.example.app_music.R
 import com.example.app_music.databinding.FragmentHomeBinding
 import com.example.app_music.presentation.feature.camera.CameraActivity
 import com.example.app_music.presentation.feature.noteScene.NoteActivity
+import com.example.app_music.presentation.feature.notification.NotificationActivity
 import com.example.app_music.presentation.feature.notification.NotificationViewModel
 import com.example.app_music.presentation.feature.textsearch.TextSearchActivity
+
 import com.example.app_music.utils.attachBadge
-
 import com.google.android.material.badge.BadgeDrawable
-
 
 class HomeFragment : Fragment() {
 
@@ -85,8 +85,9 @@ class HomeFragment : Fragment() {
         }
 
         binding.notificationIcon.setOnClickListener {
-            showMessage("Notifications clicked")
-            // TODO: Navigate to notification screen and mark notifications as read
+            // Open NotificationActivity
+            val intent = Intent(requireContext(), NotificationActivity::class.java)
+            startActivity(intent)
         }
 
         binding.starsContainer.setOnClickListener {

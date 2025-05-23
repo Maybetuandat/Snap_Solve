@@ -1,13 +1,13 @@
 package com.example.app_music.domain.usecase.notification
 
-import com.example.app_music.data.repository.NotificationRepositoryImpl
+
 import com.example.app_music.domain.repository.NotificationRepository
 import retrofit2.Response
 
-class GetUnreadCountUseCase(
+class MarkNotificationAsReadUseCase(
     private val repository: NotificationRepository
 ) {
-    suspend operator fun invoke(userId: Long): Response<Long> {
-        return repository.getUnreadCount(userId)
+    suspend operator fun invoke(notificationId: Long): Response<Unit> {
+        return repository.markAsRead(notificationId)
     }
 }
