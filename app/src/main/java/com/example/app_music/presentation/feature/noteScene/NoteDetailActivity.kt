@@ -532,12 +532,12 @@ class NoteDetailActivity : BaseActivity() {
         lifecycleScope.launch {
             // Map để lưu thời gian hoạt động cuối cùng của mỗi người dùng
             val lastActiveTimes = mutableMapOf<String, Long>()
-            // Set để lưu các ID người dùng đã biết
+            // Set để lưu các ID người dùng đã biết (KHÔNG bao gồm user hiện tại)
             val knownUserIds = HashSet<String>()
-            knownUserIds.add(currentUserId)
+            // Không thêm currentUserId vào knownUserIds để luôn hiển thị thông báo
 
-            // Thời gian tính là không hoạt động (10 giây)
-            val INACTIVE_THRESHOLD = 10000L
+            // Thời gian tính là không hoạt động (120 giây)
+            val INACTIVE_THRESHOLD = 120000L
 
             collaborationManager.getActiveUsers().collectLatest { allUsers ->
                 // Thời gian hiện tại
@@ -548,19 +548,18 @@ class NoteDetailActivity : BaseActivity() {
                     !user.isOffline && (currentTime - user.lastActive < INACTIVE_THRESHOLD)
                 }
 
-                // Lọc ra người dùng mới thực sự
+                // Lọc ra người dùng mới thực sự (KHÔNG loại trừ currentUserId)
                 val newUsers = activeUsers.filter {
                     !knownUserIds.contains(it.userId) && it.userId != currentUserId
                 }
 
-                // Cập nhật UI
+                // Cập nhật UI - Hiển thị TẤT CẢ người dùng đang hoạt động
                 binding.activeUsersView.updateActiveUsers(activeUsers)
 
-                // Chỉ hiển thị số lượng người dùng khác
-                val otherUsers = activeUsers.filter { it.userId != currentUserId }
-                binding.userCount.text = "${otherUsers.size}"
+                // Hiển thị tổng số người dùng (bao gồm cả bản thân)
+                binding.userCount.text = "${activeUsers.size}"
 
-                // Hiển thị thông báo cho người dùng mới
+                // Hiển thị thông báo cho người dùng mới (không bao gồm bản thân)
                 for (newUser in newUsers) {
                     Toast.makeText(
                         this@NoteDetailActivity,
@@ -1329,6 +1328,7 @@ class NoteDetailActivity : BaseActivity() {
 
     override fun onDestroy() {
         try {
+
             autoSaveJob?.cancel()
 
             // Tạo một coroutine scope mới độc lập với lifecycle

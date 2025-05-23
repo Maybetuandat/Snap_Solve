@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- app/src/main/res/drawable/user_circle_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <!-- Nền màu sẽ được set programmatically -->
+    <solid android:color="@android:color/transparent" />
+
+</shape>
