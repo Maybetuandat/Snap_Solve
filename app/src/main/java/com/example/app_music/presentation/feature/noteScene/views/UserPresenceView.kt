@@ -6,14 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import com.example.app_music.R
-import com.example.app_music.data.collaboration.CollaborationManager
 import com.example.app_music.data.collaboration.CollaborationManager.UserInfo
 
-/**
- * View showing active users in a collaborative editing session
- */
 class UserPresenceView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -22,18 +17,14 @@ class UserPresenceView @JvmOverloads constructor(
 
     private val userViewMap = mutableMapOf<String, View>()
     private val maxUsersVisible = 3
-    private var currentUserId = "" // Thêm biến lưu ID người dùng hiện tại
+    private var currentUserId = ""
 
-    // Thêm method để đặt ID người dùng hiện tại
     fun setCurrentUserId(userId: String) {
         this.currentUserId = userId
     }
 
-    /**
-     * Update the list of active users - hiển thị tất cả ngoại trừ người dùng hiện tại
-     */
     fun updateActiveUsers(users: List<UserInfo>) {
-        // Chỉ xét người dùng đang online (không offline) và không phải người dùng hiện tại
+        // Chỉ xét người dùng đang online
         val activeUsers = users.filter {
             !it.isOffline && it.userId != currentUserId
         }
@@ -80,7 +71,7 @@ class UserPresenceView @JvmOverloads constructor(
         val initial = if (username.isNotEmpty()) {
             username.first().toString()
         } else {
-            "?"  // Chỉ hiển thị "?" nếu username hoàn toàn rỗng
+            "?"  //hiển thị "?" nếu username hoàn toàn rỗng
         }
         nameInitial.text = initial
 
@@ -102,7 +93,6 @@ class UserPresenceView @JvmOverloads constructor(
 
 
     private fun showMoreUsersCount(count: Int) {
-        // Check if the more count view already exists
         val moreCountView = findViewWithTag<View>("more_count_view")
 
         if (moreCountView == null) {

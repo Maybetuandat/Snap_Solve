@@ -1,17 +1,15 @@
 package com.example.app_music.data.model
 
-import android.util.Log
 import com.google.firebase.database.Exclude
 import com.google.firebase.database.IgnoreExtraProperties
 import com.google.firebase.database.PropertyName
-import com.google.gson.Gson
 import java.util.Date
 
 @IgnoreExtraProperties
 data class NoteFirebaseModel(
     @get:PropertyName("id")
     @set:PropertyName("id")
-    var id: String = "", // Firebase document ID
+    var id: String = "",
 
     @get:PropertyName("title")
     @set:PropertyName("title")
@@ -47,7 +45,7 @@ data class NoteFirebaseModel(
 
     @get:PropertyName("drawingData")
     @set:PropertyName("drawingData")
-    var drawingData: String? = null, // Base64 encoded drawing data
+    var drawingData: String? = null,
 
     @get:PropertyName("pageIds")
     @set:PropertyName("pageIds")
@@ -80,7 +78,6 @@ data class NotePage(
     @set:PropertyName("imagePath")
     var imagePath: String? = null,
 
-    // Remove drawingData field and only keep vectorDrawingData
     @get:PropertyName("vectorDrawingData")
     @set:PropertyName("vectorDrawingData")
     var vectorDrawingData: String? = null,
@@ -94,7 +91,7 @@ data class NotePage(
 data class FolderFirebaseModel(
     @get:PropertyName("id")
     @set:PropertyName("id")
-    var id: String = "", // Firebase document ID
+    var id: String = "",
     
     @get:PropertyName("title")
     @set:PropertyName("title")
@@ -116,21 +113,3 @@ data class FolderFirebaseModel(
     @set:PropertyName("sharedWith")
     var sharedWith: List<String> = listOf()
 )
-
-// Thêm vào lớp NoteFirebaseModel
-@get:PropertyName("vectorDrawingData")
-@set:PropertyName("vectorDrawingData")
-var vectorDrawingData: String? = null // Lưu dữ liệu vector dưới dạng JSON
-
-fun DrawingData.toJson(): String {
-    return Gson().toJson(this)
-}
-
-fun String.toDrawingData(): DrawingData? {
-    return try {
-        Gson().fromJson(this, DrawingData::class.java)
-    } catch (e: Exception) {
-        Log.e("NoteModel", "Error converting JSON to DrawingData", e)
-        null
-    }
-}
