@@ -28,7 +28,6 @@ class QRScannerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_qrscanner)
 
-        // Ánh xạ view
         barcodeScanner = findViewById(R.id.barcode_scanner)
         toolbar = findViewById(R.id.toolbar)
         progressBar = findViewById(R.id.progressBar)

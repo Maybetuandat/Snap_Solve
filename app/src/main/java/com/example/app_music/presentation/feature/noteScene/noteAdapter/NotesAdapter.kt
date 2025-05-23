@@ -13,7 +13,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.app_music.R
 import com.example.app_music.data.repository.FirebaseNoteRepository
@@ -21,13 +20,10 @@ import com.example.app_music.presentation.feature.noteScene.NoteDetailActivity
 import com.example.app_music.presentation.feature.noteScene.model.NoteItem
 import com.example.app_music.utils.StorageManager
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.google.firebase.storage.StorageException
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.tasks.await
 import java.io.File
@@ -76,7 +72,6 @@ class NotesAdapter(
         when (holder) {
             is NewItemViewHolder -> holder.bind()
             is FolderViewHolder, is NoteViewHolder -> {
-                // Safer approach with bounds checking
                 val adjustedPosition = position - 1
                 if (adjustedPosition >= 0 && adjustedPosition < notesList.size) {
                     when (holder) {
@@ -88,19 +83,17 @@ class NotesAdapter(
         }
     }
 
-    override fun getItemCount(): Int = notesList.size + 1 // +1 for the NEW item
+    override fun getItemCount(): Int = notesList.size + 1
 
     inner class NewItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val newFolderButton: LinearLayout = itemView.findViewById(R.id.newFolderButton)
         private val textNewTitle: TextView = itemView.findViewById(R.id.textNewTitle)
 
         fun bind() {
-            // When clicking on the plus box
             newFolderButton.setOnClickListener {
                 onNewItemClick(it)
             }
 
-            // When clicking on the dropdown arrow
             textNewTitle.setOnClickListener {
                 onNewItemClick(it)
             }
@@ -117,16 +110,16 @@ class NotesAdapter(
             textTitle.text = note.title
             textDate.text = note.date
 
-            // Đặt ảnh mặc định ngay lập tức
+            // Đặt ảnh mặc định
             imagePreview.setImageResource(R.drawable.ic_note)
 
-            // Hủy job tải ảnh cũ nếu có
+            // Hủy job tải ảnh cũ
             val tag = imagePreview.tag
             if (tag is Job) {
                 tag.cancel()
             }
 
-            // Sử dụng ảnh đã có trong bộ nhớ nếu tồn tại
+            // Sử dụng ảnh đã có trong bộ nhớ
             if (note.hasImage() && note.imagePreview != null) {
                 imagePreview.setImageBitmap(note.imagePreview)
             } else {
@@ -142,9 +135,7 @@ class NotesAdapter(
 
                             // Nếu note có imagePath, sử dụng nó làm thumbnail
                             if (fullNote.imagePath != null) {
-                                val storageManager = StorageManager(context)
 
-                                // Tải ảnh từ đường dẫn chỉ định
                                 val bitmap = withContext(Dispatchers.IO) {
                                     val storage = FirebaseStorage.getInstance()
                                     val imageRef = storage.reference.child(fullNote.imagePath!!)
@@ -182,18 +173,15 @@ class NotesAdapter(
                         Log.e("NotesAdapter", "Error loading thumbnail: ${e.message}")
                     }
                 }
-
-                // Lưu job vào tag để có thể hủy sau này
+                //lưu lại job để có thể hủy sau này
                 imagePreview.tag = job
             }
-            // Handle click for arrow button
             expandButton.setOnClickListener {
                 onItemOptionsClick(it, note)
             }
 
             // Xử lý click vào note
             val clickListener = View.OnClickListener {
-                Log.d("NotesAdapter", "Clicked note: id=${note.id}, title='${note.title}'")
                 val intent = Intent(context, NoteDetailActivity::class.java).apply {
                     putExtra("note_id", note.id)
                     putExtra("note_title", note.title)
@@ -216,17 +204,14 @@ class NotesAdapter(
             textTitle.text = folder.title
             textDate.text = folder.date
 
-            // Handle folder click
             folderIcon.setOnClickListener {
                 onFolderClick(folder)
             }
 
-            // Handle title click
             textTitle.setOnClickListener {
                 onFolderClick(folder)
             }
 
-            // Handle arrow button click
             iconExpand.setOnClickListener {
                 onItemOptionsClick(it, folder)
             }

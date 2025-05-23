@@ -16,22 +16,12 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import androidx.core.graphics.withSave
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import java.util.UUID
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-
-/**
- * View vẽ với các tính năng:
- * - Vẽ, tẩy, di chuyển, zoom
- * - Undo/redo
- * - Lưu và tải lại các nét vẽ dưới dạng vector
- * - Xóa nét vẽ cụ thể
- */
 class DrawingView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -39,16 +29,12 @@ class DrawingView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     enum class DrawMode {
-        DRAW,   // Chế độ vẽ
-        ERASE,  // Chế độ tẩy
-        PAN,    // Chế độ di chuyển/zoom
-        SELECT  // Chế độ chọn nét vẽ
-    }
-    enum class DrawingMode {
         DRAW,
         ERASE,
-        PAN
+        PAN,
+        SELECT
     }
+
     companion object {
         private const val TAG = "DrawingView"
         private const val DEFAULT_STROKE_WIDTH = 5f
@@ -56,10 +42,9 @@ class DrawingView @JvmOverloads constructor(
         private const val TOUCH_TOLERANCE = 4f
         private const val MIN_SCALE = 0.5f
         private const val MAX_SCALE = 5.0f
-        private const val STROKE_SELECTION_TOLERANCE = 20f // Dung sai khi chọn nét vẽ
+        private const val STROKE_SELECTION_TOLERANCE = 20f
     }
 
-    // Paint cho vẽ
     private val mPaint = Paint().apply {
         isAntiAlias = true
         isDither = true
@@ -70,7 +55,6 @@ class DrawingView @JvmOverloads constructor(
         strokeWidth = DEFAULT_STROKE_WIDTH
     }
 
-    // Bitmap cho canvas
     private lateinit var mBitmap: Bitmap
     private lateinit var mCanvas: Canvas
 
@@ -87,24 +71,32 @@ class DrawingView @JvmOverloads constructor(
     private var mBackgroundRect = RectF() // To track background positioning
     private var mBackgroundWidth = 0
     private var mBackgroundHeight = 0
+
     // Background image
     private var mBackgroundBitmap: Bitmap? = null
     private var mLastTouchX = 0f
     private var mLastTouchY = 0f
     private var mLastEditTime: Long = 0L
+
     private val mBackgroundPaint = Paint().apply {
         isFilterBitmap = true
     }
+
     private val mEraserHintPaint = Paint().apply {
         style = Paint.Style.STROKE
         color = Color.RED
         strokeWidth = 2f
         alpha = 128
     }
+
+    private var mCanvasWidth = 0
+    private var mCanvasHeight = 0
+
     // Listeners
     interface OnDrawCompletedListener {
         fun onDrawCompleted()
     }
+
     private var mDrawCompletedListener: OnDrawCompletedListener? = null
     private var mStrokeSelectedListener: ((String) -> Unit)? = null
 
@@ -112,16 +104,29 @@ class DrawingView @JvmOverloads constructor(
     private val mStrokes = mutableListOf<Stroke>()
     private var mCurrentStroke: Stroke? = null
 
-  // All active strokes
     private val mDeletedStrokes = mutableListOf<Stroke>()
     private var mForceSave = false
 
-    // Lớp dữ liệu cho nét vẽ
     data class StrokePoint(
-        @SerializedName("x") val x: Float = 0f,
-        @SerializedName("y") val y: Float = 0f,
+        // Tọa độ chuẩn hóa (0.0 - 1.0) so với kích thước canvas
+        @SerializedName("x") val x: Float = 0f,  // tọa độ chuẩn hóa thay vì pixel
+        @SerializedName("y") val y: Float = 0f,  // tọa độ chuẩn hóa thay vì pixel
         @SerializedName("type") val type: Int = MotionEvent.ACTION_MOVE // ACTION_DOWN, ACTION_MOVE, ACTION_UP
-    )
+    ) {
+        // Tính toán tọa độ pixel dựa trên kích thước canvas hiện tại
+        fun getPixelX(canvasWidth: Int): Float = x * canvasWidth
+        fun getPixelY(canvasHeight: Int): Float = y * canvasHeight
+
+        companion object {
+            fun fromPixels(pixelX: Float, pixelY: Float, canvasWidth: Int, canvasHeight: Int, type: Int): StrokePoint {
+                return StrokePoint(
+                    x = pixelX / canvasWidth,    // Chuẩn hóa về 0.0-1.0
+                    y = pixelY / canvasHeight,   // Chuẩn hóa về 0.0-1.0
+                    type = type
+                )
+            }
+        }
+    }
 
     data class Stroke(
         @SerializedName("id") val id: String = UUID.randomUUID().toString(),
@@ -130,7 +135,7 @@ class DrawingView @JvmOverloads constructor(
         @SerializedName("isEraser") val isEraser: Boolean = false,
         @SerializedName("points") val points: MutableList<StrokePoint> = mutableListOf()
     ) {
-        fun toPath(): Path {
+        fun toPath(canvasWidth: Int, canvasHeight: Int): Path {
             val path = Path()
             if (points.isEmpty()) return path
 
@@ -139,31 +144,36 @@ class DrawingView @JvmOverloads constructor(
 
             for (i in points.indices) {
                 val point = points[i]
+                // Chuyển đổi tọa độ chuẩn hóa sang tọa độ pixel thực tế
+                val pixelX = point.getPixelX(canvasWidth)
+                val pixelY = point.getPixelY(canvasHeight)
+
                 when (point.type) {
                     MotionEvent.ACTION_DOWN -> {
-                        path.moveTo(point.x, point.y)
-                        lastX = point.x
-                        lastY = point.y
+                        path.moveTo(pixelX, pixelY)
+                        lastX = pixelX
+                        lastY = pixelY
                     }
                     MotionEvent.ACTION_MOVE -> {
                         // Tạo đường cong mượt với quadTo
-                        val midX = (lastX + point.x) / 2
-                        val midY = (lastY + point.y) / 2
+                        val midX = (lastX + pixelX) / 2
+                        val midY = (lastY + pixelY) / 2
                         path.quadTo(lastX, lastY, midX, midY)
-                        lastX = point.x
-                        lastY = point.y
+                        lastX = pixelX
+                        lastY = pixelY
                     }
                     MotionEvent.ACTION_UP -> {
-                        path.lineTo(point.x, point.y)
+                        path.lineTo(pixelX, pixelY)
                     }
                 }
             }
             return path
         }
 
-        // Tính toán bounds của stroke với strokeWidth
-        fun getBounds(): RectF {
-            val path = toPath()
+        //getbound - tạo 1 hình chữ nhật bao quanh các nét vẽ để dễ dàng chạm được vào nét vẽ
+        fun getBounds(canvasWidth: Int, canvasHeight: Int): RectF {
+            val path = toPath(canvasWidth, canvasHeight)
+            //tạo hình chữ nhật
             val bounds = RectF()
             path.computeBounds(bounds, true)
             // Mở rộng bounds dựa trên strokeWidth để dễ chọn
@@ -172,22 +182,15 @@ class DrawingView @JvmOverloads constructor(
         }
     }
 
-    // Lớp dữ liệu để lưu trữ toàn bộ bản vẽ
+    // Lưu trữ toàn bộ dữ liệu vẽ
     data class DrawingData(
         @SerializedName("strokes") val strokes: List<Stroke> = emptyList(),
         @SerializedName("width") val width: Int = 0,
         @SerializedName("height") val height: Int = 0
     )
 
-    // Lớp cơ sở cho Undo/Redo
-    sealed class DrawAction {
-        data class AddStroke(val stroke: Stroke) : DrawAction()
-        data class RemoveStroke(val stroke: Stroke, val index: Int) : DrawAction()
-        data class ClearAll(val strokes: List<Stroke>) : DrawAction()
-    }
-
     init {
-        // Khởi tạo gesture detectors
+        //scale là để zoom
         mScaleDetector = ScaleGestureDetector(context, ScaleListener())
         mGestureDetector = GestureDetector(context, GestureListener())
 
@@ -195,15 +198,17 @@ class DrawingView @JvmOverloads constructor(
         isFocusable = true
         isFocusableInTouchMode = true
     }
+
     fun isForceSaveNeeded(): Boolean {
         val result = mForceSave
         mForceSave = false
         return result
     }
 
-
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        mCanvasWidth = w
+        mCanvasHeight = h
 
         // Tạo bitmap mới nếu cần
         if (w > 0 && h > 0) {
@@ -212,12 +217,10 @@ class DrawingView @JvmOverloads constructor(
                 mCanvas = Canvas(mBitmap)
             }
         }
-
         // Tính lại vị trí background
         calculateBackgroundRect()
     }
 
-    // Thay thế hoàn toàn onDraw trong DrawingView.kt
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -236,7 +239,7 @@ class DrawingView @JvmOverloads constructor(
             canvas.drawBitmap(bitmap, null, mBackgroundRect, mBackgroundPaint)
         }
 
-        // Vẽ tất cả nét vẽ
+        // Vẽ tất cả nét vẽ với tọa độ chuẩn hóa được chuyển đổi sang tọa độ thực
         for (stroke in mStrokes) {
             drawStrokeOnCanvas(canvas, stroke)
         }
@@ -256,6 +259,20 @@ class DrawingView @JvmOverloads constructor(
         }
     }
 
+    private fun drawStrokeOnCanvas(canvas: Canvas, stroke: Stroke) {
+        val path = stroke.toPath(mCanvasWidth, mCanvasHeight)
+        val paint = Paint(mPaint).apply {
+            color = stroke.color
+            strokeWidth = stroke.strokeWidth
+            if (stroke.isEraser) {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            } else {
+                xfermode = null
+            }
+        }
+        canvas.drawPath(path, paint)
+    }
+
     private fun transformTouchPoint(x: Float, y: Float): FloatArray {
         // Tạo ma trận biến đổi ngược
         val transformMatrix = Matrix()
@@ -272,20 +289,6 @@ class DrawingView @JvmOverloads constructor(
         return points
     }
 
-    // Thêm phương thức này để vẽ stroke một cách nhất quán
-    private fun drawStrokeOnCanvas(canvas: Canvas, stroke: Stroke) {
-        val path = stroke.toPath()
-        val paint = Paint(mPaint).apply {
-            color = stroke.color
-            strokeWidth = stroke.strokeWidth
-            if (stroke.isEraser) {
-                xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-            } else {
-                xfermode = null
-            }
-        }
-        canvas.drawPath(path, paint)
-    }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         // Xử lý các gesture detector
@@ -318,25 +321,52 @@ class DrawingView @JvmOverloads constructor(
                             strokeWidth = mPaint.strokeWidth,
                             isEraser = false
                         )
-                        mCurrentStroke?.points?.add(StrokePoint(transformedX, transformedY, MotionEvent.ACTION_DOWN))
+
+                        // Thêm điểm đầu tiên ĐÃ CHUẨN HÓA
+                        mCurrentStroke?.points?.add(
+                            StrokePoint.fromPixels(
+                                transformedX, transformedY,
+                                mCanvasWidth, mCanvasHeight,
+                                MotionEvent.ACTION_DOWN
+                            )
+                        )
                         updateLastEditTime()
                     }
+
                     MotionEvent.ACTION_MOVE -> {
                         // Thêm điểm vào nét vẽ hiện tại
                         val lastPoint = mCurrentStroke?.points?.lastOrNull()
                         if (lastPoint != null) {
-                            val dx = Math.abs(transformedX - lastPoint.x)
-                            val dy = Math.abs(transformedY - lastPoint.y)
+                            // Chuyển đổi lastPoint về tọa độ pixel để kiểm tra khoảng cách
+                            val lastPixelX = lastPoint.getPixelX(mCanvasWidth)
+                            val lastPixelY = lastPoint.getPixelY(mCanvasHeight)
+
+                            val dx = Math.abs(transformedX - lastPixelX)
+                            val dy = Math.abs(transformedY - lastPixelY)
 
                             if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                                mCurrentStroke?.points?.add(StrokePoint(transformedX, transformedY, MotionEvent.ACTION_MOVE))
+                                // Thêm điểm mới ĐÃ CHUẨN HÓA
+                                mCurrentStroke?.points?.add(
+                                    StrokePoint.fromPixels(
+                                        transformedX, transformedY,
+                                        mCanvasWidth, mCanvasHeight,
+                                        MotionEvent.ACTION_MOVE
+                                    )
+                                )
                                 updateLastEditTime()
                             }
                         }
                     }
+
                     MotionEvent.ACTION_UP -> {
                         // Hoàn thành nét vẽ
-                        mCurrentStroke?.points?.add(StrokePoint(transformedX, transformedY, MotionEvent.ACTION_UP))
+                        mCurrentStroke?.points?.add(
+                            StrokePoint.fromPixels(
+                                transformedX, transformedY,
+                                mCanvasWidth, mCanvasHeight,
+                                MotionEvent.ACTION_UP
+                            )
+                        )
 
                         if ((mCurrentStroke?.points?.size ?: 0) > 1) {
                             mStrokes.add(mCurrentStroke!!)
@@ -349,7 +379,7 @@ class DrawingView @JvmOverloads constructor(
                         mCurrentStroke = null
                     }
                 }
-            }
+                }
             DrawMode.ERASE -> {
                 // Xử lý xóa nét vẽ (chạm hoặc di chuyển)
                 if (event.action == MotionEvent.ACTION_DOWN || event.action == MotionEvent.ACTION_MOVE) {
@@ -406,11 +436,17 @@ class DrawingView @JvmOverloads constructor(
                 val p1 = stroke.points[i]
                 val p2 = stroke.points[i + 1]
 
+                // Chuyển đổi tọa độ chuẩn hóa sang tọa độ pixel
+                val p1x = p1.getPixelX(mCanvasWidth)
+                val p1y = p1.getPixelY(mCanvasHeight)
+                val p2x = p2.getPixelX(mCanvasWidth)
+                val p2y = p2.getPixelY(mCanvasHeight)
+
                 // Tính khoảng cách từ điểm đến đoạn thẳng
                 val distance = distancePointToLineSegment(
                     x, y,
-                    p1.x, p1.y,
-                    p2.x, p2.y
+                    p1x, p1y,
+                    p2x, p2y
                 )
 
                 // Nếu khoảng cách đủ gần, thêm vào kết quả
@@ -423,7 +459,8 @@ class DrawingView @JvmOverloads constructor(
 
         return result
     }
-    // 7. Thêm phương thức tính khoảng cách từ điểm đến đoạn thẳng
+
+    //tính khoảng cách từ điểm đến đoạn thẳng
     private fun distancePointToLineSegment(
         px: Float, py: Float,
         x1: Float, y1: Float,
@@ -462,9 +499,6 @@ class DrawingView @JvmOverloads constructor(
         return Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
     }
 
-
-
-    // 9. Thêm các phương thức hỗ trợ theo dõi thời gian chỉnh sửa
     private fun updateLastEditTime() {
         mLastEditTime = System.currentTimeMillis()
     }
@@ -481,19 +515,16 @@ class DrawingView @JvmOverloads constructor(
         invalidate()
     }
 
-    /**
-     * Tìm nét vẽ ở vị trí được chỉ định
-     */
     private fun findStrokeAt(x: Float, y: Float): String? {
         // Duyệt từ sau ra trước (nét vẽ sau được ưu tiên)
         for (i in mStrokes.indices.reversed()) {
             val stroke = mStrokes[i]
 
             // Kiểm tra xem điểm có nằm trong bounds của nét vẽ không
-            val bounds = stroke.getBounds()
+            val bounds = stroke.getBounds(mCanvasWidth, mCanvasHeight)
             if (bounds.contains(x, y)) {
                 // Kiểm tra chi tiết hơn với path
-                val path = stroke.toPath()
+                val path = stroke.toPath(mCanvasWidth, mCanvasHeight)
                 val pathBounds = RectF()
                 path.computeBounds(pathBounds, true)
                 pathBounds.inset(-stroke.strokeWidth - STROKE_SELECTION_TOLERANCE, -stroke.strokeWidth - STROKE_SELECTION_TOLERANCE)
@@ -511,7 +542,8 @@ class DrawingView @JvmOverloads constructor(
      * Vẽ một stroke lên canvas
      */
     private fun drawStroke(stroke: Stroke) {
-        val path = stroke.toPath()
+        // Sử dụng toPath với kích thước canvas hiện tại
+        val path = stroke.toPath(mCanvasWidth, mCanvasHeight)
         val paint = Paint(mPaint).apply {
             color = stroke.color
             strokeWidth = stroke.strokeWidth
@@ -600,13 +632,6 @@ class DrawingView @JvmOverloads constructor(
     }
 
     /**
-     * Đặt listener khi chọn nét vẽ
-     */
-    fun setOnStrokeSelectedListener(listener: (String) -> Unit) {
-        mStrokeSelectedListener = listener
-    }
-
-    /**
      * Đặt chế độ vẽ
      */
     fun setMode(mode: DrawMode) {
@@ -627,10 +652,7 @@ class DrawingView @JvmOverloads constructor(
         // Add the stroke to our collection
         mStrokes.add(stroke)
 
-        // Draw it to our canvas
-        drawStroke(stroke)
-
-        // Update the view
+        // Redraw the view
         invalidate()
     }
 
@@ -775,7 +797,6 @@ class DrawingView @JvmOverloads constructor(
 
     private var pageLoaded = false
 
-    // Complete replacement for setDrawingDataFromJson method
     fun setDrawingDataFromJson(json: String) {
         try {
             val drawingData = Gson().fromJson(json, DrawingData::class.java)
@@ -790,7 +811,7 @@ class DrawingView @JvmOverloads constructor(
                 mStrokes.addAll(drawingData.strokes)
             }
 
-            // Redraw
+            // Force redraw
             invalidate()
         } catch (e: Exception) {
             Log.e(TAG, "Error setting drawing data from JSON", e)
