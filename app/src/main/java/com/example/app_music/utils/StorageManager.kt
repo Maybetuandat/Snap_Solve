@@ -4,13 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.net.Uri
 import android.util.Log
-import com.example.app_music.data.repository.FirebaseNoteRepository
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -48,7 +44,6 @@ class StorageManager(private val context: Context) {
                 savePageThumbnail(pageId, thumbnailBitmap)
                 true
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving page image for page $pageId", e)
                 false
             }
         }
@@ -61,6 +56,7 @@ class StorageManager(private val context: Context) {
             val height = original.height
             val maxSize = 200 // kicks thuoc
 
+            //lấy min để đảm bảo scale, tỷ lệ của ảnh
             val scale = Math.min(
                 maxSize.toFloat() / width.toFloat(),
                 maxSize.toFloat() / height.toFloat()
@@ -218,38 +214,6 @@ class StorageManager(private val context: Context) {
         }
     }
 
-    private fun loadCachedImage(filename: String): Bitmap? {
-        try {
-            val cacheDir = File(context.cacheDir, "images")
-            val file = File(cacheDir, filename)
-
-            if (file.exists()) {
-                return BitmapFactory.decodeFile(file.absolutePath)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading cached image", e)
-        }
-        return null
-    }
-
-    private fun saveCachedImage(filename: String, bitmap: Bitmap): Boolean {
-        try {
-            val cacheDir = File(context.cacheDir, "images")
-            if (!cacheDir.exists()) {
-                cacheDir.mkdirs()
-            }
-
-            val file = File(cacheDir, filename)
-            FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-            }
-            return true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving cached image", e)
-            return false
-        }
-    }
-
     private fun saveThumbnailLocally(noteId: String, thumbnail: Bitmap): Boolean {
         return try {
             val thumbnailDir = File(context.cacheDir, THUMBNAILS_PATH)
@@ -265,22 +229,6 @@ class StorageManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error saving thumbnail to local cache", e)
             false
-        }
-    }
-    
-    private fun loadThumbnailLocally(noteId: String): Bitmap? {
-        return try {
-            val thumbnailDir = File(context.cacheDir, THUMBNAILS_PATH)
-            val file = File(thumbnailDir, "$noteId.jpg")
-            
-            if (file.exists()) {
-                BitmapFactory.decodeFile(file.absolutePath)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading thumbnail from local cache", e)
-            null
         }
     }
     
@@ -316,23 +264,7 @@ class StorageManager(private val context: Context) {
             false
         }
     }
-    
-    private fun loadImageLocally(noteId: String): Bitmap? {
-        return try {
-            val imageDir = File(context.cacheDir, IMAGES_PATH)
-            val file = File(imageDir, "$noteId.jpg")
-            
-            if (file.exists()) {
-                BitmapFactory.decodeFile(file.absolutePath)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading image from local cache", e)
-            null
-        }
-    }
-    
+
     fun deleteImageLocally(noteId: String): Boolean {
         return try {
             val imageDir = File(context.cacheDir, IMAGES_PATH)

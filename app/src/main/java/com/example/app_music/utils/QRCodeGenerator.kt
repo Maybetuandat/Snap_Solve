@@ -12,21 +12,15 @@ import java.util.EnumMap
 object QRCodeGenerator {
     
     private const val QR_CODE_SIZE = 300
-    
-    /**
-     * Generate a QR code bitmap from a string
-     * @param content The content to encode in the QR code
-     * @param size The size of the QR code bitmap (default 300x300)
-     * @return The QR code bitmap or null if generation fails
-     */
+
     fun generateQRCode(content: String, size: Int = QR_CODE_SIZE): Bitmap? {
         try {
-            // Set QR code parameters
+            // Set tham số cho mã QR
             val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
             hints[EncodeHintType.CHARACTER_SET] = "UTF-8"
-            hints[EncodeHintType.MARGIN] = 2 // Margin size
+            hints[EncodeHintType.MARGIN] = 2
             
-            // Create BitMatrix for the QR code
+            // Tạo BitMatrix cho QR code
             val bitMatrix: BitMatrix = MultiFormatWriter().encode(
                 content,
                 BarcodeFormat.QR_CODE,
@@ -55,25 +49,5 @@ object QRCodeGenerator {
             e.printStackTrace()
             return null
         }
-    }
-    
-    /**
-     * Generate a QR code for note sharing
-     * @param noteId The ID of the note to share
-     * @return QR code bitmap
-     */
-    fun generateNoteShareQRCode(noteId: String): Bitmap? {
-        val shareableUrl = "snapsolve://notes/$noteId"
-        return generateQRCode(shareableUrl)
-    }
-    
-    /**
-     * Generate a QR code for folder sharing
-     * @param folderId The ID of the folder to share
-     * @return QR code bitmap
-     */
-    fun generateFolderShareQRCode(folderId: String): Bitmap? {
-        val shareableUrl = "snapsolve://folders/$folderId"
-        return generateQRCode(shareableUrl)
     }
 }
