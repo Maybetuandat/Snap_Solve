@@ -39,7 +39,7 @@ class NotificationAdapter(
 
         init {
             itemView.setOnClickListener {
-                val position = adapterPosition // Thay thế bindingAdapterPosition bằng adapterPosition
+                val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onNotificationClick(getItem(position))
                 }
@@ -51,10 +51,7 @@ class NotificationAdapter(
             tvContent.text = notification.content
             tvTime.text = getFormattedTime(notification.notiDate)
 
-            // Set unread indicator visibility
 
-
-            // You can customize the icon based on notification type if needed
             when {
                 notification.title.contains("Premium", ignoreCase = true) -> {
                     ivIcon.setImageResource(R.drawable.ic_premium)

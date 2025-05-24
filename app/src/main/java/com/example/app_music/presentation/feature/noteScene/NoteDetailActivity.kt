@@ -519,8 +519,8 @@ class NoteDetailActivity : BaseActivity() {
         }
     }
     private fun setupCollaboration() {
-        val currentUserId = currentUser?.uid ?: collaborationManager.getCurrentUserId()
-        val username = currentUser?.displayName ?: UserPreference.getUserName(this)
+        val currentUserId = collaborationManager.getCurrentUserId()
+        val username = UserPreference.getUserName(this)
 
         // Lấy ID người dùng hiện tại cho UserPresenceView
         binding.activeUsersView.setCurrentUserId(currentUserId)

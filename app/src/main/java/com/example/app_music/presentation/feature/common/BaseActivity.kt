@@ -15,8 +15,8 @@ open class BaseActivity : AppCompatActivity() {
             val languageCode = MultiLanguage.getSelectedLanguage(newBase)
             Log.d(TAG, "attachBaseContext - languageCode: $languageCode")
 
-            val isSystem = MultiLanguage.isUsingSystemLanguage(newBase)
-            Log.d(TAG, "attachBaseContext - isSystem: $isSystem")
+//            val isSystem = MultiLanguage.isUsingSystemLanguage(newBase)
+//            Log.d(TAG, "attachBaseContext - isSystem: $isSystem")
 
             val context = MultiLanguage.applyLanguage(newBase, languageCode)
             Log.d(TAG, "attachBaseContext - applied language, current locale: ${context.resources.configuration.locales.get(0).language}")

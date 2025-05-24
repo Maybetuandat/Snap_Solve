@@ -28,12 +28,12 @@ class NotificationActivity : BaseActivity() {
         setupListeners()
         setupObservers()
 
-        // Load notifications
+
         viewModel.loadNotifications()
     }
 
     private fun setupUI() {
-        // Setup RecyclerView
+
         adapter = NotificationAdapter(this) { notification ->
             onNotificationClicked(notification)
         }
@@ -44,7 +44,7 @@ class NotificationActivity : BaseActivity() {
             setHasFixedSize(true)
         }
 
-        // Setup SwipeRefreshLayout
+
         binding.swipeRefresh.setColorSchemeResources(
             R.color.selectedicon,
             R.color.red
@@ -52,14 +52,14 @@ class NotificationActivity : BaseActivity() {
     }
 
     private fun setupListeners() {
-        // Back button
+
         binding.btnBack.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
 
 
 
-        // Swipe to refresh
+
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.loadNotifications()
         }
@@ -70,12 +70,12 @@ class NotificationActivity : BaseActivity() {
     }
 
     private fun setupObservers() {
-        // Observe notifications
+
         viewModel.notifications.observe(this) { notifications ->
             binding.swipeRefresh.isRefreshing = false
             adapter.submitList(notifications)
 
-            // Show/hide empty state
+
             if (notifications.isEmpty()) {
                 binding.emptyState.visibility = View.VISIBLE
                 binding.rvNotifications.visibility = View.GONE
@@ -85,7 +85,7 @@ class NotificationActivity : BaseActivity() {
             }
         }
 
-        // Observe loading state
+
         viewModel.isLoading.observe(this) { isLoading ->
             binding.progressBar.visibility = if (isLoading && adapter.currentList.isEmpty()) {
                 View.VISIBLE
@@ -93,13 +93,13 @@ class NotificationActivity : BaseActivity() {
                 View.GONE
             }
 
-            // Don't show refresh indicator if progress bar is visible
+
             if (isLoading && adapter.currentList.isEmpty()) {
                 binding.swipeRefresh.isRefreshing = false
             }
         }
 
-        // Observe error messages
+
         viewModel.error.observe(this) { errorMsg ->
             if (errorMsg.isNotEmpty()) {
                 Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show()
@@ -111,16 +111,16 @@ class NotificationActivity : BaseActivity() {
     }
 
     private fun onNotificationClicked(notification: Notification) {
-        // Handle notification click
+
         viewModel.onNotificationClicked(notification)
 
-        // Navigate to notification detail screen
+
         NotificationDetailActivity.start(this, notification.id)
     }
 
     override fun onResume() {
         super.onResume()
-        // Refresh data when returning to this screen
+
         viewModel.loadNotifications()
     }
 }

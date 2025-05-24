@@ -35,7 +35,7 @@ class PremiumUser : BaseActivity() {
         binding = ActivityPremiumUserBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize ViewModel
+
         viewModel = ViewModelProvider(this)[PremiumViewModel::class.java]
 
         setupStrictMode()
@@ -70,17 +70,17 @@ class PremiumUser : BaseActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe payment state
+
         viewModel.paymentState.observe(this) { state ->
             handlePaymentState(state)
         }
 
-        // Observe loading state
+
         viewModel.isLoading.observe(this) { isLoading ->
             updateLoadingState(isLoading)
         }
 
-        // Observe error messages
+
         viewModel.errorMessage.observe(this) { errorMessage ->
             if (errorMessage.isNotEmpty()) {
                 Log.e(TAG, "Error: $errorMessage")
@@ -148,7 +148,7 @@ class PremiumUser : BaseActivity() {
     private fun initiateZaloPayPayment(zpTransToken: String) {
         Log.d(TAG, "Initiating ZaloPay payment with token: $zpTransToken")
 
-        ZaloPaySDK.getInstance().payOrder(
+        ZaloPaySDK.getInstance().payOrder( //implicit intent
             this@PremiumUser,
             zpTransToken,
             "snapsolve://premium",   //url schema call back -> sau khi thanh toan zalopay se goi lai app theo intent nay
@@ -181,7 +181,7 @@ class PremiumUser : BaseActivity() {
     private fun showSuccessDialog(transactionId: String, transToken: String) {
 
 
-        // Show detailed dialog if activity is still active
+
         if (!isFinishing && !isDestroyed) {
             try {
                 AlertDialog.Builder(this)

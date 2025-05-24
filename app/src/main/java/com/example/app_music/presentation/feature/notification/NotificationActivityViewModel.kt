@@ -29,7 +29,7 @@ class NotificationActivityViewModel(application: Application) : AndroidViewModel
     val error: LiveData<String> = _error
 
     private val _showAdBanner = MutableLiveData<Boolean>(true)
-    val showAdBanner: LiveData<Boolean> = _showAdBanner
+
 
     private val getNotificationsUseCase: GetNotificationsUseCase
     private val markNotificationsAsReadUseCase: MarkNotificationsAsReadUseCase
@@ -83,23 +83,12 @@ class NotificationActivityViewModel(application: Application) : AndroidViewModel
 
     fun onNotificationClicked(notification: Notification) {
 
-//        if (!notification.isRead) {
-//            markNotificationAsRead(notification.id)
-//        }
 
-        // Update the local list
+
+
         _notifications.value = _notifications.value?.map {
             if (it.id == notification.id) it.copy(isRead = true) else it
         }
     }
 
-//    private fun markNotificationAsRead(notificationId: Long) {
-//        viewModelScope.launch {
-//            try {
-//
-//            } catch (e: Exception) {
-//                Log.e(TAG, "Error marking notification as read", e)
-//            }
-//        }
-//    }
 }
