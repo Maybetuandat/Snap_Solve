@@ -69,11 +69,11 @@ class LoginActivity : BaseActivity() {
             val languages = MultiLanguage.getSupportedLanguages()
             Log.d(TAG, "Available languages: ${languages.map { it.code }}")
 
-            // Create and set adapter
+
             val adapter = LanguageSpinnerAdapter(this, languages)
             binding.spinnerLanguage.adapter = adapter
 
-            // Set current selected language
+
             val isUsingSystemLanguage = MultiLanguage.isUsingSystemLanguage(this)
             val selectedLanguageCode = if (isUsingSystemLanguage) "system" else MultiLanguage.getSelectedLanguage(this)
             Log.d(TAG, "Current language: $selectedLanguageCode, isSystem: $isUsingSystemLanguage")
@@ -85,15 +85,15 @@ class LoginActivity : BaseActivity() {
                 binding.spinnerLanguage.setSelection(currentPosition)
             }
 
-            // Flag to ignore initial selection event - Using class property for reliability
+
             var isFirstSelection = true
 
-            // Set selection listener
+
             binding.spinnerLanguage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     Log.d(TAG, "onItemSelected called, position: $position, isFirstSelection: $isFirstSelection")
 
-                    // Skip the initial selection event that happens when the spinner is first populated
+
                     if (isFirstSelection) {
                         isFirstSelection = false
                         Log.d(TAG, "Skipping initial selection")
@@ -117,7 +117,7 @@ class LoginActivity : BaseActivity() {
 
                         try {
                             Log.d(TAG, "Attempting to restart app...")
-                            // Thay đổi cách restart app
+
                             val packageManager = applicationContext.packageManager
                             val intent = packageManager.getLaunchIntentForPackage(applicationContext.packageName)
                             val componentName = intent?.component
@@ -138,7 +138,7 @@ class LoginActivity : BaseActivity() {
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>?) {
-                    // Do nothing
+
                     Log.d(TAG, "onNothingSelected called")
                 }
             }
@@ -155,7 +155,7 @@ class LoginActivity : BaseActivity() {
                 val password = binding.etPassword.text.toString().trim()
                 val rememberMe = binding.cbRememberMe.isChecked
 
-                // Hiển thị loading và ẩn form
+
                 binding.progressBar.visibility = View.VISIBLE
                 binding.formContainer.visibility = View.GONE
 
@@ -170,10 +170,6 @@ class LoginActivity : BaseActivity() {
         binding.tvForgotPassword.setOnClickListener {
             Toast.makeText(this, "Chức năng quên mật khẩu sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
         }
-
-//        binding.cvGoogleLogin.setOnClickListener {
-//            Toast.makeText(this, "Đăng nhập bằng Google sẽ có trong tương lai", Toast.LENGTH_SHORT).show()
-//        }
     }
 
     private fun observeViewModel() {
@@ -181,7 +177,7 @@ class LoginActivity : BaseActivity() {
             binding.progressBar.visibility = View.GONE
 
             if (result.isSuccess) {
-                // Chuyển đến MainActivity
+
                 UserPreference.saveUserId(this, result.user?.id!!)
                 UserPreference.saveUserName(this, result.user.username!!)
                 Log.d("loginactivity", UserPreference.getUserId(this).toString() + " " + result.user.toString())
@@ -191,7 +187,7 @@ class LoginActivity : BaseActivity() {
                 startActivity(intent)
                 finish()
             } else {
-                // Hiển thị form đăng nhập nếu đăng nhập thất bại
+
                 binding.formContainer.visibility = View.VISIBLE
                 if (result.errorMessage.isNotEmpty()) {
                     Toast.makeText(this, result.errorMessage, Toast.LENGTH_LONG).show()
@@ -204,9 +200,9 @@ class LoginActivity : BaseActivity() {
             binding.btnLogin.isEnabled = !isLoading
         }
 
-        // Observer khong co thong tin trong room db
+
         viewModel.autoLoginCheckComplete.observe(this) { checkComplete ->
-            //cai nay dung cho case 1 -> khi login check auto login duoc goi nhung khong co doi tuong nao trong room db
+
             if (checkComplete && viewModel.loginResult.value == null) {
                 binding.formContainer.visibility = View.VISIBLE
             }

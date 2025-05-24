@@ -9,11 +9,11 @@ import com.google.firebase.storage.FirebaseStorage
 class SnapSolveApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Khởi tạo Firebase
+
         FirebaseApp.initializeApp(this)
 
-        //Cấu hình firebase, tự động cache dữ liệu để sử dụng offline
-        // Cache mặc định là 40MB
+
+
         val firestoreSettings = FirebaseFirestoreSettings.Builder()
             .setPersistenceEnabled(true)
             .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
@@ -21,7 +21,7 @@ class SnapSolveApplication : Application() {
 
         FirebaseFirestore.getInstance().firestoreSettings = firestoreSettings
 
-        // Khởi tạo Storage
+
         FirebaseStorage.getInstance()
     }
 }

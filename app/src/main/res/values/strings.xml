@@ -275,6 +275,15 @@
     <string name="notification_channel_name">SnapSolve Notifications</string>
     <string name="notification_channel_description">Nhận thông báo từ SnapSolve</string>
     <string name="no_notification">Dont have notification</string>
+    <string name="notification_title">Congratulations! You are now a Premium User! Subscription plan: MONTHLY. Duration: 1 month.</string>
+    <string name="success_notification">Payment successful</string>
+    <string name="detail_notification">Notification details</string>
+    <string name="success_payment">Payment successful</string>
+    <string name="detail">Details</string>
+    <string name="type_notification">Notification type:</string>
+    <string name="day_create">Created date:</string>
+    <string name="deletye_notification">Delete notification</string>
+
 
 
 </resources>

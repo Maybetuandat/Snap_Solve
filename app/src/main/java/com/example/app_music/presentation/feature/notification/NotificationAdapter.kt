@@ -31,7 +31,7 @@ class NotificationAdapter(
     }
 
     inner class NotificationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val unreadIndicator: View = itemView.findViewById(R.id.unreadIndicator)
+
         private val ivIcon: ImageView = itemView.findViewById(R.id.ivNotificationIcon)
         private val tvTitle: TextView = itemView.findViewById(R.id.tvNotificationTitle)
         private val tvContent: TextView = itemView.findViewById(R.id.tvNotificationContent)
@@ -52,7 +52,7 @@ class NotificationAdapter(
             tvTime.text = getFormattedTime(notification.notiDate)
 
             // Set unread indicator visibility
-            unreadIndicator.visibility = if (!notification.isRead) View.VISIBLE else View.GONE
+
 
             // You can customize the icon based on notification type if needed
             when {
@@ -76,8 +76,8 @@ class NotificationAdapter(
                 val daysBetween = ChronoUnit.DAYS.between(date, now)
 
                 return when {
-                    daysBetween == 0L -> "Hôm nay"
-                    daysBetween == 1L -> "Hôm qua"
+                    daysBetween == 0L -> "Today"
+                    daysBetween == 1L -> "Yesterday"
                     daysBetween < 7L -> "$daysBetween ngày trước"
                     daysBetween < 30L -> "${daysBetween / 7} tuần trước"
                     daysBetween < 365L -> "${daysBetween / 30} tháng trước"

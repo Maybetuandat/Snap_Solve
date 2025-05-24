@@ -5,9 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    tools:context=".presentation.feature.notification.NotificationDetailActivity">
+    tools:context=".presentation.feature.detail_notification.NotificationDetailActivity">
 
-    <!-- Toolbar -->
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -38,7 +38,7 @@
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
-            android:text="Chi tiết thông báo"
+            android:text="@string/detail_notification"
             android:textColor="@color/black"
             android:textSize="18sp"
             android:textStyle="bold"
@@ -48,7 +48,7 @@
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Content -->
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:padding="16dp">
 
-            <!-- Notification Icon -->
+
             <ImageView
                 android:id="@+id/ivNotificationIcon"
                 android:layout_width="64dp"
@@ -74,7 +74,7 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="@color/white" />
 
-            <!-- Notification Title -->
+
             <TextView
                 android:id="@+id/tvNotificationTitle"
                 android:layout_width="0dp"
@@ -87,9 +87,9 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/ivNotificationIcon"
                 app:layout_constraintTop_toTopOf="@id/ivNotificationIcon"
-                tools:text="Thanh toán thành công" />
+                tools:text="@string/success_payment" />
 
-            <!-- Notification Time -->
+
             <TextView
                 android:id="@+id/tvNotificationTime"
                 android:layout_width="0dp"
@@ -104,7 +104,7 @@
                 app:layout_constraintTop_toBottomOf="@id/tvNotificationTitle"
                 tools:text="23 tháng 5, 2025 · 16:01" />
 
-            <!-- Divider -->
+
             <View
                 android:id="@+id/divider"
                 android:layout_width="match_parent"
@@ -113,7 +113,7 @@
                 android:background="#E0E0E0"
                 app:layout_constraintTop_toBottomOf="@id/ivNotificationIcon" />
 
-            <!-- Notification Content -->
+
             <TextView
                 android:id="@+id/tvNotificationContent"
                 android:layout_width="match_parent"
@@ -125,7 +125,7 @@
                 app:layout_constraintTop_toBottomOf="@id/divider"
                 tools:text="Chúc mừng bạn đã trở thành Premium User! Gói đăng ký: MONTHLY. Thời hạn: 1 tháng. Hết hạn vào: 2025-06-23. Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!" />
 
-            <!-- Additional information section -->
+
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardAdditionalInfo"
                 android:layout_width="match_parent"
@@ -145,12 +145,12 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Thông tin chi tiết"
+                        android:text="@string/detail"
                         android:textColor="@color/black"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
-                    <!-- Notification ID -->
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -160,7 +160,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="ID thông báo:"
+                            android:text="ID"
                             android:textColor="#757575"
                             android:textSize="14sp" />
 
@@ -174,7 +174,7 @@
                             tools:text="9" />
                     </LinearLayout>
 
-                    <!-- Notification Type -->
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -184,7 +184,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Loại thông báo:"
+                            android:text="@string/type_notification"
                             android:textColor="#757575"
                             android:textSize="14sp" />
 
@@ -198,7 +198,7 @@
                             tools:text="notification" />
                     </LinearLayout>
 
-                    <!-- Notification Date -->
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -208,7 +208,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Ngày tạo:"
+                            android:text="@string/day_create"
                             android:textColor="#757575"
                             android:textSize="14sp" />
 
@@ -222,33 +222,11 @@
                             tools:text="2025-05-23" />
                     </LinearLayout>
 
-                    <!-- Read Status -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Trạng thái:"
-                            android:textColor="#757575"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/tvNotificationStatus"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:textColor="@color/black"
-                            android:textSize="14sp"
-                            tools:text="Đã đọc" />
-                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Action buttons -->
+
             <LinearLayout
                 android:id="@+id/actionsContainer"
                 android:layout_width="match_parent"
@@ -257,19 +235,9 @@
                 android:orientation="vertical"
                 app:layout_constraintTop_toBottomOf="@id/cardAdditionalInfo">
 
-                <!-- Primary Action Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPrimaryAction"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/selectedicon"
-                    android:paddingVertical="12dp"
-                    android:text="Xem chi tiết gói Premium"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    app:cornerRadius="8dp" />
 
-                <!-- Secondary Action Button -->
+
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSecondaryAction"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -277,7 +245,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:paddingVertical="12dp"
-                    android:text="Xóa thông báo"
+                    android:text="@string/deletye_notification"
                     android:textColor="@color/red"
                     android:textSize="16sp"
                     app:cornerRadius="8dp"

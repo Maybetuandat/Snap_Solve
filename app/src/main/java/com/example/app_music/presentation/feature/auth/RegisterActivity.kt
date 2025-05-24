@@ -42,7 +42,7 @@ class RegisterActivity : BaseActivity() {
         }
 
         binding.tvLogin.setOnClickListener {
-            finish() // Return to login screen
+            finish()
         }
     }
 
@@ -51,10 +51,10 @@ class RegisterActivity : BaseActivity() {
             binding.progressBar.visibility = View.GONE
 
             if (result.isSuccess) {
-                // Save the newly registered user
+
                 viewModel.setRegisteredUser(result.user)
 
-                // Navigate to profile completion activity
+
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.putExtra(LoginActivity.EXTRA_REGISTRATION_SUCCESS, true)
                 startActivity(intent)

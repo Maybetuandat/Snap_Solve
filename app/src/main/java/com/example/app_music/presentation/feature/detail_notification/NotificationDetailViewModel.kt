@@ -49,10 +49,8 @@ class NotificationDetailViewModel(application: Application) : AndroidViewModel(a
                     if (notification != null) {
                         _notification.value = notification!!
 
-                        // Mark as read if not already read
-                        if (!notification.isRead) {
-                            markAsRead(notificationId)
-                        }
+
+
                     } else {
                         _error.value = "Không tìm thấy thông báo"
                     }
@@ -68,17 +66,7 @@ class NotificationDetailViewModel(application: Application) : AndroidViewModel(a
         }
     }
 
-    private fun markAsRead(notificationId: Long) {
-        viewModelScope.launch {
-            try {
-                markNotificationAsReadUseCase(notificationId)
-                // Update local notification object
-                _notification.value = _notification.value?.copy(isRead = true)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error marking notification as read", e)
-            }
-        }
-    }
+
 
     fun deleteNotification(notificationId: Long) {
         _isLoading.value = true

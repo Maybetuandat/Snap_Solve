@@ -37,7 +37,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         connectWebSocketUseCase = ConnectWebSocketUseCase(webSocketRepository)
         getUnreadCountUseCase = GetUnreadCountUseCase(notificationRepository)
 
-        // Connect to WebSocket on init if user is logged in
+
         connectWebSocket()
     }
 
@@ -70,19 +70,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         when (message.type) {
             "notification" -> {
-                // Update with new notification
+
                 message.notification?.let { notification ->
                     Log.d(TAG, "Notification details - Title: ${notification.title}, Content: ${notification.content}")
                     _newNotification.postValue(Pair(notification.title, notification.content))
 
-                    // Refresh unread count after receiving a notification
+
                     loadUnreadNotificationCount()
                 } ?: run {
                     Log.e(TAG, "Received notification message but notification object is null")
                 }
             }
             "unread_count" -> {
-                // Update badge with new count
+
                 message.unreadCount?.let { count ->
                     Log.d(TAG, "Updating unread count to: $count")
                     _unreadNotificationCount.postValue(count)

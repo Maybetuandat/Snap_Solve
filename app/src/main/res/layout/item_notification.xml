@@ -14,19 +14,9 @@
         android:layout_height="wrap_content"
         android:paddingVertical="12dp">
 
-        <!-- Unread indicator -->
-        <View
-            android:id="@+id/unreadIndicator"
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:layout_marginStart="12dp"
-            android:background="@drawable/circle_indicator"
-            android:visibility="visible"
-            app:layout_constraintBottom_toBottomOf="@+id/ivNotificationIcon"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/ivNotificationIcon" />
 
-        <!-- Notification Icon -->
+
+
         <ImageView
             android:id="@+id/ivNotificationIcon"
             android:layout_width="40dp"
@@ -35,11 +25,11 @@
             android:background="@drawable/notification_icon_background"
             android:padding="8dp"
             android:src="@drawable/ic_notification"
-            app:layout_constraintStart_toEndOf="@+id/unreadIndicator"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/white" />
 
-        <!-- Notification Content -->
+
         <TextView
             android:id="@+id/tvNotificationTitle"
             android:layout_width="0dp"
@@ -54,7 +44,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/ivNotificationIcon"
             app:layout_constraintTop_toTopOf="@+id/ivNotificationIcon"
-            tools:text="Thanh toán thành công" />
+            tools:text="@string/success_notification" />
 
         <TextView
             android:id="@+id/tvNotificationContent"
@@ -70,9 +60,9 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/ivNotificationIcon"
             app:layout_constraintTop_toBottomOf="@+id/tvNotificationTitle"
-            tools:text="Chúc mừng bạn đã trở thành Premium User! Gói đăng ký: MONTHLY. Thời hạn: 1 tháng." />
+            tools:text="@string/notification_title" />
 
-        <!-- Time -->
+
         <TextView
             android:id="@+id/tvTime"
             android:layout_width="wrap_content"

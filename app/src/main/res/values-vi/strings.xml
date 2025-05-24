@@ -279,5 +279,13 @@
         <string name="download_model_failed">Tải mô hình dịch thất bại</string>
         <string name="today_missions">Nhiệm vụ hôm nay</string>
         <string name="open_missions">Mở bảng nhiệm vụ</string>
+    <string name="notification_title">Chúc mừng bạn đã trở thành Premium User! Gói đăng ký: MONTHLY. Thời hạn: 1 tháng.</string>
+        <string name="success_notification">Thanh toán thành công</string>
+        <string name="detail_notification">Chi tiết thông báo</string>
+        <string name="success_payment">Thanh toán thành công</string>
+        <string name="day_create">Ngày tạo:</string>
+        <string name="deletye_notification">Xóa thông báo</string>
+        <string name="detail">Thông tin chi tiết</string>
+        <string name="type_notification">Loại thông báo:</string>
 
 </resources>

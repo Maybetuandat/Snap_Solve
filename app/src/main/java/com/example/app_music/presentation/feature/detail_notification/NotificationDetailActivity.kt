@@ -41,7 +41,7 @@ class NotificationDetailActivity : BaseActivity() {
         binding = ActivityNotificationDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Get notification ID from intent
+
         notificationId = intent.getLongExtra(EXTRA_NOTIFICATION_ID, 0)
         if (notificationId == 0L) {
             Toast.makeText(this, "Thông báo không tồn tại", Toast.LENGTH_SHORT).show()
@@ -52,7 +52,7 @@ class NotificationDetailActivity : BaseActivity() {
         setupUI()
         observeViewModel()
 
-        // Load notification details
+
         viewModel.loadNotificationDetails(notificationId)
     }
 
@@ -71,9 +71,7 @@ class NotificationDetailActivity : BaseActivity() {
             displayNotificationDetails(notification)
         })
 
-        viewModel.isLoading.observe(this, Observer { isLoading ->
-            // Handle loading state
-        })
+
 
         viewModel.error.observe(this, Observer { errorMessage ->
             if (errorMessage.isNotEmpty()) {
@@ -90,22 +88,22 @@ class NotificationDetailActivity : BaseActivity() {
     }
 
     private fun displayNotificationDetails(notification: Notification) {
-        // Set notification title
+
         binding.tvNotificationTitle.text = notification.title
 
-        // Set notification content
+
         binding.tvNotificationContent.text = notification.content
 
-        // Set notification time
+
         binding.tvNotificationTime.text = formatDateTime(notification.notiDate)
 
-        // Set notification details
+
         binding.tvNotificationId.text = notification.id.toString()
         binding.tvNotificationType.text = notification.type
         binding.tvNotificationDate.text = notification.notiDate
-        binding.tvNotificationStatus.text = if (notification.isRead) "Đã đọc" else "Chưa đọc"
 
-        // Set icon based on notification type or content
+
+
         when {
             notification.title.contains("Premium", ignoreCase = true) -> {
                 binding.ivNotificationIcon.setImageResource(R.drawable.ic_premium)
@@ -124,21 +122,13 @@ class NotificationDetailActivity : BaseActivity() {
 
     private fun setupPremiumActions() {
         binding.actionsContainer.visibility = View.VISIBLE
-        binding.btnPrimaryAction.text = "Xem chi tiết gói Premium"
-        binding.btnPrimaryAction.setOnClickListener {
-            val intent = Intent(this, PremiumUser::class.java)
-            startActivity(intent)
-        }
+
+
     }
 
     private fun setupPaymentActions() {
         binding.actionsContainer.visibility = View.VISIBLE
-        binding.btnPrimaryAction.text = "Xem lịch sử giao dịch"
-        binding.btnPrimaryAction.setOnClickListener {
-            // Navigate to transaction history
-            // You might need to create an intent to navigate to your transaction history screen
-            Toast.makeText(this, "Chuyển đến lịch sử giao dịch", Toast.LENGTH_SHORT).show()
-        }
+
     }
 
     private fun formatDateTime(dateString: String): String {

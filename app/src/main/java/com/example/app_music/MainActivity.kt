@@ -3,6 +3,7 @@ package com.example.app_music
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -21,6 +22,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.app_music.databinding.ActivityMainBinding
 import com.example.app_music.presentation.feature.common.BaseActivity
+import com.example.app_music.presentation.feature.notification.NotificationActivity
 import kotlinx.coroutines.cancelChildren
 
 class MainActivity : BaseActivity() {
@@ -41,44 +43,44 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize ViewModel
+
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
 
-        // Setup Navigation
+
         setupNavigation()
 
-        // Create notification channel
+
         createNotificationChannel()
 
-        // Request notification permission
+
         requestNotificationPermission()
 
-        // Observe new notifications for push notification display
+
         observeNotifications()
 
         if (navController != null) {
             binding.bottomNavigationView.setupWithNavController(navController)
 
-            // Kiểm tra intent từ ResultActivity
+
             if (intent.getBooleanExtra("NAVIGATE_TO_POSTING", false)) {
-                // Đặt Community tab được chọn
+
                 binding.bottomNavigationView.selectedItemId = R.id.communityFragment
 
-                // Đợi cho navigation hoàn tất
+
                 navController.addOnDestinationChangedListener(object : NavController.OnDestinationChangedListener {
                     override fun onDestinationChanged(controller: NavController, destination: NavDestination, arguments: Bundle?) {
                         if (destination.id == R.id.communityFragment) {
-                            // Xóa listener để tránh gọi nhiều lần
+
                             navController.removeOnDestinationChangedListener(this)
 
-                            // Chuyển đến trang posting với dữ liệu từ ResultActivity
+
                             val bundle = Bundle().apply {
                                 putString("IMAGE_PATH", intent.getStringExtra("IMAGE_PATH"))
                                 putString("IMAGE_URL", intent.getStringExtra("IMAGE_URL"))
                                 putString("QUESTION_TEXT", intent.getStringExtra("QUESTION_TEXT"))
                             }
 
-                            // Navigate to posting fragment
+
                             navController.navigate(R.id.action_communityFragment_to_communityPostingFragment, bundle)
                         }
                     }
@@ -96,7 +98,7 @@ class MainActivity : BaseActivity() {
             navController = navHostFragment.navController
             binding.bottomNavigationView.setupWithNavController(navController)
 
-            // Handle intent from ResultActivity
+
             handleResultActivityIntent()
         } else {
             Log.e(TAG, "NavController is null!")
@@ -105,10 +107,10 @@ class MainActivity : BaseActivity() {
 
     private fun handleResultActivityIntent() {
         if (intent.getBooleanExtra("NAVIGATE_TO_POSTING", false)) {
-            // Set Community tab as selected
+
             binding.bottomNavigationView.selectedItemId = R.id.communityFragment
 
-            // Wait for navigation to complete
+
             navController.addOnDestinationChangedListener(object : NavController.OnDestinationChangedListener {
                 override fun onDestinationChanged(
                     controller: NavController,
@@ -116,17 +118,17 @@ class MainActivity : BaseActivity() {
                     arguments: Bundle?
                 ) {
                     if (destination.id == R.id.communityFragment) {
-                        // Remove listener to avoid multiple calls
+
                         navController.removeOnDestinationChangedListener(this)
 
-                        // Navigate to posting fragment with data from ResultActivity
+
                         val bundle = Bundle().apply {
                             putString("IMAGE_PATH", intent.getStringExtra("IMAGE_PATH"))
                             putString("IMAGE_URL", intent.getStringExtra("IMAGE_URL"))
                             putString("QUESTION_TEXT", intent.getStringExtra("QUESTION_TEXT"))
                         }
 
-                        // Navigate to posting fragment
+
                         navController.navigate(R.id.action_communityFragment_to_communityPostingFragment, bundle)
                     }
                 }
@@ -142,7 +144,7 @@ class MainActivity : BaseActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.app_name) // Use app_name or create notification_channel_name
+            val name = getString(R.string.app_name)
             val descriptionText = "Notifications from SnapSolve"
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
@@ -185,15 +187,22 @@ class MainActivity : BaseActivity() {
         }
 
 
-      //  val intent = Intent(this, )
+        val intent = Intent(this, NotificationActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification) // Make sure this icon exists or use android.R.drawable.ic_dialog_info
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(content)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setVibrate(longArrayOf(1000, 1000, 1000))
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))
+            .setContentIntent(pendingIntent)
 
         try {
             with(NotificationManagerCompat.from(this)) {
@@ -206,11 +215,11 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Reconnect WebSocket if needed
+
         if (::mainViewModel.isInitialized && !mainViewModel.isWebSocketConnected()) {
             mainViewModel.connectWebSocket()
         }
-        // Refresh notification count
+
         if (::mainViewModel.isInitialized) {
             mainViewModel.refreshNotifications()
         }
